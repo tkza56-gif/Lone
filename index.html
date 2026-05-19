@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ระบบจัดการดอกเบี้ยเงินกู้</title>
 <meta name="theme-color" content="#065f46">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="เงินกู้">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
 <!-- React + ReactDOM + Babel จาก CDN (ล็อกเวอร์ชันชัดเจน กัน 404) -->
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
@@ -211,31 +217,43 @@ async function decryptObj(blob) {
 /* -------- Cloud Storage (Supabase) --------
    ข้อมูลถูกเข้ารหัส AES-256 ก่อนส่งขึ้น cloud ทุกครั้ง
    อ่าน/เขียนผ่าน Supabase REST API โดยตรง (ไม่ต้องมี supabase-js)
-   Fallback: localStorage ถ้าเน็ตไม่มี */
+   Fallback: localStorage ถ้าเน็ตไม่มี
+   syncStatus: 'ok' | 'syncing' | 'offline' | 'error' */
 const _SUPA_URL = 'https://jmjdxfhxzmpzggehlwao.supabase.co';
 const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
 const _mem = {};
+/* ตัวแปรบอกสถานะซิงค์ — คอมโพเนนต์อ่านผ่าน window._syncStatus */
+window._syncStatus = 'ok';
+window._syncListeners = [];
+function _setSyncStatus(s) {
+  window._syncStatus = s;
+  window._syncListeners.forEach((fn) => { try { fn(s); } catch (e) {} });
+}
+
+const _HEADERS = {
+  'apikey': _SUPA_KEY,
+  'Authorization': `Bearer ${_SUPA_KEY}`,
+  'Content-Type': 'application/json',
+};
 
 async function _supaSet(key, val) {
   try {
+    _setSyncStatus('syncing');
     const res = await fetch(`${_SUPA_URL}/rest/v1/app_store`, {
       method: 'POST',
-      headers: {
-        'apikey': _SUPA_KEY,
-        'Authorization': `Bearer ${_SUPA_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates',
-      },
+      headers: { ..._HEADERS, 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify({ key, value: JSON.stringify(val), updated_at: new Date().toISOString() }),
     });
-    return res.ok;
-  } catch (e) { return false; }
+    if (res.ok) { _setSyncStatus('ok'); return true; }
+    _setSyncStatus('error'); return false;
+  } catch (e) { _setSyncStatus('offline'); return false; }
 }
 async function _supaGet(key) {
   try {
-    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`, {
-      headers: { 'apikey': _SUPA_KEY, 'Authorization': `Bearer ${_SUPA_KEY}` },
-    });
+    const res = await fetch(
+      `${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
+      { headers: _HEADERS }
+    );
     if (!res.ok) return null;
     const rows = await res.json();
     if (!rows || !rows.length) return null;
@@ -245,20 +263,28 @@ async function _supaGet(key) {
 async function _supaDel(key) {
   try {
     await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}`, {
-      method: 'DELETE',
-      headers: { 'apikey': _SUPA_KEY, 'Authorization': `Bearer ${_SUPA_KEY}` },
+      method: 'DELETE', headers: _HEADERS,
     });
   } catch (e) {}
+}
+/* ทดสอบการเชื่อมต่อ Supabase — เรียกตอนเปิดแอป */
+async function _checkSupaConn() {
+  try {
+    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store?limit=1`, { headers: _HEADERS });
+    if (res.ok) { _setSyncStatus('ok'); return true; }
+    if (res.status === 404 || res.status === 400) {
+      _setSyncStatus('error'); return false;    // ตาราง app_store ยังไม่มี
+    }
+    _setSyncStatus('error'); return false;
+  } catch (e) { _setSyncStatus('offline'); return false; }
 }
 
 async function storageSet(key, val) {
   _mem[key] = val;
-  // เขียนลง cloud + localStorage พร้อมกัน
   try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
   await _supaSet(key, val);
 }
 async function storageGet(key) {
-  // ลอง cloud ก่อน (ข้อมูลล่าสุด), fallback localStorage, แล้วค่อย memory
   const cloud = await _supaGet(key);
   if (cloud !== null) {
     try { window.localStorage.setItem(key, JSON.stringify(cloud)); } catch (e) {}
@@ -2093,6 +2119,26 @@ function InactivityModal({ secLeft, onStay, onLeave }) {
 }
 
 /* ---------------- แถบนำทางล่าง ---------------- */
+/* ---- ไฟแสดงสถานะซิงค์ cloud ---- */
+function SyncBadge() {
+  const [status, setStatus] = useState(window._syncStatus || 'ok');
+  useEffect(() => {
+    const fn = (s) => setStatus(s);
+    window._syncListeners.push(fn);
+    return () => { window._syncListeners = window._syncListeners.filter((f) => f !== fn); };
+  }, []);
+  const map = {
+    ok:      { color: 'bg-emerald-400', title: 'ซิงค์แล้ว' },
+    syncing: { color: 'bg-amber-400 animate-pulse', title: 'กำลังซิงค์...' },
+    offline: { color: 'bg-slate-400', title: 'ออฟไลน์ — ใช้ข้อมูลในเครื่อง' },
+    error:   { color: 'bg-red-400', title: 'ซิงค์ไม่ได้ — ตรวจ Supabase' },
+  };
+  const { color, title } = map[status] || map.ok;
+  return (
+    <div title={title} className={`h-2.5 w-2.5 rounded-full ${color} shrink-0`} />
+  );
+}
+
 function BottomNav({ view, setView }) {
   const items = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'หน้าหลัก' },
@@ -2154,6 +2200,7 @@ function App() {
   useEffect(() => {
     (async () => {
       setEncOK(!!(window.crypto && window.crypto.subtle));
+      _checkSupaConn();  // ตรวจการเชื่อมต่อ Supabase ตอนเปิดแอป
       let d = await loadData();
       if (!d || !Array.isArray(d.debtors)) {
         d = await makeSeed();
@@ -2547,8 +2594,11 @@ function App() {
                 <h1 className="text-white text-xl font-bold">{headerTitle}</h1>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
-                  {(currentUser?.name || '?').charAt(0)}
+                <div className="flex items-center gap-2">
+                  <SyncBadge />
+                  <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
+                    {(currentUser?.name || '?').charAt(0)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2697,6 +2747,15 @@ function App() {
   );
 }
 
+
+/* ---- PWA: ลงทะเบียน Service Worker ---- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => { /* SW registered */ })
+      .catch(() => { /* ไม่มี sw.js ก็ไม่เป็นไร */ });
+  });
+}
 
 /* ---- เริ่มต้นแอป ---- */
 const _root = ReactDOM.createRoot(document.getElementById('root'));
