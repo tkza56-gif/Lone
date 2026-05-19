@@ -1,0 +1,2662 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ระบบจัดการดอกเบี้ยเงินกู้</title>
+<meta name="theme-color" content="#065f46">
+<!-- React + ReactDOM + Babel จาก CDN -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #f5f5f4; }
+  #root { min-height: 100vh; }
+  /* หน้าจอโหลดก่อน React พร้อม */
+  #boot { min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:#064e3b; color:#a7f3d0; font-family:sans-serif; }
+</style>
+</head>
+<body>
+<div id="root"><div id="boot">กำลังโหลด...</div></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+/* ===== ไอคอน (ฝังในไฟล์ ไม่ต้องโหลดจาก CDN) =====
+   path data จาก Lucide (lucide.dev) — ใบอนุญาต ISC
+   ห่อเป็น React component ที่รับ props เหมือน lucide-react เดิม */
+function _Icon(paths) {
+  return function I({ size = 24, className = '', strokeWidth = 2, ...rest }) {
+    return React.createElement('svg', {
+      xmlns: 'http://www.w3.org/2000/svg', width: size, height: size,
+      viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
+      strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round',
+      className, ...rest,
+      dangerouslySetInnerHTML: { __html: paths },
+    });
+  };
+}
+const Lock = _Icon('<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>');
+const User = _Icon('<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>');
+const Eye = _Icon('<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>');
+const EyeOff = _Icon('<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>');
+const LogOut = _Icon('<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>');
+const LayoutDashboard = _Icon('<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>');
+const Users = _Icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>');
+const SettingsIcon = _Icon('<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>');
+const Plus = _Icon('<path d="M5 12h14"/><path d="M12 5v14"/>');
+const ChevronLeft = _Icon('<path d="m15 18-6-6 6-6"/>');
+const ChevronDown = _Icon('<path d="m6 9 6 6 6-6"/>');
+const ChevronUp = _Icon('<path d="m18 15-6-6-6 6"/>');
+const Search = _Icon('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>');
+const Bell = _Icon('<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8a6 6 0 0 0-12 0c0 4.499-1.411 5.956-2.738 7.326"/>');
+const Share2 = _Icon('<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/>');
+const Wallet = _Icon('<path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>');
+const TrendingUp = _Icon('<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>');
+const AlertTriangle = _Icon('<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>');
+const CheckCircle2 = _Icon('<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>');
+const Trash2 = _Icon('<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/>');
+const Pencil = _Icon('<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>');
+const Copy = _Icon('<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>');
+const ShieldCheck = _Icon('<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>');
+const X = _Icon('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>');
+const Calendar = _Icon('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>');
+const Clock = _Icon('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>');
+const FileDown = _Icon('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/>');
+const Phone = _Icon('<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>');
+const Banknote = _Icon('<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/>');
+const BadgePercent = _Icon('<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m15 9-6 6"/><path d="M9 9h.01"/><path d="M15 15h.01"/>');
+const RefreshCw = _Icon('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>');
+const KeyRound = _Icon('<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>');
+
+
+/* ============ แอปหลัก ============ */
+
+
+/* =======================================================================
+   ระบบจัดการดอกเบี้ยเงินกู้  (Loan Interest Tracker)  — ตัวอย่าง / Prototype
+   - Login: admin / Potato@12
+   - ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน 5 นาที
+   - บันทึกข้อมูลอัตโนมัติ + เข้ารหัส AES-GCM
+   ======================================================================= */
+
+/* ---------------- ค่าคงที่ ---------------- */
+const AUTO_LOGOUT_MS = 5 * 60 * 1000;   // 5 นาที
+const WARNING_MS = 60 * 1000;           // เตือนล่วงหน้า 1 นาที
+const DATA_KEY = 'lt_data_v1';
+const SESSION_KEY = 'lt_session_v1';
+const LOCK_KEY = 'lt_lock_v1';          // สถานะล็อกหลังกรอกรหัสผิดหลายครั้ง
+const KDF_SECRET = 'loan-tracker::a7F#9kPmZ2!qR4';
+const KDF_SALT = 'salt::lt::v1::8x@Lw';
+const PW_ITER = 210000;                 // รอบ PBKDF2 สำหรับแฮชรหัสผ่าน
+const LOGIN_MAX_FAILS = 5;              // กรอกผิดครบจำนวนนี้จึงล็อกชั่วคราว
+
+const THAI_MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const THAI_MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const RATE_OPTIONS = [5, 7, 10];        // อัตราดอกเบี้ยต่อเดือนที่เลือกได้
+
+/* ---------------- เครื่องมือเข้ารหัส (Web Crypto) ---------------- */
+const _subtleOK = () => typeof window !== 'undefined' && !!(window.crypto && window.crypto.subtle);
+let _cryptoKey = null;
+async function getKey() {
+  if (_cryptoKey) return _cryptoKey;
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(KDF_SECRET), 'PBKDF2', false, ['deriveKey']);
+  _cryptoKey = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: enc.encode(KDF_SALT), iterations: 120000, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+  );
+  return _cryptoKey;
+}
+function hexFromBuf(buf) {
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+function randHex(bytes) {
+  return hexFromBuf(crypto.getRandomValues(new Uint8Array(bytes)).buffer);
+}
+/* แฮชสำรองกรณีเบราว์เซอร์ไม่รองรับ Web Crypto (FNV-1a สองชุด) */
+function fallbackHash(str) {
+  let h1 = 0x811c9dc5, h2 = 0xc2b2ae35;
+  for (let i = 0; i < str.length; i++) {
+    const c = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 16777619);
+    h2 = Math.imul(h2 ^ c, 2246822519);
+  }
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+}
+/* แฮชรหัสผ่านด้วย PBKDF2 (เกลือเฉพาะคน + วนซ้ำหลายแสนรอบ) */
+async function hashPassword(password, saltHex) {
+  if (!_subtleOK()) return 'fb:' + fallbackHash(saltHex + '::' + password);
+  const enc = new TextEncoder();
+  const salt = Uint8Array.from(saltHex.match(/../g).map((h) => parseInt(h, 16)));
+  const base = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: PW_ITER, hash: 'SHA-256' }, base, 256);
+  return hexFromBuf(bits);
+}
+async function makeCredential(password) {
+  const salt = randHex(16);
+  return { salt, hash: await hashPassword(password, salt), iter: PW_ITER };
+}
+/* ตรวจรหัสผ่านแบบเทียบเวลาคงที่ (ลดความเสี่ยง timing attack) */
+async function verifyCredential(password, cred) {
+  if (!cred || !cred.salt || !cred.hash) return false;
+  const h = await hashPassword(password, cred.salt);
+  if (h.length !== cred.hash.length) return false;
+  let diff = 0;
+  for (let i = 0; i < h.length; i++) diff |= h.charCodeAt(i) ^ cred.hash.charCodeAt(i);
+  return diff === 0;
+}
+
+/* ---- กุญแจกู้คืนรหัสผ่าน (Recovery Key) ----
+   แต่ละผู้ใช้มี "โทเค็นกู้คืน" สุ่มขึ้นมา 1 ชุด
+   - ตัวโทเค็นจริงถูกดาวน์โหลดเป็นไฟล์ให้เก็บใน USB (เก็บนอกเครื่อง)
+   - ในระบบเก็บเพียงค่าแฮชของโทเค็น — ขโมยข้อมูลในเครื่องไปก็รีเซ็ตไม่ได้
+   - เวลารีเซ็ต ต้องอัปโหลดไฟล์กุญแจกลับมา ระบบแฮชแล้วเทียบ */
+function makeRecoveryToken() {
+  // 4 กลุ่ม กลุ่มละ 5 ตัว อ่านง่าย ไม่มีอักขระกำกวม
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const buf = crypto.getRandomValues(new Uint8Array(20));
+  let out = '';
+  for (let i = 0; i < 20; i++) {
+    out += A[buf[i] % A.length];
+    if (i % 5 === 4 && i < 19) out += '-';
+  }
+  return out;   // เช่น A7K2M-9PQR4-...
+}
+async function makeRecovery(token) {
+  const salt = randHex(16);
+  return { salt, hash: await hashPassword(token, salt), iter: PW_ITER };
+}
+async function verifyRecovery(token, rec) {
+  if (!rec || !rec.salt || !rec.hash || !token) return false;
+  const norm = token.trim().toUpperCase().replace(/\s+/g, '');
+  const h = await hashPassword(norm, rec.salt);
+  if (h.length !== rec.hash.length) return false;
+  let diff = 0;
+  for (let i = 0; i < h.length; i++) diff |= h.charCodeAt(i) ^ rec.hash.charCodeAt(i);
+  return diff === 0;
+}
+async function encryptObj(obj) {
+  try {
+    if (!_subtleOK()) throw new Error('no-subtle');
+    const key = await getKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const data = new TextEncoder().encode(JSON.stringify(obj));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
+    return { v: 1, enc: true, iv: [...iv], ct: [...new Uint8Array(ct)] };
+  } catch (e) {
+    // กรณีเบราว์เซอร์ไม่รองรับ — เก็บแบบไม่เข้ารหัส (มีคำเตือนใน Settings)
+    return { v: 1, enc: false, data: obj };
+  }
+}
+async function decryptObj(blob) {
+  if (!blob) return null;
+  if (blob.enc === false) return blob.data;
+  try {
+    const key = await getKey();
+    const iv = new Uint8Array(blob.iv);
+    const ct = new Uint8Array(blob.ct);
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+    return JSON.parse(new TextDecoder().decode(pt));
+  } catch (e) {
+    return null;
+  }
+}
+
+/* ---------------- ชั้นจัดเก็บข้อมูล (persistent + cache) ---------------- */
+const _mem = {};
+async function storageSet(key, val) {
+  _mem[key] = val;
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem(key, JSON.stringify(val));
+    }
+  } catch (e) { /* ใช้ cache ในหน่วยความจำแทน */ }
+}
+async function storageGet(key) {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const r = window.localStorage.getItem(key);
+      if (r != null) return JSON.parse(r);
+    }
+  } catch (e) { /* คีย์อาจยังไม่มี */ }
+  return key in _mem ? _mem[key] : null;
+}
+async function storageDel(key) {
+  delete _mem[key];
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(key);
+  } catch (e) {}
+}
+async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
+async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
+async function saveSession(s) { await storageSet(SESSION_KEY, await encryptObj(s)); }
+async function loadSession() { return decryptObj(await storageGet(SESSION_KEY)); }
+async function saveLock(s) { await storageSet(LOCK_KEY, await encryptObj(s)); }
+async function loadLock() { return decryptObj(await storageGet(LOCK_KEY)); }
+
+/* ---------------- เครื่องมือวันที่ / การเงิน ---------------- */
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function ymOf(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+function curYM() { return ymOf(new Date()); }
+
+// วันแจ้งเตือน: วันที่ 25 — ถ้าตรงเสาร์ย้อนเป็น 24 (ศุกร์), ถ้าตรงอาทิตย์ย้อนเป็น 23 (ศุกร์)
+function getNotifyDay(year, month1) {
+  const d = new Date(year, month1 - 1, 25);
+  const dow = d.getDay(); // 0 อาทิตย์ ... 6 เสาร์
+  if (dow === 6) return 24;
+  if (dow === 0) return 23;
+  return 25;
+}
+function getNotifyDate(year, month1) {
+  return new Date(year, month1 - 1, getNotifyDay(year, month1));
+}
+function nextNotifyDate() {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const y = t.getFullYear(), m = t.getMonth() + 1;
+  const thisOne = getNotifyDate(y, m);
+  if (t <= thisOne) return thisOne;
+  const nm = m === 12 ? 1 : m + 1, ny = m === 12 ? y + 1 : y;
+  return getNotifyDate(ny, nm);
+}
+function isCollectionPeriod() {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return t >= getNotifyDate(t.getFullYear(), t.getMonth() + 1);
+}
+
+/* ---------------- การแจ้งเตือนบนเบราว์เซอร์ + Service Worker ----------------
+   - Notification API ใช้ได้เมื่อเปิดแอปอยู่ (foreground)
+   - Service Worker เปิดให้แจ้งเตือนแบบเบื้องหลัง + ใช้งานออฟไลน์
+     จะทำงานได้ต่อเมื่อนำไฟล์ทั้งชุด (index.html + sw.js + manifest.json)
+     ไปวางบนเว็บโฮสต์จริงที่เป็น HTTPS — ในตัวอย่างนี้จะข้ามไปอย่างนุ่มนวล */
+const NOTIFY_FLAG_KEY = 'lt_notified_v1';   // กันแจ้งซ้ำในเดือนเดียวกัน
+
+function notifySupported() {
+  return typeof window !== 'undefined' && 'Notification' in window;
+}
+async function requestNotifyPermission() {
+  if (!notifySupported()) return 'unsupported';
+  try {
+    if (Notification.permission === 'granted') return 'granted';
+    if (Notification.permission === 'denied') return 'denied';
+    return await Notification.requestPermission();
+  } catch (e) {
+    return 'unsupported';
+  }
+}
+/* แสดงการแจ้งเตือน — ผ่าน Service Worker ถ้ามี ไม่งั้นใช้ Notification ตรง ๆ */
+async function showNotification(title, body) {
+  if (!notifySupported() || Notification.permission !== 'granted') return false;
+  try {
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) {
+        await reg.showNotification(title, {
+          body, tag: 'loan-due', renotify: true,
+          badge: undefined, requireInteraction: false,
+        });
+        return true;
+      }
+    }
+    new Notification(title, { body, tag: 'loan-due' });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+/* ลงทะเบียน Service Worker (ใช้ได้เมื่อโฮสต์จริง) */
+async function registerServiceWorker() {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return { ok: false, reason: 'unsupported' };
+  }
+  try {
+    // ต้องมีไฟล์ sw.js วางอยู่โฟลเดอร์เดียวกับแอป
+    const reg = await navigator.serviceWorker.register('./sw.js');
+    // ขอ periodic background sync ถ้าเบราว์เซอร์รองรับ (เตือนเบื้องหลังรายวัน)
+    try {
+      if ('periodicSync' in reg) {
+        const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+        if (status.state === 'granted') {
+          await reg.periodicSync.register('loan-due-check', { minInterval: 24 * 60 * 60 * 1000 });
+        }
+      }
+    } catch (e) { /* periodic sync ไม่รองรับ — ข้าม */ }
+    return { ok: true, reg };
+  } catch (e) {
+    // ในตัวอย่าง/แซนด์บ็อกซ์จะลงทะเบียนไม่ได้ — ถือว่าปกติ
+    return { ok: false, reason: 'blocked' };
+  }
+}
+
+function monthRange(startYM, endYM) {
+  if (!startYM || !endYM || startYM > endYM) return [];
+  const [sy, sm] = startYM.split('-').map(Number);
+  const [ey, em] = endYM.split('-').map(Number);
+  const out = [];
+  let y = sy, m = sm;
+  while (y < ey || (y === ey && m <= em)) {
+    out.push(`${y}-${String(m).padStart(2, '0')}`);
+    if (++m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+function ymLabel(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return `${THAI_MON[m - 1]} ${y + 543}`;
+}
+function ymLabelFull(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  return `${THAI_MON_FULL[m - 1]} ${y + 543}`;
+}
+function fmtMoney(n) {
+  const v = Number(n) || 0;
+  return v.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function fmtThaiDate(d) {
+  if (!d) return '-';
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if (isNaN(dt)) return '-';
+  return `${dt.getDate()} ${THAI_MON[dt.getMonth()]} ${dt.getFullYear() + 543}`;
+}
+
+const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+const nextYM = (y, m) => (m >= 12 ? [y + 1, 1] : [y, m + 1]);
+
+/* ระบุชนิดเงินกู้ (รองรับข้อมูลเก่าที่ยังไม่มีฟิลด์ type) */
+function loanType(loan) {
+  if (loan.type) return loan.type;
+  return (Number(loan.rate) || 0) > 0 ? 'interest' : 'installment';
+}
+
+/* สร้างตารางผ่อนแบบลดต้นลดดอก
+   แต่ละเดือน: ดอกเบี้ย = ยอดคงเหลือ × อัตรา, เงินต้นที่ตัด = ยอดผ่อน − ดอกเบี้ย */
+function buildAmortSchedule(principal, rate, payment, startMonth) {
+  const months = [], scheduleMap = {}, breakdownMap = {};
+  let totalInterest = 0, neverPayoff = false;
+  const r = rate / 100;
+  if (!(principal > 0 && rate > 0 && payment > 0 && startMonth)) {
+    return { months, scheduleMap, breakdownMap, totalInterest: 0, neverPayoff: false };
+  }
+  // ยอดผ่อนต้องมากกว่าดอกเบี้ยงวดแรก มิฉะนั้นหนี้ไม่มีวันหมด
+  if (payment <= principal * r + 0.0001) {
+    return { months, scheduleMap, breakdownMap, totalInterest: 0, neverPayoff: true };
+  }
+  let bal = principal;
+  let [y, m] = startMonth.split('-').map(Number);
+  let guard = 0;
+  while (bal > 0.005 && guard < 1200) {
+    const interest = bal * r;
+    let principalPart = payment - interest;
+    if (principalPart >= bal) principalPart = bal;        // งวดสุดท้าย
+    const due = round2(principalPart + interest);
+    const key = `${y}-${String(m).padStart(2, '0')}`;
+    months.push(key);
+    scheduleMap[key] = due;
+    breakdownMap[key] = {
+      interest: round2(interest), principalPart: round2(principalPart),
+      balanceBefore: round2(bal), balanceAfter: round2(bal - principalPart),
+    };
+    totalInterest += interest;
+    bal -= principalPart;
+    [y, m] = nextYM(y, m);
+    guard++;
+  }
+  return { months, scheduleMap, breakdownMap, totalInterest: round2(totalInterest), neverPayoff };
+}
+
+/* สร้างบัญชีรายเดือนแบบมียอดยกมา (carry-forward)
+   จ่ายไม่ครบในเดือนหนึ่ง ส่วนที่ขาดจะถูกยกไปรวมกับเดือนถัดไป */
+function buildLedger(months, scheduleMap, payments) {
+  const rows = [];
+  let cumBill = 0, cumPaid = 0;
+  months.forEach((m) => {
+    const bill = round2(scheduleMap[m] || 0);
+    const rec = payments[m];
+    const paid = rec ? (Number(rec.amount) || 0) : 0;
+    const hasPayment = !!rec;
+    const carryIn = round2(cumBill - cumPaid);     // ยอดค้างที่ยกมาจากเดือนก่อน
+    const required = round2(Math.max(0, carryIn) + bill); // ยอดที่ควรจ่ายเดือนนี้ (รวมยอดยกมา)
+    cumBill = round2(cumBill + bill);
+    cumPaid = round2(cumPaid + paid);
+    const balanceAfter = round2(cumBill - cumPaid); // ยอดค้างหลังจบเดือนนี้
+    let status;
+    if (balanceAfter <= 0.005) status = 'settled';        // เคลียร์ครบ (อาจใช้เครดิตจ่ายเกิน)
+    else if (paid > 0.005 || carryIn < -0.005) status = 'partial'; // จ่ายบางส่วน หรือมีเครดิตช่วยแต่ไม่พอ
+    else status = 'unpaid';                               // ยังไม่จ่ายเลย
+    rows.push({ month: m, bill, paid, hasPayment, carryIn, required, balanceAfter, status });
+  });
+  return rows;
+}
+
+/* คำนวณสถานะของแต่ละก้อนเงินกู้ — รองรับ 3 ชนิด
+   - interest    : คิดดอกเบี้ยอย่างเดียว เงินต้นคงเดิม
+   - installment : ไม่มีดอกเบี้ย ผ่อนเป็นงวด หักเงินต้น
+   - amortized   : ลดต้นลดดอก ผ่อนคงที่ ดอกเบี้ยคิดจากยอดคงเหลือ
+   ทุกชนิดรองรับการจ่ายไม่ครบ — ส่วนที่ขาดยกไปเดือนถัดไป */
+function loanStats(loan, cur) {
+  const principal = Number(loan.principal) || 0;
+  const rate = Number(loan.rate) || 0;
+  const payments = loan.payments || {};
+  const kind = loanType(loan);
+  let paidTotal = 0;
+  Object.values(payments).forEach((p) => { paidTotal += Number(p.amount) || 0; });
+
+  // เตรียมรายชื่อเดือน + ยอดบิลแต่ละเดือน ตามชนิดเงินกู้
+  let months = [], scheduleMap = {}, breakdownMap = {};
+  let payoffMonth = null, totalInterest = 0, neverPayoff = false;
+
+  if (kind === 'interest') {
+    const monthly = round2(principal * rate / 100);
+    months = monthRange(loan.startMonth, cur);
+    months.forEach((m) => { scheduleMap[m] = monthly; });
+  } else if (kind === 'amortized') {
+    const payment = Number(loan.payment) || 0;
+    const sch = buildAmortSchedule(principal, rate, payment, loan.startMonth);
+    months = sch.months; scheduleMap = sch.scheduleMap; breakdownMap = sch.breakdownMap;
+    totalInterest = sch.totalInterest; neverPayoff = sch.neverPayoff;
+    payoffMonth = months.length ? months[months.length - 1] : null;
+  } else {
+    const installment = Number(loan.installment) || 0;
+    if (installment > 0 && principal > 0 && loan.startMonth) {
+      let [y, m] = loan.startMonth.split('-').map(Number);
+      let rem = principal, guard = 0;
+      while (rem > 0 && guard < 1200) {
+        const due = Math.min(installment, rem);
+        const key = `${y}-${String(m).padStart(2, '0')}`;
+        months.push(key); scheduleMap[key] = round2(due);
+        rem -= due; [y, m] = nextYM(y, m); guard++;
+      }
+    }
+    payoffMonth = months.length ? months[months.length - 1] : null;
+  }
+
+  // บัญชีรายเดือนพร้อมยอดยกมา
+  const ledger = buildLedger(months, scheduleMap, payments);
+  const rowOf = {};
+  ledger.forEach((r) => { rowOf[r.month] = r; });
+
+  // ยอดค้างจากเดือนก่อนหน้าเดือนปัจจุบัน + เดือนที่ค้าง
+  let cumBillBefore = 0, cumPaidBefore = 0, cumBillThru = 0, cumPaidThru = 0;
+  const overdueMonths = [];
+  ledger.forEach((r) => {
+    if (r.month < cur) {
+      cumBillBefore += r.bill; cumPaidBefore += r.paid;
+      if (r.status !== 'settled') overdueMonths.push(r.month);
+    }
+    if (r.month <= cur) { cumBillThru += r.bill; cumPaidThru += r.paid; }
+  });
+  const outstanding = Math.max(0, round2(cumBillBefore - cumPaidBefore));
+  const loanDueNow = Math.max(0, round2(cumBillThru - cumPaidThru)); // ยอดที่ต้องชำระรวมถึงเดือนนี้
+
+  const thisRow = rowOf[cur] || null;
+  const thisMonthInBilling = !!thisRow;
+  const monthly = kind === 'interest'
+    ? round2(principal * rate / 100)
+    : (kind === 'amortized' ? (Number(loan.payment) || 0) : (Number(loan.installment) || 0));
+  const thisMonthBill = thisRow ? thisRow.bill : 0;
+  const thisMonthPaidAmt = thisRow ? thisRow.paid : 0;
+  const thisMonthHasPayment = thisRow ? thisRow.hasPayment : false;
+  const thisMonthSettled = thisRow ? thisRow.status === 'settled' : false;
+  const thisMonthRequired = thisRow ? thisRow.required : 0;          // ควรจ่ายเดือนนี้ (รวมยกมา)
+  const thisMonthDue = Math.max(0, round2(loanDueNow - outstanding)); // ส่วนของเดือนนี้เอง
+
+  // เงินต้นคงเหลือ + สถานะผ่อนครบ
+  let remaining = principal;
+  let complete = false;
+  if (kind === 'interest') {
+    remaining = principal;                       // เงินต้นคงเดิม
+  } else if (kind === 'installment') {
+    remaining = Math.max(0, round2(principal - paidTotal));
+    complete = months.length > 0 && remaining <= 0.005;
+  } else { // amortized — นับเงินต้นจากงวดที่เคลียร์ครบแล้ว
+    let principalPaid = 0;
+    ledger.forEach((r) => {
+      if (r.status === 'settled' && breakdownMap[r.month]) {
+        principalPaid += breakdownMap[r.month].principalPart;
+      }
+    });
+    remaining = Math.max(0, round2(principal - principalPaid));
+    complete = months.length > 0 && ledger.every((r) => r.status === 'settled');
+  }
+
+  return {
+    kind, principal, rate,
+    installment: kind === 'installment' ? (Number(loan.installment) || 0) : 0,
+    payment: kind === 'amortized' ? (Number(loan.payment) || 0) : 0,
+    monthly, remaining, months, scheduleMap, breakdownMap, payments, paidTotal,
+    ledger, rowOf, outstanding, overdueMonths, loanDueNow,
+    thisMonthInBilling, thisMonthBill, thisMonthPaidAmt, thisMonthHasPayment,
+    thisMonthSettled, thisMonthRequired, thisMonthDue,
+    thisMonthPaid: thisMonthSettled,   // คงชื่อเดิมไว้: ถือว่า "จ่ายแล้ว" = เคลียร์ครบ
+    complete, payoffMonth, totalInterest, neverPayoff,
+  };
+}
+/* รวมสถานะของลูกหนี้ทั้งคน */
+function debtorStats(debtor, cur) {
+  const loans = (debtor.loans || []).map((l) => ({ loan: l, s: loanStats(l, cur) }));
+  let totalPrincipal = 0, totalRemaining = 0, monthlyInterest = 0,
+    monthlyInstallment = 0, paidTotal = 0, outstanding = 0, thisMonthDue = 0, dueNow = 0;
+  loans.forEach(({ s }) => {
+    totalPrincipal += s.principal;
+    totalRemaining += s.remaining;
+    if (s.kind === 'interest') monthlyInterest += s.monthly;
+    else monthlyInstallment += s.monthly;
+    paidTotal += s.paidTotal;
+    outstanding += s.outstanding;
+    thisMonthDue += s.thisMonthDue;
+    dueNow += s.loanDueNow;
+  });
+  const monthlyDue = monthlyInterest + monthlyInstallment;
+  return {
+    loans, totalPrincipal, totalRemaining, monthlyInterest, monthlyInstallment,
+    monthlyDue, paidTotal, outstanding, thisMonthDue, dueNow: round2(dueNow),
+  };
+}
+
+/* ---------------- ข้อมูลตัวอย่างเริ่มต้น ---------------- */
+async function makeSeed() {
+  const now = new Date();
+  const ym = (off) => ymOf(new Date(now.getFullYear(), now.getMonth() + off, 1));
+  const pay = (m, a) => ({ amount: a, date: `${m}-25` });
+  const adminCred = await makeCredential('Potato@12');
+  return {
+    users: [
+      {
+        id: uid(), username: 'admin', name: 'ผู้ดูแลระบบ', role: 'admin',
+        cred: adminCred, createdAt: Date.now(),
+      },
+    ],
+    debtors: [
+      {
+        id: uid(), name: 'สมชาย ใจดี', phone: '081-234-5678', note: 'ลูกค้าประจำ',
+        createdAt: Date.now(),
+        loans: [
+          { id: uid(), type: 'interest', principal: 50000, rate: 5, startMonth: ym(-3), note: 'รอบแรก',
+            // เดือนแรกจ่ายเต็ม เดือนที่สองจ่ายไม่ครบ (ขาด 500 ยกไปเดือนถัดไป)
+            payments: { [ym(-3)]: pay(ym(-3), 2500), [ym(-2)]: pay(ym(-2), 2000) } },
+          { id: uid(), type: 'interest', principal: 30000, rate: 10, startMonth: ym(-2), note: 'ก้อนเพิ่ม',
+            payments: { [ym(-2)]: pay(ym(-2), 3000), [ym(-1)]: pay(ym(-1), 3000) } },
+        ],
+      },
+      {
+        id: uid(), name: 'วิภาดา พรหมมา', phone: '089-876-5432', note: 'เปิดยอดเดือนนี้',
+        createdAt: Date.now(),
+        loans: [
+          { id: uid(), type: 'interest', principal: 100000, rate: 7, startMonth: ym(0), note: '', payments: {} },
+          { id: uid(), type: 'amortized', principal: 60000, rate: 5, payment: 8000, startMonth: ym(-2),
+            note: 'ลดต้นลดดอก', payments: { [ym(-2)]: pay(ym(-2), 8000) } },
+        ],
+      },
+      {
+        id: uid(), name: 'นที สายชล', phone: '080-111-2222', note: 'ตกลงไม่คิดดอกเบี้ย',
+        createdAt: Date.now(),
+        loans: [
+          { id: uid(), type: 'installment', principal: 12000, rate: 0, installment: 1000, startMonth: ym(-4),
+            note: 'ผ่อนเดือนละ 1,000', payments: { [ym(-4)]: pay(ym(-4), 1000), [ym(-3)]: pay(ym(-3), 1000) } },
+        ],
+      },
+    ],
+  };
+}
+
+/* ---------------- สไตล์ร่วม ---------------- */
+const inputCls = 'w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition';
+const labelCls = 'block text-sm font-medium text-slate-600 mb-1.5';
+
+/* =======================================================================
+   คอมโพเนนต์ย่อย
+   ======================================================================= */
+
+function Modal({ open, onClose, title, children, maxW = 'max-w-md' }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div style={{ maxHeight: '92vh' }}
+        className={`relative w-full ${maxW} bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-y-auto lt-pop`}>
+        <div className="sticky top-0 bg-white/95 backdrop-blur px-5 py-4 flex items-center justify-between border-b border-stone-100">
+          <h3 className="font-semibold text-slate-800 text-base">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-100 text-slate-500">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Pill({ tone = 'slate', children }) {
+  const tones = {
+    slate: 'bg-stone-100 text-slate-600',
+    green: 'bg-emerald-50 text-emerald-700',
+    amber: 'bg-amber-50 text-amber-700',
+    red: 'bg-red-50 text-red-600',
+  };
+  return <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${tones[tone]}`}>{children}</span>;
+}
+
+function PrimaryBtn({ children, onClick, type = 'button', className = '', disabled }) {
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-900 active:scale-95 disabled:opacity-50 transition ${className}`}>
+      {children}
+    </button>
+  );
+}
+function GhostBtn({ children, onClick, className = '' }) {
+  return (
+    <button onClick={onClick}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-stone-50 active:scale-95 transition ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+/* ---------------- หน้าเข้าสู่ระบบ ---------------- */
+function LoginScreen({ users, onLogin, onReset }) {
+  const [u, setU] = useState('');
+  const [p, setP] = useState('');
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [lockLeft, setLockLeft] = useState(0);   // วินาทีที่ยังถูกล็อก
+  const [mode, setMode] = useState('login');     // login | recover
+  const lockRef = useRef(null);                  // { fails, until }
+
+  // โหลดสถานะล็อกที่ค้างไว้ + เดินนาฬิกาถอยหลัง
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const lk = await loadLock();
+      if (alive && lk) lockRef.current = lk;
+      if (alive && lk && lk.until > Date.now()) {
+        setLockLeft(Math.ceil((lk.until - Date.now()) / 1000));
+      }
+    })();
+    const t = setInterval(() => {
+      const lk = lockRef.current;
+      if (lk && lk.until > Date.now()) setLockLeft(Math.ceil((lk.until - Date.now()) / 1000));
+      else setLockLeft(0);
+    }, 1000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  const submit = async () => {
+    if (lockLeft > 0 || busy) return;
+    setErr('');
+    setBusy(true);
+    try {
+      const uname = u.trim().toLowerCase();
+      const user = (users || []).find((x) => (x.username || '').toLowerCase() === uname);
+      const ok = user ? await verifyCredential(p, user.cred) : false;
+      if (ok) {
+        await saveLock({ fails: 0, until: 0 });   // ล็อกอินสำเร็จ — รีเซ็ตตัวนับ
+        lockRef.current = { fails: 0, until: 0 };
+        onLogin(user);
+        return;
+      }
+      // ล้มเหลว — เพิ่มตัวนับ และล็อกชั่วคราวเมื่อครบเกณฑ์
+      const prev = lockRef.current || { fails: 0, until: 0 };
+      const fails = (prev.fails || 0) + 1;
+      let until = 0;
+      if (fails >= LOGIN_MAX_FAILS) {
+        const secs = Math.min(300, 30 * (fails - LOGIN_MAX_FAILS + 1)); // 30s, 60s, ... สูงสุด 5 นาที
+        until = Date.now() + secs * 1000;
+        setLockLeft(secs);
+      }
+      const rec = { fails, until };
+      lockRef.current = rec;
+      await saveLock(rec);
+      const left = LOGIN_MAX_FAILS - fails;
+      setErr(until > Date.now()
+        ? 'กรอกผิดหลายครั้งเกินไป — ระบบล็อกชั่วคราว'
+        : `ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง${left > 0 ? ` (เหลืออีก ${left} ครั้งก่อนถูกล็อก)` : ''}`);
+    } catch (e) {
+      setErr('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+    setBusy(false);
+  };
+
+  const locked = lockLeft > 0;
+
+  /* ----- โหมดกู้คืนรหัสผ่าน ----- */
+  if (mode === 'recover') {
+    return <RecoverPanel users={users} onReset={onReset} onBack={() => { setMode('login'); setErr(''); }} />;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-emerald-800 to-emerald-950">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 mb-4">
+            <Wallet size={30} className="text-emerald-200" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">ระบบจัดการดอกเบี้ยเงินกู้</h1>
+          <p className="text-emerald-200/80 text-sm mt-1">เข้าสู่ระบบเพื่อจัดการข้อมูลลูกหนี้</p>
+        </div>
+        <div className="bg-white rounded-3xl shadow-2xl p-6">
+          <div className="mb-4">
+            <label className={labelCls}>ชื่อผู้ใช้</label>
+            <div className="relative">
+              <User size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input className={inputCls + ' pl-10'} value={u} placeholder="admin" autoCapitalize="none"
+                onChange={(e) => setU(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()} />
+            </div>
+          </div>
+          <div className="mb-2">
+            <label className={labelCls}>รหัสผ่าน</label>
+            <div className="relative">
+              <Lock size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input className={inputCls + ' pl-10 pr-10'} type={show ? 'text' : 'password'} value={p}
+                placeholder="••••••••"
+                onChange={(e) => setP(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submit()} />
+              <button onClick={() => setShow(!show)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {show ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+          {err && (
+            <div className="flex items-center gap-2 text-red-600 text-sm mt-3 bg-red-50 rounded-lg px-3 py-2">
+              <AlertTriangle size={15} className="shrink-0" /> {err}
+            </div>
+          )}
+          {locked && (
+            <div className="flex items-center gap-2 text-amber-700 text-sm mt-2 bg-amber-50 rounded-lg px-3 py-2">
+              <Clock size={15} className="shrink-0" /> ลองใหม่ได้ในอีก {lockLeft} วินาที
+            </div>
+          )}
+          <PrimaryBtn onClick={submit} disabled={busy || locked} className="w-full mt-5 py-3">
+            {busy ? 'กำลังตรวจสอบ...' : locked ? `ถูกล็อก (${lockLeft}s)` : 'เข้าสู่ระบบ'}
+          </PrimaryBtn>
+          <button onClick={() => { setMode('recover'); setErr(''); }}
+            className="w-full text-center mt-3 text-sm text-emerald-700 font-medium hover:underline">
+            ลืมรหัสผ่าน?
+          </button>
+          <div className="flex items-center gap-1.5 justify-center mt-3 text-xs text-slate-400 text-center">
+            <ShieldCheck size={14} className="shrink-0" /> รหัสผ่านเข้ารหัสแบบ PBKDF2 · ออกจากระบบอัตโนมัติใน 5 นาที
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- แผงกู้คืนรหัสผ่านด้วยกุญแจกู้คืน ---------------- */
+function RecoverPanel({ users, onReset, onBack }) {
+  const [step, setStep] = useState('key');     // key | newpw
+  const [username, setUsername] = useState('');
+  const [token, setToken] = useState('');
+  const [matched, setMatched] = useState(null); // ผู้ใช้ที่ยืนยันแล้ว
+  const [pw, setPw] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  // อ่านไฟล์กุญแจกู้คืน (.json) แล้วเติมช่องให้อัตโนมัติ
+  const readFile = (file) => {
+    if (!file) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        const obj = JSON.parse(String(fr.result));
+        if (obj && obj.username) setUsername(obj.username);
+        if (obj && obj.recoveryToken) setToken(obj.recoveryToken);
+        setErr('');
+      } catch (e) {
+        setErr('ไฟล์กุญแจไม่ถูกต้อง — กรุณาเลือกไฟล์ที่ดาวน์โหลดจากระบบ');
+      }
+    };
+    fr.readAsText(file);
+  };
+
+  const verifyKey = async () => {
+    setErr(''); setBusy(true);
+    try {
+      const uname = username.trim().toLowerCase();
+      const user = (users || []).find((x) => (x.username || '').toLowerCase() === uname);
+      if (!user || !user.recovery) {
+        setErr('ไม่พบบัญชีนี้ หรือบัญชีนี้ยังไม่ได้ตั้งกุญแจกู้คืน');
+        setBusy(false); return;
+      }
+      const ok = await verifyRecovery(token, user.recovery);
+      if (!ok) {
+        setErr('กุญแจกู้คืนไม่ถูกต้อง');
+        setBusy(false); return;
+      }
+      setMatched(user);
+      setStep('newpw');
+    } catch (e) {
+      setErr('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+    setBusy(false);
+  };
+
+  const doReset = async () => {
+    setErr('');
+    if (pw.length < 6) { setErr('รหัสผ่านใหม่ต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
+    if (pw !== pw2) { setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
+    setBusy(true);
+    try {
+      await onReset(matched.id, pw);   // App จะตั้งรหัสใหม่ + เพิกถอนกุญแจเดิม
+    } catch (e) {
+      setErr('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-emerald-800 to-emerald-950">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-6">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 mb-4">
+            <KeyRound size={28} className="text-emerald-200" />
+          </div>
+          <h1 className="text-xl font-bold text-white">กู้คืนรหัสผ่าน</h1>
+          <p className="text-emerald-200/80 text-sm mt-1">
+            {step === 'key' ? 'ใช้ไฟล์กุญแจกู้คืนที่เก็บไว้ใน USB' : 'ตั้งรหัสผ่านใหม่'}
+          </p>
+        </div>
+        <div className="bg-white rounded-3xl shadow-2xl p-6">
+          {step === 'key' ? (
+            <>
+              <div className="mb-4">
+                <label className={labelCls}>ชื่อผู้ใช้</label>
+                <input className={inputCls} value={username} autoCapitalize="none"
+                  onChange={(e) => setUsername(e.target.value)} placeholder="admin" />
+              </div>
+              <div className="mb-3">
+                <label className={labelCls}>กุญแจกู้คืน</label>
+                <input className={inputCls} value={token} autoCapitalize="characters"
+                  onChange={(e) => setToken(e.target.value)} placeholder="เช่น A7K2M-9PQR4-..." />
+              </div>
+              <input ref={fileRef} type="file" accept="application/json,.json" className="hidden"
+                onChange={(e) => readFile(e.target.files?.[0])} />
+              <GhostBtn onClick={() => fileRef.current?.click()} className="w-full mb-2">
+                <FileDown size={15} className="rotate-180" /> เลือกไฟล์กุญแจจาก USB
+              </GhostBtn>
+              <p className="text-xs text-slate-400 mb-3">
+                เสียบ USB ที่เก็บไฟล์กุญแจ แล้วเลือกไฟล์ — ระบบจะเติมช่องให้อัตโนมัติ
+                หรือพิมพ์กุญแจเองก็ได้
+              </p>
+              {err && (
+                <div className="flex items-center gap-2 text-red-600 text-sm mb-3 bg-red-50 rounded-lg px-3 py-2">
+                  <AlertTriangle size={15} className="shrink-0" /> {err}
+                </div>
+              )}
+              <PrimaryBtn onClick={verifyKey} disabled={busy || !username.trim() || !token.trim()}
+                className="w-full py-3">
+                {busy ? 'กำลังตรวจสอบ...' : 'ตรวจสอบกุญแจ'}
+              </PrimaryBtn>
+            </>
+          ) : (
+            <>
+              <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 mb-4">
+                ยืนยันตัวตนสำเร็จ — บัญชี <b>{matched?.username}</b><br />
+                <span className="text-xs">ตั้งรหัสผ่านใหม่ได้เลย กุญแจกู้คืนชุดเดิมจะถูกยกเลิกเพื่อความปลอดภัย</span>
+              </div>
+              <div className="mb-3">
+                <label className={labelCls}>รหัสผ่านใหม่</label>
+                <div className="relative">
+                  <input className={inputCls + ' pr-10'} type={show ? 'text' : 'password'} value={pw}
+                    onChange={(e) => setPw(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" />
+                  <button onClick={() => setShow(!show)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    {show ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className={labelCls}>ยืนยันรหัสผ่านใหม่</label>
+                <input className={inputCls} type={show ? 'text' : 'password'} value={pw2}
+                  onChange={(e) => setPw2(e.target.value)} placeholder="พิมพ์รหัสผ่านอีกครั้ง" />
+              </div>
+              {err && (
+                <div className="flex items-center gap-2 text-red-600 text-sm mb-3 bg-red-50 rounded-lg px-3 py-2">
+                  <AlertTriangle size={15} className="shrink-0" /> {err}
+                </div>
+              )}
+              <PrimaryBtn onClick={doReset} disabled={busy} className="w-full py-3">
+                {busy ? 'กำลังบันทึก...' : 'ตั้งรหัสผ่านใหม่และเข้าสู่ระบบ'}
+              </PrimaryBtn>
+            </>
+          )}
+          <button onClick={onBack}
+            className="w-full text-center mt-3 text-sm text-slate-500 font-medium hover:underline">
+            ← กลับไปหน้าเข้าสู่ระบบ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- การ์ดสรุปบนหน้าหลัก ---------------- */
+function StatCard({ icon, label, value, sub, tone = 'slate' }) {
+  const tones = {
+    slate: 'text-slate-700 bg-stone-100',
+    green: 'text-emerald-700 bg-emerald-50',
+    amber: 'text-amber-700 bg-amber-50',
+    blue: 'text-emerald-800 bg-emerald-50',
+  };
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+      <div className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div>
+      <div className="text-2xl font-bold text-slate-800 mt-2.5 tabular-nums">{value}</div>
+      <div className="text-sm text-slate-500 mt-0.5">{label}</div>
+      {sub && <div className="text-xs text-slate-400 mt-0.5">{sub}</div>}
+    </div>
+  );
+}
+
+/* ---------------- หน้าหลัก (Dashboard) ---------------- */
+function DashboardView({ data, onOpenDebtor }) {
+  const cur = curYM();
+  const agg = useMemo(() => {
+    let principal = 0, collected = 0, outstanding = 0, thisMonth = 0;
+    const dueList = [];
+    (data.debtors || []).forEach((d) => {
+      const s = debtorStats(d, cur);
+      principal += s.totalPrincipal;
+      collected += s.paidTotal;
+      outstanding += s.outstanding;
+      thisMonth += s.thisMonthDue;
+      if (s.dueNow > 0) dueList.push({ debtor: d, s });
+    });
+    dueList.sort((a, b) => b.s.dueNow - a.s.dueNow);
+    return { principal, collected, outstanding, thisMonth, dueList };
+  }, [data, cur]);
+
+  const nextDate = nextNotifyDate();
+  const collecting = isCollectionPeriod();
+
+  return (
+    <div className="px-4 pt-4 pb-28 space-y-4">
+      {/* แบนเนอร์แจ้งเตือนรอบชำระ */}
+      <div className={`rounded-2xl p-4 border ${collecting && agg.dueList.length
+        ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+        <div className="flex items-start gap-3">
+          <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
+            collecting && agg.dueList.length ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            <Bell size={20} />
+          </div>
+          <div className="min-w-0">
+            {collecting && agg.dueList.length ? (
+              <>
+                <div className="font-semibold text-amber-800">ถึงกำหนดเรียกเก็บแล้ว</div>
+                <div className="text-sm text-amber-700 mt-0.5">
+                  มี {agg.dueList.length} รายที่ยังมียอดต้องเก็บ รวม {fmtMoney(agg.dueList.reduce((t, x) => t + x.s.dueNow, 0))} บาท
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="font-semibold text-emerald-800">รอบเรียกเก็บถัดไป</div>
+                <div className="text-sm text-emerald-700 mt-0.5">
+                  วันที่ {fmtThaiDate(nextDate)} — เลื่อนอัตโนมัติเมื่อตรงเสาร์/อาทิตย์
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* การ์ดสรุป */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard tone="blue" icon={<Users size={18} />} label="ลูกหนี้ทั้งหมด" value={(data.debtors || []).length} />
+        <StatCard tone="slate" icon={<Banknote size={18} />} label="เงินต้นที่ปล่อยกู้" value={fmtMoney(agg.principal)} sub="บาท" />
+        <StatCard tone="green" icon={<TrendingUp size={18} />} label="เก็บเข้ามาแล้ว" value={fmtMoney(agg.collected)} sub="บาท (สะสม)" />
+        <StatCard tone="amber" icon={<AlertTriangle size={18} />} label="ยอดค้างชำระ" value={fmtMoney(agg.outstanding)} sub="บาท" />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm text-slate-500">ยอดที่กำลังจะถึงรอบนี้</div>
+            <div className="text-2xl font-bold text-emerald-800 tabular-nums mt-0.5">{fmtMoney(agg.thisMonth)} บาท</div>
+          </div>
+          <Calendar size={34} className="text-emerald-200" />
+        </div>
+        <div className="text-xs text-slate-400 mt-1">รอบเดือน {ymLabelFull(cur)}</div>
+      </div>
+
+      {/* รายการที่มียอดต้องเก็บ */}
+      <div>
+        <div className="flex items-center gap-2 mb-2 px-1">
+          <AlertTriangle size={16} className="text-amber-600" />
+          <h3 className="font-semibold text-slate-700">รายการที่มียอดต้องเก็บ</h3>
+        </div>
+        {agg.dueList.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center text-slate-400 text-sm">
+            <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-300" />
+            ทุกคนชำระครบแล้ว 🎉
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {agg.dueList.map(({ debtor, s }) => (
+              <button key={debtor.id} onClick={() => onOpenDebtor(debtor.id)}
+                className="w-full bg-white rounded-2xl border border-stone-200 p-3.5 flex items-center gap-3 text-left hover:border-emerald-300 hover:shadow-sm transition">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                  {debtor.name.charAt(0)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-slate-800 truncate">{debtor.name}</div>
+                  <div className="flex gap-1.5 mt-1">
+                    {s.outstanding > 0 && <Pill tone="red">ค้าง {fmtMoney(s.outstanding)}</Pill>}
+                    {s.thisMonthDue > 0 && <Pill tone="amber">เดือนนี้ {fmtMoney(s.thisMonthDue)}</Pill>}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-bold text-slate-800 tabular-nums">{fmtMoney(s.dueNow)}</div>
+                  <div className="text-xs text-slate-400">บาท</div>
+                </div>
+                <ChevronLeft size={18} className="text-slate-300 rotate-180" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- หน้ารายชื่อลูกหนี้ ---------------- */
+function DebtorsView({ data, onOpenDebtor, onAdd }) {
+  const [q, setQ] = useState('');
+  const cur = curYM();
+  const list = (data.debtors || []).filter((d) =>
+    d.name.toLowerCase().includes(q.toLowerCase()) || (d.phone || '').includes(q));
+
+  return (
+    <div className="px-4 pt-4 pb-28">
+      <div className="relative mb-3">
+        <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input className={inputCls + ' pl-10'} placeholder="ค้นหาชื่อหรือเบอร์โทร..."
+          value={q} onChange={(e) => setQ(e.target.value)} />
+      </div>
+
+      {list.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-stone-200 p-8 text-center mt-6">
+          <Users size={32} className="mx-auto mb-2 text-slate-300" />
+          <div className="text-slate-500 text-sm">{q ? 'ไม่พบลูกหนี้ที่ค้นหา' : 'ยังไม่มีลูกหนี้'}</div>
+          {!q && <PrimaryBtn onClick={onAdd} className="mt-4 mx-auto"><Plus size={18} /> เพิ่มลูกหนี้คนแรก</PrimaryBtn>}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {list.map((d) => {
+            const s = debtorStats(d, cur);
+            return (
+              <button key={d.id} onClick={() => onOpenDebtor(d.id)}
+                className="w-full bg-white rounded-2xl border border-stone-200 p-4 text-left hover:border-emerald-300 hover:shadow-sm transition">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                    {d.name.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-800 truncate">{d.name}</div>
+                    <div className="text-xs text-slate-400">{d.loans?.length || 0} ก้อน · เงินต้น {fmtMoney(s.totalPrincipal)}</div>
+                  </div>
+                  <ChevronLeft size={18} className="text-slate-300 rotate-180" />
+                </div>
+                <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                  <Pill tone="slate">เก็บ/เดือน {fmtMoney(s.monthlyDue)}</Pill>
+                  {s.outstanding > 0
+                    ? <Pill tone="red">ค้าง {fmtMoney(s.outstanding)}</Pill>
+                    : <Pill tone="green">ไม่มียอดค้าง</Pill>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- ตารางรอบบิลของก้อนเงินกู้ ---------------- */
+function LoanLedger({ loan, cur, onRecord, onUndo }) {
+  const [open, setOpen] = useState(false);
+  const s = loanStats(loan, cur);
+  const monthsDesc = [...s.ledger].reverse();
+  return (
+    <div className="mt-3 border-t border-stone-100 pt-3">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+        {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        ตารางรอบบิล ({s.months.length} เดือน)
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {monthsDesc.length === 0 && <div className="text-sm text-slate-400">ยังไม่ถึงรอบบิลแรก</div>}
+          {monthsDesc.map((r) => {
+            const m = r.month;
+            const isCur = m === cur;
+            const bd = s.breakdownMap[m];   // รายละเอียดลดต้นลดดอก (ถ้ามี)
+            const tone = r.status === 'settled' ? 'emerald'
+              : r.status === 'partial' ? 'amber' : 'slate';
+            return (
+              <div key={m} className="flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-slate-700">
+                    {ymLabel(m)} {isCur && <span className="text-emerald-600">(เดือนนี้)</span>}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    บิล {fmtMoney(r.bill)}
+                    {r.carryIn > 0.005 && <span className="text-amber-600"> · ยกมา {fmtMoney(r.carryIn)}</span>}
+                    {r.hasPayment && <> · ชำระ {fmtMoney(r.paid)}</>}
+                  </div>
+                  {r.status === 'partial' && (
+                    <div className="text-xs text-amber-600 mt-0.5">
+                      ขาดอีก {fmtMoney(r.balanceAfter)} — ยกไปเดือนถัดไป
+                    </div>
+                  )}
+                  {bd && (
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      ดอกเบี้ย {fmtMoney(bd.interest)} · เงินต้น {fmtMoney(bd.principalPart)} · คงเหลือ {fmtMoney(bd.balanceAfter)}
+                    </div>
+                  )}
+                </div>
+                {r.status === 'settled' ? (
+                  <button onClick={() => r.hasPayment && onUndo(loan.id, m)}
+                    className="flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1.5 rounded-lg shrink-0">
+                    <CheckCircle2 size={14} /> {r.hasPayment ? 'ชำระแล้ว' : 'เคลียร์แล้ว'}
+                  </button>
+                ) : (
+                  <button onClick={() => onRecord(loan.id, m)}
+                    className={`text-xs font-medium px-2.5 py-1.5 rounded-lg shrink-0 ${
+                      tone === 'amber' ? 'text-amber-700 bg-amber-50'
+                        : isCur ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
+                    {r.status === 'partial' ? 'จ่ายเพิ่ม' : 'บันทึกชำระ'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- หน้ารายละเอียดลูกหนี้ ---------------- */
+function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditLoan,
+  onDeleteLoan, onRecord, onUndo, onShare }) {
+  const cur = curYM();
+  const s = debtorStats(debtor, cur);
+
+  return (
+    <div className="pb-28">
+      {/* ส่วนหัว */}
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-3 pb-6">
+        <div className="flex items-center justify-between">
+          <button onClick={onBack} className="p-2 -ml-2 rounded-lg text-white/90 hover:bg-white/10">
+            <ChevronLeft size={22} />
+          </button>
+          <div className="flex gap-1">
+            <button onClick={() => onEdit(debtor)} className="p-2 rounded-lg text-white/90 hover:bg-white/10"><Pencil size={18} /></button>
+            <button onClick={() => onDelete(debtor)} className="p-2 rounded-lg text-white/90 hover:bg-white/10"><Trash2 size={18} /></button>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 mt-1">
+          <div className="h-14 w-14 rounded-2xl bg-white/15 ring-1 ring-white/20 flex items-center justify-center text-2xl font-bold text-white">
+            {debtor.name.charAt(0)}
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">{debtor.name}</h2>
+            {debtor.phone && <div className="flex items-center gap-1.5 text-emerald-200/90 text-sm mt-0.5"><Phone size={13} /> {debtor.phone}</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* การ์ดสรุปยอด */}
+      <div className="px-4 -mt-4">
+        <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4 grid grid-cols-3 divide-x divide-stone-100">
+          <div className="px-1">
+            <div className="text-xs text-slate-400">จ่ายมาแล้ว</div>
+            <div className="text-sm font-bold text-emerald-700 tabular-nums">{fmtMoney(s.paidTotal)}</div>
+          </div>
+          <div className="px-2">
+            <div className="text-xs text-slate-400">รอบนี้</div>
+            <div className="text-sm font-bold text-slate-800 tabular-nums">{fmtMoney(s.thisMonthDue)}</div>
+          </div>
+          <div className="px-2">
+            <div className="text-xs text-slate-400">ค้างชำระ</div>
+            <div className={`text-sm font-bold tabular-nums ${s.outstanding > 0 ? 'text-red-600' : 'text-slate-800'}`}>{fmtMoney(s.outstanding)}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ปุ่มแชร์ไลน์ */}
+      <div className="px-4 mt-3">
+        <PrimaryBtn onClick={() => onShare(debtor)} className="w-full py-3 bg-emerald-700">
+          <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
+        </PrimaryBtn>
+      </div>
+
+      {/* ยอดค้างเตือน */}
+      {s.outstanding > 0 && (
+        <div className="px-4 mt-3">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-3.5 flex items-center gap-3">
+            <AlertTriangle size={20} className="text-red-500 shrink-0" />
+            <div className="text-sm text-red-700">
+              มียอดค้างจากเดือนก่อน รวม <b>{fmtMoney(s.outstanding)} บาท</b> — กรุณาติดตาม
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* รายการก้อนเงินกู้ */}
+      <div className="px-4 mt-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-slate-700">เงินต้น / ก้อนเงินกู้ ({s.loans.length})</h3>
+          <button onClick={() => onAddLoan(debtor)} className="flex items-center gap-1 text-sm font-medium text-emerald-700">
+            <Plus size={16} /> เพิ่มก้อน
+          </button>
+        </div>
+
+        {s.loans.length === 0 && (
+          <div className="bg-white rounded-2xl border border-dashed border-stone-300 p-6 text-center text-slate-400 text-sm">
+            ยังไม่มีก้อนเงินกู้ — แตะ "เพิ่มก้อน" เพื่อระบุเงินต้นและอัตราดอกเบี้ย
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {s.loans.map(({ loan, s: ls }) => {
+            const isInst = ls.kind === 'installment';
+            const isAmort = ls.kind === 'amortized';
+            const isInterest = ls.kind === 'interest';
+            const reduces = isInst || isAmort;   // เงินต้นลดลงได้
+            const pct = reduces && ls.principal > 0
+              ? Math.min(100, Math.round(((ls.principal - ls.remaining) / ls.principal) * 100)) : 0;
+            const monthLabel = isInterest ? 'ดอกเบี้ย/เดือน' : 'ผ่อน/เดือน';
+            return (
+            <div key={loan.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-lg font-bold text-slate-800 tabular-nums">{fmtMoney(ls.principal)}</span>
+                    <span className="text-xs text-slate-400">บาท</span>
+                    {isInst && <Pill tone="slate">ไม่มีดอกเบี้ย</Pill>}
+                    {isAmort && <Pill tone="green"><BadgePercent size={12} /> ลดต้นลดดอก {ls.rate}%</Pill>}
+                    {isInterest && <Pill tone="green"><BadgePercent size={12} /> {ls.rate}% / เดือน</Pill>}
+                    {ls.complete && <Pill tone="green"><CheckCircle2 size={12} /> ผ่อนครบแล้ว</Pill>}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    เริ่ม {ymLabel(loan.startMonth)} {loan.note && `· ${loan.note}`}
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => onEditLoan(debtor, loan)} className="p-1.5 rounded-lg hover:bg-stone-100 text-slate-400"><Pencil size={15} /></button>
+                  <button onClick={() => onDeleteLoan(debtor, loan)} className="p-1.5 rounded-lg hover:bg-stone-100 text-slate-400"><Trash2 size={15} /></button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <div className="bg-stone-50 rounded-xl p-2.5">
+                  <div className="text-xs text-slate-400">{monthLabel}</div>
+                  <div className="text-sm font-semibold text-slate-800 tabular-nums">{fmtMoney(ls.monthly)}</div>
+                </div>
+                <div className="bg-emerald-50 rounded-xl p-2.5">
+                  <div className="text-xs text-emerald-600">{reduces ? 'เงินต้นคงเหลือ' : 'จ่ายสะสม'}</div>
+                  <div className="text-sm font-semibold text-emerald-700 tabular-nums">{fmtMoney(reduces ? ls.remaining : ls.paidTotal)}</div>
+                </div>
+                <div className={`rounded-xl p-2.5 ${ls.outstanding > 0 ? 'bg-red-50' : 'bg-stone-50'}`}>
+                  <div className={`text-xs ${ls.outstanding > 0 ? 'text-red-500' : 'text-slate-400'}`}>ค้างชำระ</div>
+                  <div className={`text-sm font-semibold tabular-nums ${ls.outstanding > 0 ? 'text-red-600' : 'text-slate-800'}`}>{fmtMoney(ls.outstanding)}</div>
+                </div>
+              </div>
+
+              {/* ข้อมูลแผนผ่อน (เงินต้นลดลงได้) */}
+              {reduces && (
+                <div className="mt-3">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>ผ่อนเงินต้นไปแล้ว {fmtMoney(ls.principal - ls.remaining)} / {fmtMoney(ls.principal)} บาท</span>
+                    <span className="tabular-nums">{pct}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
+                    <div className="h-full bg-emerald-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                  {ls.payoffMonth && (
+                    <div className="text-xs text-slate-500 mt-2 flex flex-wrap gap-x-4 gap-y-0.5">
+                      <span>ผ่อนหมดเดือน <b className="text-slate-700">{ymLabel(ls.payoffMonth)}</b></span>
+                      {isAmort && <span>ดอกเบี้ยรวม <b className="text-slate-700">{fmtMoney(ls.totalInterest)} บาท</b></span>}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* สถานะเดือนนี้ */}
+              {ls.thisMonthInBilling && (
+                <div className="mt-3 bg-emerald-50/60 rounded-xl px-3 py-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-slate-600">
+                      {isInterest ? 'ดอกเบี้ยเดือนนี้' : 'ค่างวดเดือนนี้'} ({ymLabel(cur)})
+                    </div>
+                    {ls.thisMonthSettled ? (
+                      <Pill tone="green"><CheckCircle2 size={13} /> ชำระครบแล้ว</Pill>
+                    ) : (
+                      <button onClick={() => onRecord(loan.id, cur)}
+                        className="text-sm font-semibold text-white bg-emerald-700 px-3 py-1.5 rounded-lg">
+                        {ls.thisMonthHasPayment ? 'จ่ายเพิ่ม' : 'บันทึกชำระ'} {fmtMoney(ls.loanDueNow)}
+                      </button>
+                    )}
+                  </div>
+                  {/* แจกแจงยอด เมื่อมียอดยกมา หรือ จ่ายมาบางส่วน */}
+                  {!ls.thisMonthSettled && (ls.outstanding > 0.005 || ls.thisMonthHasPayment) && (
+                    <div className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                      บิลเดือนนี้ {fmtMoney(ls.thisMonthBill)}
+                      {ls.outstanding > 0.005 && <span className="text-amber-600"> + ยกมา {fmtMoney(ls.outstanding)}</span>}
+                      {ls.thisMonthHasPayment && <span className="text-emerald-600"> − จ่ายแล้ว {fmtMoney(ls.thisMonthPaidAmt)}</span>}
+                      {' = ค้าง '}<b className="text-slate-700">{fmtMoney(ls.loanDueNow)} บาท</b>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <LoanLedger loan={loan} cur={cur} onRecord={onRecord} onUndo={onUndo} />
+            </div>
+          );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- หน้าตั้งค่า ---------------- */
+function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encOK,
+  onManageUsers, onChangePassword, onRecoveryKey, notifyPerm, swReady, onEnableNotify }) {
+  const debtors = (data.debtors || []).length;
+  const loans = (data.debtors || []).reduce((t, d) => t + (d.loans?.length || 0), 0);
+  const users = (data.users || []).length;
+  const isAdmin = currentUser?.role === 'admin';
+  return (
+    <div className="px-4 pt-4 pb-28 space-y-4">
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+            {(currentUser?.name || '?').charAt(0)}
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-slate-800 truncate">{currentUser?.name || '-'}</div>
+            <div className="text-xs text-slate-400">
+              {currentUser?.username} · {isAdmin ? 'ผู้ดูแลระบบ' : 'พนักงาน'} · เข้าสู่ระบบอยู่
+            </div>
+          </div>
+        </div>
+        <GhostBtn onClick={onChangePassword} className="w-full mt-3"><Lock size={15} /> เปลี่ยนรหัสผ่านของฉัน</GhostBtn>
+      </div>
+
+      {/* จัดการผู้ใช้ */}
+      <button onClick={onManageUsers}
+        className="w-full bg-white rounded-2xl border border-stone-200 p-4 shadow-sm flex items-center gap-3 text-left hover:border-emerald-300 transition">
+        <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+          <Users size={19} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-800">จัดการผู้ใช้งาน</div>
+          <div className="text-xs text-slate-400">
+            มีผู้ใช้ {users} คน · {isAdmin ? 'เพิ่ม/แก้ไข/ลบผู้ใช้' : 'เฉพาะผู้ดูแลระบบเท่านั้น'}
+          </div>
+        </div>
+        <ChevronLeft size={18} className="text-slate-300 rotate-180" />
+      </button>
+
+      {/* การแจ้งเตือน */}
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
+          <Bell size={17} className="text-emerald-700" /> การแจ้งเตือนรอบเรียกเก็บ
+        </h3>
+        {notifyPerm === 'granted' ? (
+          <div className="text-sm text-emerald-700 flex items-center gap-1.5">
+            <CheckCircle2 size={15} /> เปิดการแจ้งเตือนแล้ว
+            {swReady ? ' · รองรับแจ้งเตือนเบื้องหลัง' : ' · แจ้งเตือนขณะเปิดแอป'}
+          </div>
+        ) : notifyPerm === 'denied' ? (
+          <div className="text-sm text-amber-600">
+            เบราว์เซอร์ปิดกั้นการแจ้งเตือนไว้ — เปิดสิทธิ์ได้จากการตั้งค่าเบราว์เซอร์
+          </div>
+        ) : notifyPerm === 'unsupported' ? (
+          <div className="text-sm text-slate-500">เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน</div>
+        ) : (
+          <>
+            <div className="text-sm text-slate-500 mb-2.5">
+              เปิดเพื่อให้ระบบเตือนเมื่อถึงวันเรียกเก็บ (วันที่ 25 ของเดือน)
+            </div>
+            <GhostBtn onClick={onEnableNotify} className="w-full">
+              <Bell size={15} /> เปิดการแจ้งเตือน
+            </GhostBtn>
+          </>
+        )}
+      </div>
+
+      {/* กุญแจกู้คืนรหัสผ่าน */}
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
+          <KeyRound size={17} className="text-emerald-700" /> กุญแจกู้คืนรหัสผ่าน
+        </h3>
+        {currentUser?.recovery ? (
+          <div className="text-sm text-slate-500">
+            บัญชีนี้ตั้งกุญแจกู้คืนไว้แล้ว — เก็บไฟล์กุญแจไว้ใน USB ที่ปลอดภัย
+            หากลืมรหัสผ่าน ใช้ไฟล์นี้รีเซ็ตได้จากหน้าเข้าสู่ระบบ
+          </div>
+        ) : (
+          <div className="text-sm text-amber-600">
+            ยังไม่ได้ตั้งกุญแจกู้คืน — แนะนำให้สร้างและเก็บไฟล์ไว้ เผื่อลืมรหัสผ่าน
+          </div>
+        )}
+        <GhostBtn onClick={onRecoveryKey} className="w-full mt-2.5">
+          <KeyRound size={15} /> {currentUser?.recovery ? 'สร้างกุญแจกู้คืนชุดใหม่' : 'สร้างกุญแจกู้คืน'}
+        </GhostBtn>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm space-y-3">
+        <h3 className="font-semibold text-slate-700 flex items-center gap-2"><ShieldCheck size={17} className="text-emerald-700" /> ความปลอดภัย</h3>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>ข้อมูลทั้งหมดถูก{encOK ? 'เข้ารหัสด้วย AES-256 (GCM)' : 'จัดเก็บ (เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส)'}ก่อนบันทึก</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <Lock size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>รหัสผ่านถูกแฮชด้วย PBKDF2 (เกลือเฉพาะคน) — ไม่เก็บรหัสผ่านจริง</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <KeyRound size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>กุญแจกู้คืนเก็บเป็นค่าแฮชเท่านั้น — ต้องมีไฟล์กุญแจจริงจึงรีเซ็ตได้</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <AlertTriangle size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>ล็อกการเข้าสู่ระบบชั่วคราวเมื่อกรอกรหัสผิดเกิน {LOGIN_MAX_FAILS} ครั้ง</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <Clock size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งานครบ 5 นาที (เตือนล่วงหน้า 1 นาที)</span>
+        </div>
+        <div className="flex items-start gap-2.5 text-sm text-slate-600">
+          <RefreshCw size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <span>บันทึกอัตโนมัติทุกการเปลี่ยนแปลง — รีเฟรชหน้าจอแล้วข้อมูลและหน้าเดิมยังอยู่</span>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+        <h3 className="font-semibold text-slate-700 mb-2">ข้อมูลในระบบ</h3>
+        <div className="flex gap-6 text-sm text-slate-500">
+          <div>ลูกหนี้ <b className="text-slate-800">{debtors}</b> คน</div>
+          <div>ก้อนเงินกู้ <b className="text-slate-800">{loans}</b> ก้อน</div>
+        </div>
+        <div className="flex gap-2 mt-3">
+          <GhostBtn onClick={onExport} className="flex-1"><FileDown size={16} /> สำรองข้อมูลลูกหนี้ (.json)</GhostBtn>
+        </div>
+        <div className="text-xs text-slate-400 mt-1.5">ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน</div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm space-y-2">
+        <GhostBtn onClick={onLogout} className="w-full"><LogOut size={16} /> ออกจากระบบ</GhostBtn>
+        {isAdmin && (
+          <button onClick={onClearData}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-100 transition">
+            <Trash2 size={16} /> ล้างข้อมูลลูกหนี้ทั้งหมด
+          </button>
+        )}
+      </div>
+
+      <p className="text-xs text-slate-400 text-center px-4">
+        เวอร์ชันตัวอย่าง (Prototype) · ระบบจัดการดอกเบี้ยเงินกู้
+      </p>
+    </div>
+  );
+}
+
+/* ---------------- หน้าจัดการผู้ใช้งาน ---------------- */
+function UsersView({ users, currentUser, onBack, onAdd, onEdit, onDelete }) {
+  const isAdmin = currentUser?.role === 'admin';
+  return (
+    <div className="pb-28">
+      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-3 pb-5">
+        <div className="flex items-center justify-between">
+          <button onClick={onBack} className="p-2 -ml-2 rounded-lg text-white/90 hover:bg-white/10">
+            <ChevronLeft size={22} />
+          </button>
+          <div className="text-white font-bold">จัดการผู้ใช้งาน</div>
+          <div className="w-8" />
+        </div>
+      </div>
+
+      <div className="px-4 -mt-2">
+        {!isAdmin && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-sm text-amber-700 flex items-center gap-2 mb-3">
+            <AlertTriangle size={16} className="shrink-0" /> เฉพาะผู้ดูแลระบบเท่านั้นที่เพิ่ม/แก้ไข/ลบผู้ใช้ได้
+          </div>
+        )}
+        {isAdmin && (
+          <PrimaryBtn onClick={onAdd} className="w-full mb-3"><Plus size={18} /> เพิ่มผู้ใช้ใหม่</PrimaryBtn>
+        )}
+        <div className="space-y-2">
+          {users.map((usr) => {
+            const me = usr.id === currentUser?.id;
+            const adminCount = users.filter((x) => x.role === 'admin').length;
+            const lastAdmin = usr.role === 'admin' && adminCount <= 1;
+            return (
+              <div key={usr.id} className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                    {(usr.name || '?').charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold text-slate-800 truncate">
+                      {usr.name} {me && <span className="text-xs text-emerald-600 font-normal">(ฉัน)</span>}
+                    </div>
+                    <div className="text-xs text-slate-400">{usr.username}</div>
+                  </div>
+                  <Pill tone={usr.role === 'admin' ? 'green' : 'slate'}>
+                    {usr.role === 'admin' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
+                  </Pill>
+                </div>
+                {isAdmin && (
+                  <div className="flex gap-2 mt-3">
+                    <GhostBtn onClick={() => onEdit(usr)} className="flex-1 py-2"><Pencil size={14} /> แก้ไข</GhostBtn>
+                    <button onClick={() => onDelete(usr)} disabled={me || lastAdmin}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-40 transition">
+                      <Trash2 size={14} /> ลบ
+                    </button>
+                  </div>
+                )}
+                {isAdmin && (me || lastAdmin) && (
+                  <div className="text-xs text-slate-400 mt-1.5">
+                    {me ? 'ลบบัญชีตัวเองไม่ได้' : 'ต้องมีผู้ดูแลระบบอย่างน้อย 1 คน'}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- ฟอร์มเพิ่ม/แก้ไขผู้ใช้ ---------------- */
+function UserForm({ initial, existingUsernames, mode, onSave }) {
+  const isEdit = mode === 'edit';
+  const isChangePw = mode === 'password';
+  const [username, setUsername] = useState(initial?.username || '');
+  const [name, setName] = useState(initial?.name || '');
+  const [role, setRole] = useState(initial?.role || 'staff');
+  const [pw, setPw] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [show, setShow] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async () => {
+    setErr('');
+    const uname = username.trim().toLowerCase();
+    if (!isChangePw) {
+      if (!name.trim()) { setErr('กรุณากรอกชื่อ'); return; }
+      if (!uname) { setErr('กรุณากรอกชื่อผู้ใช้'); return; }
+      if (!/^[a-z0-9_.]{3,}$/.test(uname)) {
+        setErr('ชื่อผู้ใช้ต้องยาว 3 ตัวขึ้นไป (a-z, 0-9, _ . เท่านั้น)'); return;
+      }
+      const dup = (existingUsernames || []).some(
+        (x) => x.toLowerCase() === uname && x.toLowerCase() !== (initial?.username || '').toLowerCase());
+      if (dup) { setErr('ชื่อผู้ใช้นี้มีอยู่แล้ว'); return; }
+    }
+    // รหัสผ่าน: บังคับตอนเพิ่มใหม่/เปลี่ยนรหัส, ไม่บังคับตอนแก้ไข
+    const needPw = !isEdit || pw.length > 0;
+    if (needPw) {
+      if (pw.length < 6) { setErr('รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร'); return; }
+      if (pw !== pw2) { setErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน'); return; }
+    }
+    setBusy(true);
+    try {
+      const out = {};
+      if (!isChangePw) { out.username = uname; out.name = name.trim(); out.role = role; }
+      if (needPw || isChangePw) out.cred = await makeCredential(pw);
+      onSave(out);
+    } catch (e) {
+      setErr('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {!isChangePw && (
+        <>
+          <div>
+            <label className={labelCls}>ชื่อ-นามสกุล *</label>
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น สมหญิง รักงาน" />
+          </div>
+          <div>
+            <label className={labelCls}>ชื่อผู้ใช้ (สำหรับเข้าสู่ระบบ) *</label>
+            <input className={inputCls} value={username} autoCapitalize="none"
+              onChange={(e) => setUsername(e.target.value)} placeholder="เช่น somying" />
+          </div>
+          <div>
+            <label className={labelCls}>สิทธิ์การใช้งาน *</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[{ id: 'staff', label: 'พนักงาน' }, { id: 'admin', label: 'ผู้ดูแลระบบ' }].map((o) => (
+                <button key={o.id} onClick={() => setRole(o.id)}
+                  className={`rounded-xl py-2.5 text-sm font-semibold border transition ${
+                    role === o.id ? 'bg-emerald-800 text-white border-emerald-800'
+                      : 'bg-white text-slate-600 border-stone-300'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-xs text-slate-400 mt-1.5">
+              ผู้ดูแลระบบจัดการผู้ใช้และล้างข้อมูลได้ · พนักงานจัดการเฉพาะลูกหนี้
+            </div>
+          </div>
+        </>
+      )}
+      <div>
+        <label className={labelCls}>
+          {isChangePw ? 'รหัสผ่านใหม่ *' : isEdit ? 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน *'}
+        </label>
+        <div className="relative">
+          <input className={inputCls + ' pr-10'} type={show ? 'text' : 'password'} value={pw}
+            onChange={(e) => setPw(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" />
+          <button onClick={() => setShow(!show)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            {show ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
+      </div>
+      {(pw.length > 0 || !isEdit || isChangePw) && (
+        <div>
+          <label className={labelCls}>ยืนยันรหัสผ่าน{isChangePw || !isEdit ? ' *' : ''}</label>
+          <input className={inputCls} type={show ? 'text' : 'password'} value={pw2}
+            onChange={(e) => setPw2(e.target.value)} placeholder="พิมพ์รหัสผ่านอีกครั้ง" />
+        </div>
+      )}
+      {err && <div className="text-red-600 text-sm flex items-center gap-1.5"><AlertTriangle size={14} /> {err}</div>}
+      <PrimaryBtn className="w-full py-3" onClick={submit} disabled={busy}>
+        {busy ? 'กำลังบันทึก...' : 'บันทึก'}
+      </PrimaryBtn>
+    </div>
+  );
+}
+
+/* ---------------- ฟอร์มเพิ่ม/แก้ไขลูกหนี้ ---------------- */
+function DebtorForm({ initial, onSave }) {
+  const [name, setName] = useState(initial?.name || '');
+  const [phone, setPhone] = useState(initial?.phone || '');
+  const [note, setNote] = useState(initial?.note || '');
+  const [err, setErr] = useState('');
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className={labelCls}>ชื่อ-นามสกุล *</label>
+        <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น สมชาย ใจดี" />
+      </div>
+      <div>
+        <label className={labelCls}>เบอร์โทรศัพท์</label>
+        <input className={inputCls} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="081-234-5678" inputMode="tel" />
+      </div>
+      <div>
+        <label className={labelCls}>หมายเหตุ</label>
+        <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="ข้อมูลเพิ่มเติม" />
+      </div>
+      {err && <div className="text-red-600 text-sm">{err}</div>}
+      <PrimaryBtn className="w-full py-3" onClick={() => {
+        if (!name.trim()) { setErr('กรุณากรอกชื่อ'); return; }
+        onSave({ name: name.trim(), phone: phone.trim(), note: note.trim() });
+      }}>บันทึก</PrimaryBtn>
+    </div>
+  );
+}
+
+/* ---------------- ฟอร์มเพิ่ม/แก้ไขก้อนเงินกู้ ---------------- */
+function LoanForm({ initial, onSave }) {
+  const [type, setType] = useState(initial ? loanType(initial) : 'interest');
+  const [principal, setPrincipal] = useState(initial ? String(initial.principal) : '');
+  const [rate, setRate] = useState(initial && Number(initial.rate) > 0 ? Number(initial.rate) : 5);
+  const [installment, setInstallment] = useState(
+    initial && initial.installment ? String(initial.installment) : '1000');
+  const [payment, setPayment] = useState(
+    initial && initial.payment ? String(initial.payment) : '');
+  const [startMonth, setStartMonth] = useState(initial?.startMonth || curYM());
+  const [note, setNote] = useState(initial?.note || '');
+  const [err, setErr] = useState('');
+
+  const p = Number(principal) || 0;
+  const inst = Number(installment) || 0;
+  const pay = Number(payment) || 0;
+
+  // พรีวิวเงินกู้ไม่มีดอกเบี้ย
+  const numInstallments = type === 'installment' && inst > 0 ? Math.ceil(p / inst) : 0;
+  const lastAmt = numInstallments > 0 ? p - inst * (numInstallments - 1) : 0;
+  // พรีวิวลดต้นลดดอก
+  const amort = useMemo(
+    () => (type === 'amortized' ? buildAmortSchedule(p, rate, pay, startMonth) : null),
+    [type, p, rate, pay, startMonth]);
+
+  const TYPES = [
+    { id: 'interest', label: 'ดอกเบี้ยอย่างเดียว' },
+    { id: 'amortized', label: 'ลดต้นลดดอก' },
+    { id: 'installment', label: 'ไม่มีดอกเบี้ย' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className={labelCls}>ประเภทเงินกู้ *</label>
+        <div className="grid grid-cols-3 gap-2">
+          {TYPES.map((t) => (
+            <button key={t.id} onClick={() => setType(t.id)}
+              className={`rounded-xl py-2 px-1 text-xs font-semibold border transition ${
+                type === t.id ? 'bg-emerald-800 text-white border-emerald-800'
+                  : 'bg-white text-slate-600 border-stone-300'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="text-xs text-slate-400 mt-1.5">
+          {type === 'interest' && 'จ่ายดอกเบี้ยทุกเดือน เงินต้นคงเดิม'}
+          {type === 'amortized' && 'ผ่อนคงที่ทุกเดือน ดอกเบี้ยคิดจากยอดคงเหลือ เงินต้นลดลงเรื่อย ๆ'}
+          {type === 'installment' && 'ไม่มีดอกเบี้ย ผ่อนเป็นงวด หักจากเงินต้น'}
+        </div>
+      </div>
+
+      <div>
+        <label className={labelCls}>เงินต้น (บาท) *</label>
+        <input className={inputCls} value={principal} inputMode="numeric"
+          onChange={(e) => setPrincipal(e.target.value.replace(/[^\d.]/g, ''))} placeholder="เช่น 50000" />
+      </div>
+
+      {type !== 'installment' && (
+        <div>
+          <label className={labelCls}>อัตราดอกเบี้ยต่อเดือน *</label>
+          <div className="grid grid-cols-3 gap-2">
+            {RATE_OPTIONS.map((r) => (
+              <button key={r} onClick={() => setRate(r)}
+                className={`rounded-xl py-2.5 text-sm font-semibold border transition ${
+                  rate === r ? 'bg-emerald-800 text-white border-emerald-800'
+                    : 'bg-white text-slate-600 border-stone-300'}`}>
+                {r}%
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {type === 'installment' && (
+        <div>
+          <label className={labelCls}>ยอดผ่อนต่อเดือน (บาท) *</label>
+          <input className={inputCls} value={installment} inputMode="numeric"
+            onChange={(e) => setInstallment(e.target.value.replace(/[^\d.]/g, ''))} placeholder="เช่น 1000" />
+        </div>
+      )}
+
+      {type === 'amortized' && (
+        <div>
+          <label className={labelCls}>ยอดผ่อนต่อเดือน (บาท) *</label>
+          <input className={inputCls} value={payment} inputMode="numeric"
+            onChange={(e) => setPayment(e.target.value.replace(/[^\d.]/g, ''))} placeholder="เช่น 8000" />
+          <div className="text-xs text-slate-400 mt-1">ยอดนี้รวมดอกเบี้ย + เงินต้นในแต่ละเดือน</div>
+        </div>
+      )}
+
+      <div>
+        <label className={labelCls}>{type === 'interest' ? 'เดือนที่เริ่มคิดดอกเบี้ย *' : 'เดือนที่เริ่มผ่อน *'}</label>
+        <input type="month" className={inputCls} value={startMonth} onChange={(e) => setStartMonth(e.target.value)} />
+      </div>
+      <div>
+        <label className={labelCls}>หมายเหตุ</label>
+        <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="เช่น ก้อนที่ 2" />
+      </div>
+
+      {/* กล่องพรีวิว */}
+      {p > 0 && type === 'interest' && (
+        <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800">
+          ดอกเบี้ยต่อเดือน = <b>{fmtMoney(p * rate / 100)} บาท</b>
+        </div>
+      )}
+      {p > 0 && type === 'installment' && inst > 0 && (
+        <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 leading-relaxed">
+          ผ่อนเดือนละ <b>{fmtMoney(inst)} บาท</b> · ทั้งหมด <b>{numInstallments} งวด</b>
+          {lastAmt > 0 && lastAmt !== inst && <> (งวดสุดท้าย {fmtMoney(lastAmt)} บาท)</>}
+          <br />หักจนเงินต้นเหลือ 0 บาท
+        </div>
+      )}
+      {p > 0 && type === 'amortized' && pay > 0 && amort && (
+        amort.neverPayoff ? (
+          <div className="bg-red-50 rounded-xl p-3 text-sm text-red-700 leading-relaxed">
+            <AlertTriangle size={14} className="inline mr-1" />
+            ยอดผ่อนน้อยเกินไป — ไม่พอจ่ายดอกเบี้ยเดือนแรก ({fmtMoney(p * rate / 100)} บาท) หนี้จะไม่มีวันหมด
+            กรุณาเพิ่มยอดผ่อน
+          </div>
+        ) : (
+          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 leading-relaxed">
+            ผ่อนเดือนละ <b>{fmtMoney(pay)} บาท</b> · ทั้งหมด <b>{amort.months.length} งวด</b><br />
+            ผ่อนหมดเดือน <b>{amort.months.length ? ymLabel(amort.months[amort.months.length - 1]) : '-'}</b><br />
+            ดอกเบี้ยรวมตลอดสัญญา <b>{fmtMoney(amort.totalInterest)} บาท</b>
+          </div>
+        )
+      )}
+
+      {err && <div className="text-red-600 text-sm">{err}</div>}
+      <PrimaryBtn className="w-full py-3" onClick={() => {
+        if (!p || p <= 0) { setErr('กรุณากรอกเงินต้น'); return; }
+        if (type === 'installment' && inst <= 0) { setErr('กรุณากรอกยอดผ่อนต่อเดือน'); return; }
+        if (type === 'amortized') {
+          if (pay <= 0) { setErr('กรุณากรอกยอดผ่อนต่อเดือน'); return; }
+          if (amort && amort.neverPayoff) { setErr('ยอดผ่อนน้อยกว่าดอกเบี้ย — กรุณาเพิ่มยอดผ่อน'); return; }
+        }
+        if (!startMonth) { setErr('กรุณาเลือกเดือนเริ่ม'); return; }
+        const base = { type, principal: p, startMonth, note: note.trim() };
+        if (type === 'interest') onSave({ ...base, rate, installment: 0, payment: 0 });
+        else if (type === 'amortized') onSave({ ...base, rate, installment: 0, payment: pay });
+        else onSave({ ...base, rate: 0, installment: inst, payment: 0 });
+      }}>บันทึก</PrimaryBtn>
+    </div>
+  );
+}
+
+/* ---------------- ฟอร์มบันทึกการชำระ ---------------- */
+function PaymentForm({ loan, month, onSave }) {
+  const s = loanStats(loan, curYM());
+  const row = s.rowOf[month] || null;
+  const bill = round2(s.scheduleMap[month] != null ? s.scheduleMap[month] : s.monthly);
+  const carryIn = row ? Math.max(0, row.carryIn) : 0;
+  const required = row ? row.required : bill;        // ยอดที่ควรจ่าย (รวมยกมา)
+  const alreadyPaid = row ? row.paid : 0;
+  const bd = s.breakdownMap[month];
+  // ตั้งต้น = ยอดที่ยังขาด (ถ้าจ่ายมาบางส่วนแล้ว) มิฉะนั้น = ยอดที่ควรจ่าย
+  const suggested = round2(Math.max(0, required - alreadyPaid));
+  const [amount, setAmount] = useState(String(suggested > 0 ? suggested : required));
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(todayISO);
+  const billLabel = s.kind === 'interest' ? 'ดอกเบี้ยรอบนี้' : 'ค่างวดรอบนี้';
+  const amt = Number(amount) || 0;
+  // จำลองผลหลังบันทึก
+  const afterShort = round2(required - alreadyPaid - amt);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-stone-50 rounded-xl p-3 text-sm text-slate-600 leading-relaxed">
+        รอบบิล <b className="text-slate-800">{ymLabelFull(month)}</b><br />
+        {billLabel} <b className="text-emerald-700">{fmtMoney(bill)} บาท</b>
+        {carryIn > 0.005 && (
+          <><br /><span className="text-amber-600">+ ยอดค้างยกมา {fmtMoney(carryIn)} บาท</span>
+            <br />รวมที่ควรจ่าย <b className="text-slate-800">{fmtMoney(required)} บาท</b></>
+        )}
+        {alreadyPaid > 0.005 && (
+          <><br /><span className="text-xs text-slate-400">เดือนนี้รับชำระมาแล้ว {fmtMoney(alreadyPaid)} บาท — บันทึกนี้จะแทนที่ยอดเดิม</span></>
+        )}
+        {s.kind === 'amortized' && bd && (
+          <><br /><span className="text-xs text-slate-400">
+            แบ่งเป็นดอกเบี้ย {fmtMoney(bd.interest)} + เงินต้น {fmtMoney(bd.principalPart)}
+          </span></>
+        )}
+        {s.kind === 'installment' && (
+          <><br /><span className="text-xs text-slate-400">
+            เงินต้นคงเหลือก่อนชำระ {fmtMoney(s.remaining)} บาท
+          </span></>
+        )}
+      </div>
+      <div>
+        <label className={labelCls}>จำนวนเงินที่รับชำระจริง (บาท)</label>
+        <input className={inputCls} value={amount} inputMode="numeric"
+          onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ''))} />
+        <div className="text-xs text-slate-400 mt-1">
+          รับชำระเท่าไรก็บันทึกได้ — ถ้าจ่ายไม่ครบ ส่วนที่ขาดจะยกไปรวมกับรอบถัดไป
+        </div>
+      </div>
+      {amt > 0 && (
+        afterShort > 0.005 ? (
+          <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-700">
+            จ่ายไม่ครบ — จะเหลือยอดค้าง <b>{fmtMoney(afterShort)} บาท</b> ยกไปรอบถัดไป
+          </div>
+        ) : afterShort < -0.005 ? (
+          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-700">
+            จ่ายเกิน <b>{fmtMoney(-afterShort)} บาท</b> — ส่วนเกินเป็นเครดิตหักรอบถัดไป
+          </div>
+        ) : (
+          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-700">
+            จ่ายครบพอดี ✓
+          </div>
+        )
+      )}
+      <div>
+        <label className={labelCls}>วันที่ชำระ</label>
+        <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
+      </div>
+      <PrimaryBtn className="w-full py-3" onClick={() => onSave({ amount: Number(amount) || 0, date })}>
+        <CheckCircle2 size={18} /> ยืนยันการชำระ
+      </PrimaryBtn>
+    </div>
+  );
+}
+
+/* ---------------- กล่องแชร์ไปไลน์ ---------------- */
+function buildShareText(debtor) {
+  const cur = curYM();
+  const s = debtorStats(debtor, cur);
+  const lines = [];
+  lines.push('🧾 สรุปยอดเงินกู้');
+  lines.push(`👤 ${debtor.name}`);
+  lines.push(`📅 รอบเดือน ${ymLabelFull(cur)}`);
+  lines.push('━━━━━━━━━━━━━━');
+  s.loans.forEach(({ loan, s: ls }) => {
+    if (!ls.thisMonthInBilling) return;
+    const mark = ls.thisMonthSettled ? ' ✅'
+      : ls.thisMonthHasPayment ? ' (จ่ายบางส่วน)' : '';
+    if (ls.kind === 'installment') {
+      lines.push(`▫️ เงินต้น ${fmtMoney(ls.principal)} บาท (ไม่มีดอกเบี้ย)`);
+      lines.push(`   ค่างวดเดือนนี้ ${fmtMoney(ls.thisMonthBill)} บาท${mark}`);
+      lines.push(`   เงินต้นคงเหลือ ${fmtMoney(ls.remaining)} บาท`);
+    } else if (ls.kind === 'amortized') {
+      lines.push(`▫️ เงินต้น ${fmtMoney(ls.principal)} บาท (ลดต้นลดดอก ${ls.rate}%)`);
+      lines.push(`   ค่างวดเดือนนี้ ${fmtMoney(ls.thisMonthBill)} บาท${mark}`);
+      lines.push(`   เงินต้นคงเหลือ ${fmtMoney(ls.remaining)} บาท`);
+    } else {
+      lines.push(`▫️ เงินต้น ${fmtMoney(ls.principal)} บาท`);
+      lines.push(`   ดอกเบี้ย ${ls.rate}% = ${fmtMoney(ls.thisMonthBill)} บาท${mark}`);
+    }
+    if (ls.outstanding > 0.005) {
+      lines.push(`   ⚠️ มียอดค้างยกมา ${fmtMoney(ls.outstanding)} บาท`);
+    }
+    if (ls.thisMonthHasPayment && !ls.thisMonthSettled) {
+      lines.push(`   รับชำระแล้ว ${fmtMoney(ls.thisMonthPaidAmt)} บาท · ค้าง ${fmtMoney(ls.loanDueNow)} บาท`);
+    }
+  });
+  lines.push('━━━━━━━━━━━━━━');
+  lines.push(`💵 ยอดที่ต้องชำระเดือนนี้: ${fmtMoney(s.thisMonthDue)} บาท`);
+  if (s.outstanding > 0) lines.push(`⚠️ ยอดค้างเดือนก่อน: ${fmtMoney(s.outstanding)} บาท`);
+  lines.push(`💰 รวมต้องชำระทั้งสิ้น: ${fmtMoney(s.dueNow)} บาท`);
+  lines.push('');
+  lines.push(`📌 กำหนดชำระ: ${fmtThaiDate(nextNotifyDate())}`);
+  return lines.join('\n');
+}
+
+function ShareModal({ debtor, onClose }) {
+  const text = useMemo(() => buildShareText(debtor), [debtor]);
+  const [copied, setCopied] = useState(false);
+
+  const doCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); setCopied(true); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+    setTimeout(() => setCopied(false), 2000);
+  };
+  const doShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ text }); return; } catch (e) {}
+    }
+    try {
+      window.open('https://line.me/R/share?text=' + encodeURIComponent(text), '_blank');
+    } catch (e) { doCopy(); }
+  };
+
+  return (
+    <Modal open={true} onClose={onClose} title="แชร์สรุปยอดผ่านไลน์">
+      <pre className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>
+      <div className="flex gap-2 mt-4">
+        <PrimaryBtn className="flex-1 py-3 bg-emerald-700" onClick={doShare}>
+          <Share2 size={17} /> ส่งทางไลน์
+        </PrimaryBtn>
+        <GhostBtn onClick={doCopy} className="flex-1 py-3">
+          {copied ? <><CheckCircle2 size={16} className="text-emerald-600" /> คัดลอกแล้ว</> : <><Copy size={16} /> คัดลอกข้อความ</>}
+        </GhostBtn>
+      </div>
+      <p className="text-xs text-slate-400 mt-3 text-center">
+        บนมือถือจะเปิดเมนูแชร์ให้เลือกแอปไลน์ของแต่ละคนได้โดยตรง
+      </p>
+    </Modal>
+  );
+}
+
+/* ---------------- กล่องเตือนก่อนออกจากระบบ ---------------- */
+function InactivityModal({ secLeft, onStay, onLeave }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm text-center lt-pop">
+        <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-600 mb-3">
+          <Clock size={28} />
+        </div>
+        <h3 className="font-bold text-slate-800 text-lg">กำลังจะออกจากระบบ</h3>
+        <p className="text-sm text-slate-500 mt-1">
+          ไม่พบการใช้งาน ระบบจะออกจากระบบใน
+        </p>
+        <div className="text-4xl font-bold text-amber-600 my-3 tabular-nums">{secLeft}</div>
+        <p className="text-xs text-slate-400 mb-4">วินาที — ข้อมูลที่บันทึกไว้จะไม่สูญหาย</p>
+        <div className="flex gap-2">
+          <GhostBtn onClick={onLeave} className="flex-1">ออกเลย</GhostBtn>
+          <PrimaryBtn onClick={onStay} className="flex-1">ใช้งานต่อ</PrimaryBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- แถบนำทางล่าง ---------------- */
+function BottomNav({ view, setView }) {
+  const items = [
+    { id: 'dashboard', icon: LayoutDashboard, label: 'หน้าหลัก' },
+    { id: 'debtors', icon: Users, label: 'ลูกหนี้' },
+    { id: 'settings', icon: SettingsIcon, label: 'ตั้งค่า' },
+  ];
+  return (
+    <div className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-stone-200">
+      <div className="max-w-md mx-auto flex">
+        {items.map((it) => {
+          const active = view === it.id
+            || (it.id === 'debtors' && view === 'debtor')
+            || (it.id === 'settings' && view === 'users');
+          const Icon = it.icon;
+          return (
+            <button key={it.id} onClick={() => setView(it.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${active ? 'text-emerald-800' : 'text-slate-400'}`}>
+              <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+              <span className={`text-xs ${active ? 'font-semibold' : ''}`}>{it.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* =======================================================================
+   แอปหลัก
+   ======================================================================= */
+function App() {
+  const [phase, setPhase] = useState('loading');     // loading | login | app
+  const [data, setData] = useState({ debtors: [], users: [] });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [view, setView] = useState('dashboard');
+  const [selectedId, setSelectedId] = useState(null);
+  const [warn, setWarn] = useState(false);
+  const [secLeft, setSecLeft] = useState(60);
+  const [encOK, setEncOK] = useState(true);
+
+  // modal states
+  const [debtorForm, setDebtorForm] = useState(null);   // {mode, debtor?}
+  const [loanForm, setLoanForm] = useState(null);       // {debtorId, loan?}
+  const [paymentForm, setPaymentForm] = useState(null); // {debtorId, loanId, month}
+  const [shareDebtor, setShareDebtor] = useState(null);
+  const [confirmBox, setConfirmBox] = useState(null);   // {text, onYes}
+  const [userForm, setUserForm] = useState(null);       // {mode:'add'|'edit'|'password', user?}
+  const [recoveryInfo, setRecoveryInfo] = useState(null); // {token, username} หลังสร้างกุญแจ
+  const [notifyPerm, setNotifyPerm] = useState('default'); // สถานะสิทธิ์แจ้งเตือน
+  const [swReady, setSwReady] = useState(false);          // Service Worker พร้อมหรือไม่
+
+  const hydrated = useRef(false);
+  const lastActivity = useRef(Date.now());
+  const viewRef = useRef(view); viewRef.current = view;
+  const selRef = useRef(selectedId); selRef.current = selectedId;
+  const userRef = useRef(currentUser); userRef.current = currentUser;
+
+  /* ---- โหลดข้อมูล + กู้คืนเซสชันตอนเปิดแอป ---- */
+  useEffect(() => {
+    (async () => {
+      setEncOK(!!(window.crypto && window.crypto.subtle));
+      let d = await loadData();
+      if (!d || !Array.isArray(d.debtors)) {
+        d = await makeSeed();
+        await saveData(d);
+      } else if (!Array.isArray(d.users) || d.users.length === 0) {
+        // ข้อมูลเดิมยังไม่มีระบบผู้ใช้ — สร้างผู้ดูแลระบบเริ่มต้น
+        const cred = await makeCredential('Potato@12');
+        d = { ...d, users: [{
+          id: uid(), username: 'admin', name: 'ผู้ดูแลระบบ', role: 'admin',
+          cred, createdAt: Date.now(),
+        }] };
+        await saveData(d);
+      }
+      setData(d);
+      const sess = await loadSession();
+      const sessUser = sess && sess.userId
+        ? (d.users || []).find((u) => u.id === sess.userId) : null;
+      if (sess && sess.loggedIn && sessUser
+        && (Date.now() - (sess.lastActivity || 0) < AUTO_LOGOUT_MS)) {
+        setCurrentUser(sessUser);
+        setView(sess.view === 'users' ? 'users' : (sess.view || 'dashboard'));
+        setSelectedId(sess.selectedId || null);
+        lastActivity.current = Date.now();   // การรีเฟรช = การใช้งาน
+        setPhase('app');
+      } else {
+        setPhase('login');
+      }
+      hydrated.current = true;
+    })();
+  }, []);
+
+  /* ---- บันทึกข้อมูลอัตโนมัติทุกการเปลี่ยนแปลง ---- */
+  useEffect(() => {
+    if (!hydrated.current) return;
+    saveData(data);
+  }, [data]);
+
+  /* ---- บันทึกเซสชัน (หน้าปัจจุบัน) เพื่อให้รีเฟรชแล้วอยู่หน้าเดิม ---- */
+  useEffect(() => {
+    if (!hydrated.current || phase !== 'app') return;
+    saveSession({
+      loggedIn: true, lastActivity: lastActivity.current, view, selectedId,
+      userId: currentUser?.id || null,
+    });
+  }, [phase, view, selectedId, currentUser]);
+
+  /* ---- ลงทะเบียน Service Worker + เช็คสิทธิ์แจ้งเตือน (ครั้งเดียวตอนเปิดแอป) ---- */
+  useEffect(() => {
+    if (notifySupported()) setNotifyPerm(Notification.permission);
+    (async () => {
+      const r = await registerServiceWorker();
+      setSwReady(r.ok);
+    })();
+  }, []);
+
+  /* ---- แจ้งเตือนถึงรอบเรียกเก็บ — ยิง 1 ครั้ง/เดือน เมื่อถึงวันแจ้งเตือน ---- */
+  useEffect(() => {
+    if (phase !== 'app') return;
+    (async () => {
+      const cur = curYM();
+      // รวมยอดที่ต้องเรียกเก็บเดือนนี้
+      let totalDue = 0, count = 0;
+      (data.debtors || []).forEach((d) => {
+        const ds = debtorStats(d, cur);
+        if (ds.dueNow > 0.005) { totalDue += ds.dueNow; count++; }
+      });
+
+      // ส่งข้อมูลให้ Service Worker เผื่อแจ้งเตือนเบื้องหลัง
+      try {
+        if ('serviceWorker' in navigator) {
+          const reg = await navigator.serviceWorker.getRegistration();
+          const flag = await storageGet(NOTIFY_FLAG_KEY);
+          reg?.active?.postMessage({
+            type: 'update-notify-state',
+            state: {
+              notifyDateISO: nextNotifyDate().toISOString(),
+              dueCount: count, dueTotal: fmtMoney(totalDue),
+              currentMonth: cur, lastNotifiedMonth: flag || null,
+            },
+          });
+        }
+      } catch (e) { /* ข้าม */ }
+
+      // แจ้งเตือนทันที (foreground) ถ้าได้รับอนุญาตและถึงกำหนด
+      if (!notifySupported() || Notification.permission !== 'granted') return;
+      const flag = await storageGet(NOTIFY_FLAG_KEY);
+      if (flag === cur) return;                          // แจ้งไปแล้วเดือนนี้
+      if (!isCollectionPeriod()) return;                 // ยังไม่ถึงวันแจ้งเตือน
+      if (count === 0) return;
+      const ok = await showNotification(
+        'ถึงรอบเรียกเก็บเงินกู้แล้ว',
+        `มีลูกหนี้ ${count} ราย ยอดรวม ${fmtMoney(totalDue)} บาท — เปิดแอปเพื่อตรวจสอบ`
+      );
+      if (ok) await storageSet(NOTIFY_FLAG_KEY, cur);    // กันแจ้งซ้ำเดือนนี้
+    })();
+  }, [phase, data]);
+
+  // เปิด/ขอสิทธิ์แจ้งเตือนจากปุ่มในหน้าตั้งค่า
+  const enableNotifications = async () => {
+    const perm = await requestNotifyPermission();
+    setNotifyPerm(perm);
+    if (perm === 'granted') {
+      await showNotification('เปิดการแจ้งเตือนแล้ว',
+        'ระบบจะเตือนคุณเมื่อถึงรอบเรียกเก็บเงินกู้ในแต่ละเดือน');
+    }
+  };
+
+  const doLogout = useCallback(async () => {
+    await saveSession({ loggedIn: false, lastActivity: 0, view: 'dashboard', selectedId: null, userId: null });
+    setWarn(false);
+    setCurrentUser(null);
+    setPhase('login');
+  }, []);
+
+  /* ---- ติดตามการใช้งาน + ออกจากระบบอัตโนมัติ ---- */
+  useEffect(() => {
+    if (phase !== 'app') return;
+    const bump = () => { lastActivity.current = Date.now(); };
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click', 'mousemove'];
+    events.forEach((e) => window.addEventListener(e, bump, { passive: true }));
+
+    const persist = setInterval(() => {
+      saveSession({
+        loggedIn: true, lastActivity: lastActivity.current,
+        view: viewRef.current, selectedId: selRef.current,
+        userId: userRef.current?.id || null,
+      });
+    }, 20000);
+
+    const tick = setInterval(() => {
+      const idle = Date.now() - lastActivity.current;
+      if (idle >= AUTO_LOGOUT_MS) { doLogout(); return; }
+      if (idle >= AUTO_LOGOUT_MS - WARNING_MS) {
+        setWarn(true);
+        setSecLeft(Math.max(0, Math.ceil((AUTO_LOGOUT_MS - idle) / 1000)));
+      } else {
+        setWarn((w) => (w ? false : w));
+      }
+    }, 1000);
+
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, bump));
+      clearInterval(persist);
+      clearInterval(tick);
+    };
+  }, [phase, doLogout]);
+
+  /* ---- ตัวช่วยแก้ไขข้อมูล ---- */
+  const updateDebtor = (id, fn) => {
+    setData((prev) => ({
+      ...prev,
+      debtors: prev.debtors.map((d) => (d.id === id ? fn(d) : d)),
+    }));
+  };
+
+  const saveDebtorForm = (vals) => {
+    if (debtorForm.mode === 'add') {
+      setData((p) => ({ ...p, debtors: [...p.debtors, { id: uid(), ...vals, createdAt: Date.now(), loans: [] }] }));
+    } else {
+      updateDebtor(debtorForm.debtor.id, (d) => ({ ...d, ...vals }));
+    }
+    setDebtorForm(null);
+  };
+
+  const saveLoanForm = (vals) => {
+    const { debtorId, loan } = loanForm;
+    if (loan) {
+      updateDebtor(debtorId, (d) => ({
+        ...d, loans: d.loans.map((l) => (l.id === loan.id ? { ...l, ...vals } : l)),
+      }));
+    } else {
+      updateDebtor(debtorId, (d) => ({
+        ...d, loans: [...(d.loans || []), { id: uid(), ...vals, payments: {} }],
+      }));
+    }
+    setLoanForm(null);
+  };
+
+  const savePayment = (vals) => {
+    const { debtorId, loanId, month } = paymentForm;
+    updateDebtor(debtorId, (d) => ({
+      ...d,
+      loans: d.loans.map((l) => (l.id === loanId
+        ? { ...l, payments: { ...(l.payments || {}), [month]: vals } } : l)),
+    }));
+    setPaymentForm(null);
+  };
+
+  const undoPayment = (debtorId, loanId, month) => {
+    setConfirmBox({
+      text: `ยกเลิกการบันทึกชำระรอบ ${ymLabel(month)} ?`,
+      onYes: () => {
+        updateDebtor(debtorId, (d) => ({
+          ...d,
+          loans: d.loans.map((l) => {
+            if (l.id !== loanId) return l;
+            const np = { ...(l.payments || {}) };
+            delete np[month];
+            return { ...l, payments: np };
+          }),
+        }));
+        setConfirmBox(null);
+      },
+    });
+  };
+
+  const deleteDebtor = (debtor) => {
+    setConfirmBox({
+      text: `ลบลูกหนี้ "${debtor.name}" และข้อมูลทั้งหมด?`,
+      onYes: () => {
+        setData((p) => ({ ...p, debtors: p.debtors.filter((d) => d.id !== debtor.id) }));
+        setSelectedId(null);
+        setView('debtors');
+        setConfirmBox(null);
+      },
+    });
+  };
+
+  const deleteLoan = (debtor, loan) => {
+    setConfirmBox({
+      text: `ลบก้อนเงินกู้ ${fmtMoney(loan.principal)} บาท?`,
+      onYes: () => {
+        updateDebtor(debtor.id, (d) => ({ ...d, loans: d.loans.filter((l) => l.id !== loan.id) }));
+        setConfirmBox(null);
+      },
+    });
+  };
+
+  const exportData = async () => {
+    try {
+      // สำรองเฉพาะข้อมูลลูกหนี้ — ไม่รวมผู้ใช้/รหัสผ่าน
+      const backup = { debtors: data.debtors || [], exportedAt: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `loan-backup-${curYM()}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {}
+  };
+
+  const clearAll = () => {
+    setConfirmBox({
+      text: 'ล้างข้อมูลลูกหนี้ทั้งหมดถาวร? (บัญชีผู้ใช้จะยังอยู่) การกระทำนี้ย้อนกลับไม่ได้',
+      onYes: () => {
+        setData((p) => ({ ...p, debtors: [] }));   // คงรายชื่อผู้ใช้ไว้
+        setConfirmBox(null);
+        setSelectedId(null);
+        setView('dashboard');
+      },
+    });
+  };
+
+  /* ---- จัดการผู้ใช้งาน ---- */
+  const saveUserForm = (out) => {
+    if (!userForm) return;
+    const { mode, user } = userForm;
+    if (mode === 'add') {
+      const nu = {
+        id: uid(), username: out.username, name: out.name, role: out.role,
+        cred: out.cred, createdAt: Date.now(),
+      };
+      setData((p) => ({ ...p, users: [...(p.users || []), nu] }));
+    } else {
+      // แก้ไข หรือ เปลี่ยนรหัสผ่าน
+      setData((p) => ({
+        ...p,
+        users: (p.users || []).map((u) => (u.id === user.id ? { ...u, ...out } : u)),
+      }));
+      // ถ้าแก้ไขบัญชีตัวเอง ให้ปรับ currentUser ตาม
+      if (currentUser && user.id === currentUser.id) {
+        setCurrentUser((cu) => ({ ...cu, ...out }));
+      }
+    }
+    setUserForm(null);
+  };
+
+  const deleteUser = (usr) => {
+    const admins = (data.users || []).filter((u) => u.role === 'admin').length;
+    if (currentUser && usr.id === currentUser.id) return;          // ลบตัวเองไม่ได้
+    if (usr.role === 'admin' && admins <= 1) return;               // ต้องเหลือ admin อย่างน้อย 1
+    setConfirmBox({
+      text: `ลบผู้ใช้ "${usr.name}" (${usr.username}) ?`,
+      onYes: () => {
+        setData((p) => ({ ...p, users: (p.users || []).filter((u) => u.id !== usr.id) }));
+        setConfirmBox(null);
+      },
+    });
+  };
+
+  /* ---- กู้คืนรหัสผ่านด้วยกุญแจกู้คืน (เรียกจากหน้า Login) ----
+     ตั้งรหัสใหม่ + เพิกถอนกุญแจเดิม แล้วเข้าสู่ระบบให้เลย */
+  const resetPassword = async (userId, newPw) => {
+    const user = (data.users || []).find((u) => u.id === userId);
+    if (!user) throw new Error('not-found');
+    const cred = await makeCredential(newPw);
+    const updated = { ...user, cred, recovery: null };  // กุญแจเดิมใช้ไม่ได้อีก
+    setData((p) => ({
+      ...p, users: (p.users || []).map((u) => (u.id === userId ? updated : u)),
+    }));
+    await saveLock({ fails: 0, until: 0 });             // เคลียร์สถานะล็อก
+    lastActivity.current = Date.now();
+    setCurrentUser(updated);
+    setView('dashboard'); setSelectedId(null);
+    setPhase('app');
+  };
+
+  /* ---- สร้างกุญแจกู้คืน: สุ่มโทเค็น เก็บแฮช ดาวน์โหลดไฟล์จริง ---- */
+  const makeRecoveryKey = async () => {
+    if (!currentUser) return;
+    const token = makeRecoveryToken();
+    const recovery = await makeRecovery(token);
+    const updated = { ...currentUser, recovery };
+    setData((p) => ({
+      ...p, users: (p.users || []).map((u) => (u.id === currentUser.id ? { ...u, recovery } : u)),
+    }));
+    setCurrentUser(updated);
+    // ดาวน์โหลดไฟล์กุญแจให้ผู้ใช้เก็บลง USB
+    const fileObj = {
+      app: 'loan-interest-tracker',
+      kind: 'recovery-key',
+      username: currentUser.username,
+      name: currentUser.name,
+      recoveryToken: token,
+      createdAt: new Date().toISOString(),
+      note: 'เก็บไฟล์นี้ไว้ใน USB ที่ปลอดภัย ใช้สำหรับรีเซ็ตรหัสผ่านเมื่อลืม ห้ามเปิดเผยผู้อื่น',
+    };
+    try {
+      const blob = new Blob([JSON.stringify(fileObj, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recovery-key-${currentUser.username}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) { /* ไม่สามารถดาวน์โหลดได้ — ยังเห็นโทเค็นในหน้าจอ */ }
+    setRecoveryInfo({ token, username: currentUser.username });
+  };
+
+  /* ---- เรนเดอร์ ---- */
+  const fontCss = `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap');
+  .lt-root,.lt-root *{font-family:'IBM Plex Sans Thai',-apple-system,sans-serif;}
+  .lt-pop{animation:ltpop .22s ease-out;}
+  @keyframes ltpop{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:none;}}
+  .lt-fade{animation:ltfade .25s ease-out;}
+  @keyframes ltfade{from{opacity:0;}to{opacity:1;}}`;
+
+  if (phase === 'loading') {
+    return (
+      <div className="lt-root min-h-screen flex items-center justify-center bg-emerald-900">
+        <style>{fontCss}</style>
+        <div className="text-emerald-200 flex flex-col items-center gap-3">
+          <Wallet size={40} className="animate-pulse" />
+          <div className="text-sm">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'login') {
+    return (
+      <div className="lt-root">
+        <style>{fontCss}</style>
+        <LoginScreen users={data.users || []} onReset={resetPassword} onLogin={(user) => {
+          lastActivity.current = Date.now();
+          setCurrentUser(user);
+          setView('dashboard'); setSelectedId(null);
+          setPhase('app');
+        }} />
+      </div>
+    );
+  }
+
+  const selectedDebtor = data.debtors.find((d) => d.id === selectedId) || null;
+  const headerTitle = view === 'dashboard' ? 'หน้าหลัก'
+    : view === 'debtors' ? 'รายชื่อลูกหนี้'
+      : view === 'settings' ? 'ตั้งค่า'
+        : view === 'users' ? 'จัดการผู้ใช้งาน' : '';
+
+  return (
+    <div className="lt-root min-h-screen bg-stone-100">
+      <style>{fontCss}</style>
+      <div className="max-w-md mx-auto bg-stone-100 min-h-screen relative">
+
+        {/* ส่วนหัว (ยกเว้นหน้าที่มีหัวของตัวเอง) */}
+        {view !== 'debtor' && view !== 'users' && (
+          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-5 pb-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-emerald-200/70 text-xs">ระบบจัดการดอกเบี้ยเงินกู้</div>
+                <h1 className="text-white text-xl font-bold">{headerTitle}</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
+                  {(currentUser?.name || '?').charAt(0)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="lt-fade" key={view + (selectedId || '')}>
+          {view === 'dashboard' && (
+            <DashboardView data={data} onOpenDebtor={(id) => { setSelectedId(id); setView('debtor'); }} />
+          )}
+          {view === 'debtors' && (
+            <DebtorsView data={data}
+              onOpenDebtor={(id) => { setSelectedId(id); setView('debtor'); }}
+              onAdd={() => setDebtorForm({ mode: 'add' })} />
+          )}
+          {view === 'debtor' && selectedDebtor && (
+            <DebtorDetailView
+              debtor={selectedDebtor}
+              onBack={() => { setView('debtors'); setSelectedId(null); }}
+              onEdit={(d) => setDebtorForm({ mode: 'edit', debtor: d })}
+              onDelete={deleteDebtor}
+              onAddLoan={(d) => setLoanForm({ debtorId: d.id, loan: null })}
+              onEditLoan={(d, l) => setLoanForm({ debtorId: d.id, loan: l })}
+              onDeleteLoan={deleteLoan}
+              onRecord={(loanId, month) => setPaymentForm({ debtorId: selectedDebtor.id, loanId, month })}
+              onUndo={(loanId, month) => undoPayment(selectedDebtor.id, loanId, month)}
+              onShare={(d) => setShareDebtor(d)}
+            />
+          )}
+          {view === 'debtor' && !selectedDebtor && (
+            <div className="p-8 text-center text-slate-400">ไม่พบข้อมูลลูกหนี้</div>
+          )}
+          {view === 'settings' && (
+            <SettingsView data={data} currentUser={currentUser} onLogout={doLogout}
+              onClearData={clearAll} onExport={exportData} encOK={encOK}
+              onManageUsers={() => setView('users')}
+              onRecoveryKey={makeRecoveryKey}
+              notifyPerm={notifyPerm} swReady={swReady} onEnableNotify={enableNotifications}
+              onChangePassword={() => setUserForm({ mode: 'password', user: currentUser })} />
+          )}
+          {view === 'users' && (
+            <UsersView users={data.users || []} currentUser={currentUser}
+              onBack={() => setView('settings')}
+              onAdd={() => setUserForm({ mode: 'add' })}
+              onEdit={(u) => setUserForm({ mode: 'edit', user: u })}
+              onDelete={deleteUser} />
+          )}
+        </div>
+
+        {/* ปุ่มลอยเพิ่มลูกหนี้ */}
+        {view === 'debtors' && (
+          <button onClick={() => setDebtorForm({ mode: 'add' })}
+            className="fixed bottom-20 right-4 z-30 h-14 w-14 rounded-full bg-emerald-800 text-white shadow-lg flex items-center justify-center hover:bg-emerald-900 active:scale-95 transition"
+            style={{ marginRight: 'max(0px, calc((100vw - 28rem) / 2))' }}>
+            <Plus size={26} />
+          </button>
+        )}
+
+        <BottomNav view={view} setView={(v) => { setView(v); if (v !== 'debtor') setSelectedId(null); }} />
+      </div>
+
+      {/* ===== Modals ===== */}
+      <Modal open={!!debtorForm} onClose={() => setDebtorForm(null)}
+        title={debtorForm?.mode === 'add' ? 'เพิ่มลูกหนี้ใหม่' : 'แก้ไขข้อมูลลูกหนี้'}>
+        {debtorForm && <DebtorForm initial={debtorForm.debtor} onSave={saveDebtorForm} />}
+      </Modal>
+
+      <Modal open={!!loanForm} onClose={() => setLoanForm(null)}
+        title={loanForm?.loan ? 'แก้ไขก้อนเงินกู้' : 'เพิ่มเงินต้น / ก้อนเงินกู้'}>
+        {loanForm && <LoanForm initial={loanForm.loan} onSave={saveLoanForm} />}
+      </Modal>
+
+      <Modal open={!!paymentForm} onClose={() => setPaymentForm(null)} title="บันทึกการชำระ">
+        {paymentForm && (() => {
+          const d = data.debtors.find((x) => x.id === paymentForm.debtorId);
+          const l = d?.loans.find((x) => x.id === paymentForm.loanId);
+          return l ? <PaymentForm loan={l} month={paymentForm.month} onSave={savePayment} /> : null;
+        })()}
+      </Modal>
+
+      {shareDebtor && <ShareModal debtor={shareDebtor} onClose={() => setShareDebtor(null)} />}
+
+      <Modal open={!!userForm} onClose={() => setUserForm(null)}
+        title={userForm?.mode === 'add' ? 'เพิ่มผู้ใช้ใหม่'
+          : userForm?.mode === 'password' ? 'เปลี่ยนรหัสผ่าน' : 'แก้ไขผู้ใช้'}>
+        {userForm && (
+          <UserForm
+            mode={userForm.mode}
+            initial={userForm.user}
+            existingUsernames={(data.users || []).map((u) => u.username)}
+            onSave={saveUserForm} />
+        )}
+      </Modal>
+
+      {/* กล่องแสดงกุญแจกู้คืนหลังสร้างเสร็จ */}
+      <Modal open={!!recoveryInfo} onClose={() => setRecoveryInfo(null)} title="กุญแจกู้คืนรหัสผ่าน">
+        {recoveryInfo && (
+          <div className="space-y-4">
+            <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800">
+              สร้างกุญแจกู้คืนสำหรับบัญชี <b>{recoveryInfo.username}</b> เรียบร้อย
+              และดาวน์โหลดไฟล์ <b>recovery-key-{recoveryInfo.username}.json</b> แล้ว
+            </div>
+            <div>
+              <div className={labelCls}>กุญแจกู้คืน (จดหรือเก็บไฟล์ไว้)</div>
+              <div className="bg-stone-100 rounded-xl px-3 py-3 text-center font-mono text-base font-semibold text-slate-800 tracking-wide break-all">
+                {recoveryInfo.token}
+              </div>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3 text-sm text-amber-700 leading-relaxed">
+              <AlertTriangle size={14} className="inline mr-1" />
+              นำไฟล์ที่ดาวน์โหลดไปเก็บใน USB หรือที่ปลอดภัย — จะแสดงกุญแจนี้ครั้งเดียว
+              หากสร้างชุดใหม่ กุญแจเดิมจะใช้ไม่ได้ทันที และห้ามเปิดเผยให้ผู้อื่น
+            </div>
+            <PrimaryBtn className="w-full py-3" onClick={() => setRecoveryInfo(null)}>
+              <CheckCircle2 size={18} /> เก็บไฟล์เรียบร้อยแล้ว
+            </PrimaryBtn>
+          </div>
+        )}
+      </Modal>
+
+      {confirmBox && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setConfirmBox(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm text-center lt-pop">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600 mb-3">
+              <AlertTriangle size={24} />
+            </div>
+            <p className="text-slate-700 font-medium">{confirmBox.text}</p>
+            <div className="flex gap-2 mt-5">
+              <GhostBtn onClick={() => setConfirmBox(null)} className="flex-1">ยกเลิก</GhostBtn>
+              <button onClick={confirmBox.onYes}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition">
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {warn && (
+        <InactivityModal secLeft={secLeft}
+          onStay={() => { lastActivity.current = Date.now(); setWarn(false); }}
+          onLeave={doLogout} />
+      )}
+    </div>
+  );
+}
+
+
+/* ---- เริ่มต้นแอป ---- */
+const _root = ReactDOM.createRoot(document.getElementById('root'));
+_root.render(<App />);
+</script>
+</body>
+</html>
