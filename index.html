@@ -208,29 +208,73 @@ async function decryptObj(blob) {
 }
 
 /* ---------------- ชั้นจัดเก็บข้อมูล (persistent + cache) ---------------- */
+/* -------- Cloud Storage (Supabase) --------
+   ข้อมูลถูกเข้ารหัส AES-256 ก่อนส่งขึ้น cloud ทุกครั้ง
+   อ่าน/เขียนผ่าน Supabase REST API โดยตรง (ไม่ต้องมี supabase-js)
+   Fallback: localStorage ถ้าเน็ตไม่มี */
+const _SUPA_URL = 'https://jmjdxfhxzmpzggehlwao.supabase.co';
+const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
 const _mem = {};
+
+async function _supaSet(key, val) {
+  try {
+    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store`, {
+      method: 'POST',
+      headers: {
+        'apikey': _SUPA_KEY,
+        'Authorization': `Bearer ${_SUPA_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify({ key, value: JSON.stringify(val), updated_at: new Date().toISOString() }),
+    });
+    return res.ok;
+  } catch (e) { return false; }
+}
+async function _supaGet(key) {
+  try {
+    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`, {
+      headers: { 'apikey': _SUPA_KEY, 'Authorization': `Bearer ${_SUPA_KEY}` },
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    if (!rows || !rows.length) return null;
+    return JSON.parse(rows[0].value);
+  } catch (e) { return null; }
+}
+async function _supaDel(key) {
+  try {
+    await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}`, {
+      method: 'DELETE',
+      headers: { 'apikey': _SUPA_KEY, 'Authorization': `Bearer ${_SUPA_KEY}` },
+    });
+  } catch (e) {}
+}
+
 async function storageSet(key, val) {
   _mem[key] = val;
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem(key, JSON.stringify(val));
-    }
-  } catch (e) { /* ใช้ cache ในหน่วยความจำแทน */ }
+  // เขียนลง cloud + localStorage พร้อมกัน
+  try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+  await _supaSet(key, val);
 }
 async function storageGet(key) {
+  // ลอง cloud ก่อน (ข้อมูลล่าสุด), fallback localStorage, แล้วค่อย memory
+  const cloud = await _supaGet(key);
+  if (cloud !== null) {
+    try { window.localStorage.setItem(key, JSON.stringify(cloud)); } catch (e) {}
+    _mem[key] = cloud;
+    return cloud;
+  }
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const r = window.localStorage.getItem(key);
-      if (r != null) return JSON.parse(r);
-    }
-  } catch (e) { /* คีย์อาจยังไม่มี */ }
+    const r = window.localStorage.getItem(key);
+    if (r != null) return JSON.parse(r);
+  } catch (e) {}
   return key in _mem ? _mem[key] : null;
 }
 async function storageDel(key) {
   delete _mem[key];
-  try {
-    if (typeof window !== 'undefined' && window.localStorage) window.localStorage.removeItem(key);
-  } catch (e) {}
+  try { window.localStorage.removeItem(key); } catch (e) {}
+  await _supaDel(key);
 }
 async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
 async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
