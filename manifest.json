@@ -1,14 +1,14 @@
 {
-  "name": "ระบบจัดการดอกเบี้ยเงินกู้",
-  "short_name": "เงินกู้",
-  "description": "ติดตามดอกเบี้ยและการผ่อนชำระเงินกู้",
+  "name": "FinNote",
+  "short_name": "FinNote",
+  "description": "ระบบจัดการเงินกู้และดอกเบี้ย",
   "lang": "th",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#064e3b",
-  "theme_color": "#065f46",
+  "background_color": "#0e7490",
+  "theme_color": "#0e7490",
   "icons": [
     {
       "src": "icon.svg",
