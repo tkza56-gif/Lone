@@ -3,34 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ระบบจัดการดอกเบี้ยเงินกู้</title>
-<meta name="theme-color" content="#065f46">
+<title>FinNote — ฟ้าเขียว</title>
+<meta name="theme-color" content="#0e7490">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="เงินกู้">
+<meta name="apple-mobile-web-app-title" content="FinNote">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
-<!-- React + ReactDOM + Babel จาก CDN (ล็อกเวอร์ชันชัดเจน กัน 404) -->
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
-<!-- Tailwind CSS (Play CDN) -->
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  html, body { margin: 0; padding: 0; background: #f5f5f4; }
-  #root { min-height: 100vh; }
-  /* หน้าจอโหลดก่อน React พร้อม */
-  #boot { min-height:100vh; display:flex; align-items:center; justify-content:center;
-    background:#064e3b; color:#a7f3d0; font-family:sans-serif; }
+  html,body{margin:0;padding:0;background:#f5f5f4;}
+  #root{min-height:100vh;}
+  #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
+         background:#0e7490;color:rgba(255,255,255,0.85);font-family:sans-serif;font-size:14px;}
 </style>
 </head>
 <body>
-<div id="root"><div id="boot">กำลังโหลด...</div></div>
-
+<div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-
 /* ===== ไอคอน (ฝังในไฟล์ ไม่ต้องโหลดจาก CDN) =====
    path data จาก Lucide (lucide.dev) — ใบอนุญาต ISC
    ห่อเป็น React component ที่รับ props เหมือน lucide-react เดิม */
@@ -78,12 +73,10 @@ const BadgePercent = _Icon('<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.
 const RefreshCw = _Icon('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>');
 const KeyRound = _Icon('<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>');
 
-
 /* ============ แอปหลัก ============ */
 
-
 /* =======================================================================
-   ระบบจัดการดอกเบี้ยเงินกู้  (Loan Interest Tracker)  — ตัวอย่าง / Prototype
+   FinNote  (Loan Interest Tracker)  — ตัวอย่าง / Prototype
    - Login: admin / Potato@12
    - ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน 5 นาที
    - บันทึกข้อมูลอัตโนมัติ + เข้ารหัส AES-GCM
@@ -95,9 +88,9 @@ const WARNING_MS = 60 * 1000;           // เตือนล่วงหน้�
 const DATA_KEY = 'lt_data_v1';
 const SESSION_KEY = 'lt_session_v1';
 const LOCK_KEY = 'lt_lock_v1';          // สถานะล็อกหลังกรอกรหัสผิดหลายครั้ง
-const KDF_SECRET = 'loan-tracker::a7F#9kPmZ2!qR4';
+const KDF_SECRET = 'finnote::a7F#9kPmZ2!qR4';
 const KDF_SALT = 'salt::lt::v1::8x@Lw';
-const PW_ITER = 210000;                 // รอบ PBKDF2 สำหรับแฮชรหัสผ่าน
+const PW_ITER = 50000;  // รอบ PBKDF2 (ลดจาก 210k → 50k เพื่อความเร็วใน browser)
 const LOGIN_MAX_FAILS = 5;              // กรอกผิดครบจำนวนนี้จึงล็อกชั่วคราว
 
 const THAI_MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -214,100 +207,95 @@ async function decryptObj(blob) {
 }
 
 /* ---------------- ชั้นจัดเก็บข้อมูล (persistent + cache) ---------------- */
-/* -------- Cloud Storage (Supabase) --------
-   ข้อมูลถูกเข้ารหัส AES-256 ก่อนส่งขึ้น cloud ทุกครั้ง
-   อ่าน/เขียนผ่าน Supabase REST API โดยตรง (ไม่ต้องมี supabase-js)
-   Fallback: localStorage ถ้าเน็ตไม่มี
-   syncStatus: 'ok' | 'syncing' | 'offline' | 'error' */
+/* --- Supabase Cloud Storage + localStorage fallback ---
+   ข้อมูลหลัก (DATA_KEY) ซิงค์ข้ามเครื่องผ่าน Supabase
+   session/lock ใช้ localStorage เท่านั้น (เร็ว ไม่รอ network) */
 const _SUPA_URL = 'https://jmjdxfhxzmpzggehlwao.supabase.co';
 const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
+const _SUPA_H = () => ({
+  'apikey': _SUPA_KEY,
+  'Authorization': `Bearer ${_SUPA_KEY}`,
+  'Content-Type': 'application/json',
+});
 const _mem = {};
-/* ตัวแปรบอกสถานะซิงค์ — คอมโพเนนต์อ่านผ่าน window._syncStatus */
 window._syncStatus = 'ok';
 window._syncListeners = [];
 function _setSyncStatus(s) {
   window._syncStatus = s;
-  window._syncListeners.forEach((fn) => { try { fn(s); } catch (e) {} });
+  (window._syncListeners || []).forEach((fn) => { try { fn(s); } catch(e) {} });
 }
-
-const _HEADERS = {
-  'apikey': _SUPA_KEY,
-  'Authorization': `Bearer ${_SUPA_KEY}`,
-  'Content-Type': 'application/json',
-};
-
 async function _supaSet(key, val) {
   try {
     _setSyncStatus('syncing');
     const res = await fetch(`${_SUPA_URL}/rest/v1/app_store`, {
       method: 'POST',
-      headers: { ..._HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      headers: { ..._SUPA_H(), 'Prefer': 'resolution=merge-duplicates' },
       body: JSON.stringify({ key, value: JSON.stringify(val), updated_at: new Date().toISOString() }),
     });
-    if (res.ok) { _setSyncStatus('ok'); return true; }
-    _setSyncStatus('error'); return false;
-  } catch (e) { _setSyncStatus('offline'); return false; }
+    _setSyncStatus(res.ok ? 'ok' : 'error');
+    return res.ok;
+  } catch(e) { _setSyncStatus('offline'); return false; }
 }
 async function _supaGet(key) {
   try {
     const res = await fetch(
       `${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-      { headers: _HEADERS }
+      { headers: _SUPA_H() }
     );
     if (!res.ok) return null;
     const rows = await res.json();
-    if (!rows || !rows.length) return null;
-    return JSON.parse(rows[0].value);
-  } catch (e) { return null; }
+    return rows && rows.length ? JSON.parse(rows[0].value) : null;
+  } catch(e) { return null; }
 }
 async function _supaDel(key) {
   try {
-    await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}`, {
-      method: 'DELETE', headers: _HEADERS,
-    });
-  } catch (e) {}
+    await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}`,
+      { method: 'DELETE', headers: _SUPA_H() });
+  } catch(e) {}
 }
-/* ทดสอบการเชื่อมต่อ Supabase — เรียกตอนเปิดแอป */
-async function _checkSupaConn() {
-  try {
-    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store?limit=1`, { headers: _HEADERS });
-    if (res.ok) { _setSyncStatus('ok'); return true; }
-    if (res.status === 404 || res.status === 400) {
-      _setSyncStatus('error'); return false;    // ตาราง app_store ยังไม่มี
-    }
-    _setSyncStatus('error'); return false;
-  } catch (e) { _setSyncStatus('offline'); return false; }
-}
-
 async function storageSet(key, val) {
   _mem[key] = val;
-  try { window.localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
-  await _supaSet(key, val);
+  try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+  await _supaSet(key, val);  // sync to cloud
 }
 async function storageGet(key) {
+  // cloud ก่อน (ข้อมูลล่าสุดข้ามเครื่อง) → localStorage → memory
   const cloud = await _supaGet(key);
   if (cloud !== null) {
-    try { window.localStorage.setItem(key, JSON.stringify(cloud)); } catch (e) {}
-    _mem[key] = cloud;
-    return cloud;
+    try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(cloud)); } catch(e) {}
+    _mem[key] = cloud; return cloud;
   }
   try {
-    const r = window.localStorage.getItem(key);
+    const r = window.localStorage && window.localStorage.getItem(key);
     if (r != null) return JSON.parse(r);
-  } catch (e) {}
+  } catch(e) {}
   return key in _mem ? _mem[key] : null;
 }
 async function storageDel(key) {
   delete _mem[key];
-  try { window.localStorage.removeItem(key); } catch (e) {}
+  try { window.localStorage && window.localStorage.removeItem(key); } catch(e) {}
   await _supaDel(key);
+}
+
+/* localStorage-only helpers (เร็ว ไม่รอ network) */
+function lsSet(key, val) {
+  try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+function lsGet(key) {
+  try {
+    const r = window.localStorage && window.localStorage.getItem(key);
+    return r != null ? JSON.parse(r) : null;
+  } catch(e) { return null; }
+}
+function lsDel(key) {
+  try { window.localStorage && window.localStorage.removeItem(key); } catch(e) {}
 }
 async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
 async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
-async function saveSession(s) { await storageSet(SESSION_KEY, await encryptObj(s)); }
-async function loadSession() { return decryptObj(await storageGet(SESSION_KEY)); }
-async function saveLock(s) { await storageSet(LOCK_KEY, await encryptObj(s)); }
-async function loadLock() { return decryptObj(await storageGet(LOCK_KEY)); }
+async function saveSession(s) { lsSet(SESSION_KEY, s); }  // session: localStorage เท่านั้น
+async function loadSession() { return lsGet(SESSION_KEY); }  // session: localStorage เท่านั้น
+async function saveLock(s) { lsSet(LOCK_KEY, s); }  // lock: localStorage เท่านั้น
+async function loadLock() { return lsGet(LOCK_KEY); }  // lock: localStorage เท่านั้น
 
 /* ---------------- เครื่องมือวันที่ / การเงิน ---------------- */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -677,7 +665,7 @@ async function makeSeed() {
 }
 
 /* ---------------- สไตล์ร่วม ---------------- */
-const inputCls = 'w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 transition';
+const inputCls = 'w-full rounded-xl border border-stone-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-cyan-600 focus:ring-2 focus:ring-cyan-100 transition';
 const labelCls = 'block text-sm font-medium text-slate-600 mb-1.5';
 
 /* =======================================================================
@@ -706,7 +694,7 @@ function Modal({ open, onClose, title, children, maxW = 'max-w-md' }) {
 function Pill({ tone = 'slate', children }) {
   const tones = {
     slate: 'bg-stone-100 text-slate-600',
-    green: 'bg-emerald-50 text-emerald-700',
+    green: 'bg-cyan-50 text-cyan-700',
     amber: 'bg-amber-50 text-amber-700',
     red: 'bg-red-50 text-red-600',
   };
@@ -716,7 +704,7 @@ function Pill({ tone = 'slate', children }) {
 function PrimaryBtn({ children, onClick, type = 'button', className = '', disabled }) {
   return (
     <button type={type} onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-900 active:scale-95 disabled:opacity-50 transition ${className}`}>
+      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-900 active:scale-95 disabled:opacity-50 transition ${className}`}>
       {children}
     </button>
   );
@@ -803,14 +791,14 @@ function LoginScreen({ users, onLogin, onReset }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-emerald-800 to-emerald-950">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-cyan-800 to-cyan-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 mb-4">
-            <Wallet size={30} className="text-emerald-200" />
+            <Wallet size={30} className="text-cyan-200" />
           </div>
-          <h1 className="text-2xl font-bold text-white">ระบบจัดการดอกเบี้ยเงินกู้</h1>
-          <p className="text-emerald-200/80 text-sm mt-1">เข้าสู่ระบบเพื่อจัดการข้อมูลลูกหนี้</p>
+          <h1 className="text-2xl font-bold text-white">FinNote</h1>
+          <p className="text-cyan-200/80 text-sm mt-1">เข้าสู่ระบบเพื่อจัดการข้อมูลลูกหนี้</p>
         </div>
         <div className="bg-white rounded-3xl shadow-2xl p-6">
           <div className="mb-4">
@@ -850,7 +838,7 @@ function LoginScreen({ users, onLogin, onReset }) {
             {busy ? 'กำลังตรวจสอบ...' : locked ? `ถูกล็อก (${lockLeft}s)` : 'เข้าสู่ระบบ'}
           </PrimaryBtn>
           <button onClick={() => { setMode('recover'); setErr(''); }}
-            className="w-full text-center mt-3 text-sm text-emerald-700 font-medium hover:underline">
+            className="w-full text-center mt-3 text-sm text-cyan-700 font-medium hover:underline">
             ลืมรหัสผ่าน?
           </button>
           <div className="flex items-center gap-1.5 justify-center mt-3 text-xs text-slate-400 text-center">
@@ -928,14 +916,14 @@ function RecoverPanel({ users, onReset, onBack }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-emerald-800 to-emerald-950">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6 bg-gradient-to-br from-cyan-800 to-cyan-950">
       <div className="w-full max-w-sm">
         <div className="text-center mb-6">
           <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20 mb-4">
-            <KeyRound size={28} className="text-emerald-200" />
+            <KeyRound size={28} className="text-cyan-200" />
           </div>
           <h1 className="text-xl font-bold text-white">กู้คืนรหัสผ่าน</h1>
-          <p className="text-emerald-200/80 text-sm mt-1">
+          <p className="text-cyan-200/80 text-sm mt-1">
             {step === 'key' ? 'ใช้ไฟล์กุญแจกู้คืนที่เก็บไว้ใน USB' : 'ตั้งรหัสผ่านใหม่'}
           </p>
         </div>
@@ -973,7 +961,7 @@ function RecoverPanel({ users, onReset, onBack }) {
             </>
           ) : (
             <>
-              <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 mb-4">
+              <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800 mb-4">
                 ยืนยันตัวตนสำเร็จ — บัญชี <b>{matched?.username}</b><br />
                 <span className="text-xs">ตั้งรหัสผ่านใหม่ได้เลย กุญแจกู้คืนชุดเดิมจะถูกยกเลิกเพื่อความปลอดภัย</span>
               </div>
@@ -1017,9 +1005,9 @@ function RecoverPanel({ users, onReset, onBack }) {
 function StatCard({ icon, label, value, sub, tone = 'slate' }) {
   const tones = {
     slate: 'text-slate-700 bg-stone-100',
-    green: 'text-emerald-700 bg-emerald-50',
+    green: 'text-cyan-700 bg-cyan-50',
     amber: 'text-amber-700 bg-amber-50',
-    blue: 'text-emerald-800 bg-emerald-50',
+    blue: 'text-cyan-800 bg-cyan-50',
   };
   return (
     <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
@@ -1056,10 +1044,10 @@ function DashboardView({ data, onOpenDebtor }) {
     <div className="px-4 pt-4 pb-28 space-y-4">
       {/* แบนเนอร์แจ้งเตือนรอบชำระ */}
       <div className={`rounded-2xl p-4 border ${collecting && agg.dueList.length
-        ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+        ? 'bg-amber-50 border-amber-200' : 'bg-cyan-50 border-cyan-200'}`}>
         <div className="flex items-start gap-3">
           <div className={`inline-flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${
-            collecting && agg.dueList.length ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+            collecting && agg.dueList.length ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700'}`}>
             <Bell size={20} />
           </div>
           <div className="min-w-0">
@@ -1072,8 +1060,8 @@ function DashboardView({ data, onOpenDebtor }) {
               </>
             ) : (
               <>
-                <div className="font-semibold text-emerald-800">รอบเรียกเก็บถัดไป</div>
-                <div className="text-sm text-emerald-700 mt-0.5">
+                <div className="font-semibold text-cyan-800">รอบเรียกเก็บถัดไป</div>
+                <div className="text-sm text-cyan-700 mt-0.5">
                   วันที่ {fmtThaiDate(nextDate)} — เลื่อนอัตโนมัติเมื่อตรงเสาร์/อาทิตย์
                 </div>
               </>
@@ -1094,9 +1082,9 @@ function DashboardView({ data, onOpenDebtor }) {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-slate-500">ยอดที่กำลังจะถึงรอบนี้</div>
-            <div className="text-2xl font-bold text-emerald-800 tabular-nums mt-0.5">{fmtMoney(agg.thisMonth)} บาท</div>
+            <div className="text-2xl font-bold text-cyan-800 tabular-nums mt-0.5">{fmtMoney(agg.thisMonth)} บาท</div>
           </div>
-          <Calendar size={34} className="text-emerald-200" />
+          <Calendar size={34} className="text-cyan-200" />
         </div>
         <div className="text-xs text-slate-400 mt-1">รอบเดือน {ymLabelFull(cur)}</div>
       </div>
@@ -1109,15 +1097,15 @@ function DashboardView({ data, onOpenDebtor }) {
         </div>
         {agg.dueList.length === 0 ? (
           <div className="bg-white rounded-2xl border border-stone-200 p-6 text-center text-slate-400 text-sm">
-            <CheckCircle2 size={28} className="mx-auto mb-2 text-emerald-300" />
+            <CheckCircle2 size={28} className="mx-auto mb-2 text-cyan-300" />
             ทุกคนชำระครบแล้ว 🎉
           </div>
         ) : (
           <div className="space-y-2">
             {agg.dueList.map(({ debtor, s }) => (
               <button key={debtor.id} onClick={() => onOpenDebtor(debtor.id)}
-                className="w-full bg-white rounded-2xl border border-stone-200 p-3.5 flex items-center gap-3 text-left hover:border-emerald-300 hover:shadow-sm transition">
-                <div className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                className="w-full bg-white rounded-2xl border border-stone-200 p-3.5 flex items-center gap-3 text-left hover:border-cyan-300 hover:shadow-sm transition">
+                <div className="h-10 w-10 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-semibold shrink-0">
                   {debtor.name.charAt(0)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -1168,9 +1156,9 @@ function DebtorsView({ data, onOpenDebtor, onAdd }) {
             const s = debtorStats(d, cur);
             return (
               <button key={d.id} onClick={() => onOpenDebtor(d.id)}
-                className="w-full bg-white rounded-2xl border border-stone-200 p-4 text-left hover:border-emerald-300 hover:shadow-sm transition">
+                className="w-full bg-white rounded-2xl border border-stone-200 p-4 text-left hover:border-cyan-300 hover:shadow-sm transition">
                 <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                  <div className="h-11 w-11 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-semibold shrink-0">
                     {d.name.charAt(0)}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -1201,7 +1189,7 @@ function LoanLedger({ loan, cur, onRecord, onUndo }) {
   const monthsDesc = [...s.ledger].reverse();
   return (
     <div className="mt-3 border-t border-stone-100 pt-3">
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-sm font-medium text-emerald-700">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-1.5 text-sm font-medium text-cyan-700">
         {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         ตารางรอบบิล ({s.months.length} เดือน)
       </button>
@@ -1218,7 +1206,7 @@ function LoanLedger({ loan, cur, onRecord, onUndo }) {
               <div key={m} className="flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-slate-700">
-                    {ymLabel(m)} {isCur && <span className="text-emerald-600">(เดือนนี้)</span>}
+                    {ymLabel(m)} {isCur && <span className="text-cyan-600">(เดือนนี้)</span>}
                   </div>
                   <div className="text-xs text-slate-400">
                     บิล {fmtMoney(r.bill)}
@@ -1238,14 +1226,14 @@ function LoanLedger({ loan, cur, onRecord, onUndo }) {
                 </div>
                 {r.status === 'settled' ? (
                   <button onClick={() => r.hasPayment && onUndo(loan.id, m)}
-                    className="flex items-center gap-1 text-xs text-emerald-700 font-medium bg-emerald-50 px-2.5 py-1.5 rounded-lg shrink-0">
+                    className="flex items-center gap-1 text-xs text-cyan-700 font-medium bg-cyan-50 px-2.5 py-1.5 rounded-lg shrink-0">
                     <CheckCircle2 size={14} /> {r.hasPayment ? 'ชำระแล้ว' : 'เคลียร์แล้ว'}
                   </button>
                 ) : (
                   <button onClick={() => onRecord(loan.id, m)}
                     className={`text-xs font-medium px-2.5 py-1.5 rounded-lg shrink-0 ${
                       tone === 'amber' ? 'text-amber-700 bg-amber-50'
-                        : isCur ? 'text-emerald-700 bg-emerald-50' : 'text-amber-700 bg-amber-50'}`}>
+                        : isCur ? 'text-cyan-700 bg-cyan-50' : 'text-amber-700 bg-amber-50'}`}>
                     {r.status === 'partial' ? 'จ่ายเพิ่ม' : 'บันทึกชำระ'}
                   </button>
                 )}
@@ -1267,7 +1255,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
   return (
     <div className="pb-28">
       {/* ส่วนหัว */}
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-3 pb-6">
+      <div className="bg-gradient-to-br from-cyan-800 to-cyan-950 px-4 pt-3 pb-6">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="p-2 -ml-2 rounded-lg text-white/90 hover:bg-white/10">
             <ChevronLeft size={22} />
@@ -1283,7 +1271,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">{debtor.name}</h2>
-            {debtor.phone && <div className="flex items-center gap-1.5 text-emerald-200/90 text-sm mt-0.5"><Phone size={13} /> {debtor.phone}</div>}
+            {debtor.phone && <div className="flex items-center gap-1.5 text-cyan-200/90 text-sm mt-0.5"><Phone size={13} /> {debtor.phone}</div>}
           </div>
         </div>
       </div>
@@ -1293,7 +1281,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
         <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4 grid grid-cols-3 divide-x divide-stone-100">
           <div className="px-1">
             <div className="text-xs text-slate-400">จ่ายมาแล้ว</div>
-            <div className="text-sm font-bold text-emerald-700 tabular-nums">{fmtMoney(s.paidTotal)}</div>
+            <div className="text-sm font-bold text-cyan-700 tabular-nums">{fmtMoney(s.paidTotal)}</div>
           </div>
           <div className="px-2">
             <div className="text-xs text-slate-400">รอบนี้</div>
@@ -1308,7 +1296,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
 
       {/* ปุ่มแชร์ไลน์ */}
       <div className="px-4 mt-3">
-        <PrimaryBtn onClick={() => onShare(debtor)} className="w-full py-3 bg-emerald-700">
+        <PrimaryBtn onClick={() => onShare(debtor)} className="w-full py-3 bg-cyan-700">
           <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
         </PrimaryBtn>
       </div>
@@ -1329,7 +1317,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
       <div className="px-4 mt-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-slate-700">เงินต้น / ก้อนเงินกู้ ({s.loans.length})</h3>
-          <button onClick={() => onAddLoan(debtor)} className="flex items-center gap-1 text-sm font-medium text-emerald-700">
+          <button onClick={() => onAddLoan(debtor)} className="flex items-center gap-1 text-sm font-medium text-cyan-700">
             <Plus size={16} /> เพิ่มก้อน
           </button>
         </div>
@@ -1376,9 +1364,9 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
                   <div className="text-xs text-slate-400">{monthLabel}</div>
                   <div className="text-sm font-semibold text-slate-800 tabular-nums">{fmtMoney(ls.monthly)}</div>
                 </div>
-                <div className="bg-emerald-50 rounded-xl p-2.5">
-                  <div className="text-xs text-emerald-600">{reduces ? 'เงินต้นคงเหลือ' : 'จ่ายสะสม'}</div>
-                  <div className="text-sm font-semibold text-emerald-700 tabular-nums">{fmtMoney(reduces ? ls.remaining : ls.paidTotal)}</div>
+                <div className="bg-cyan-50 rounded-xl p-2.5">
+                  <div className="text-xs text-cyan-600">{reduces ? 'เงินต้นคงเหลือ' : 'จ่ายสะสม'}</div>
+                  <div className="text-sm font-semibold text-cyan-700 tabular-nums">{fmtMoney(reduces ? ls.remaining : ls.paidTotal)}</div>
                 </div>
                 <div className={`rounded-xl p-2.5 ${ls.outstanding > 0 ? 'bg-red-50' : 'bg-stone-50'}`}>
                   <div className={`text-xs ${ls.outstanding > 0 ? 'text-red-500' : 'text-slate-400'}`}>ค้างชำระ</div>
@@ -1394,7 +1382,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
                     <span className="tabular-nums">{pct}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
-                    <div className="h-full bg-emerald-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-cyan-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
                   </div>
                   {ls.payoffMonth && (
                     <div className="text-xs text-slate-500 mt-2 flex flex-wrap gap-x-4 gap-y-0.5">
@@ -1407,7 +1395,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
 
               {/* สถานะเดือนนี้ */}
               {ls.thisMonthInBilling && (
-                <div className="mt-3 bg-emerald-50/60 rounded-xl px-3 py-2.5">
+                <div className="mt-3 bg-cyan-50/60 rounded-xl px-3 py-2.5">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-slate-600">
                       {isInterest ? 'ดอกเบี้ยเดือนนี้' : 'ค่างวดเดือนนี้'} ({ymLabel(cur)})
@@ -1416,7 +1404,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
                       <Pill tone="green"><CheckCircle2 size={13} /> ชำระครบแล้ว</Pill>
                     ) : (
                       <button onClick={() => onRecord(loan.id, cur)}
-                        className="text-sm font-semibold text-white bg-emerald-700 px-3 py-1.5 rounded-lg">
+                        className="text-sm font-semibold text-white bg-cyan-700 px-3 py-1.5 rounded-lg">
                         {ls.thisMonthHasPayment ? 'จ่ายเพิ่ม' : 'บันทึกชำระ'} {fmtMoney(ls.loanDueNow)}
                       </button>
                     )}
@@ -1426,7 +1414,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
                     <div className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                       บิลเดือนนี้ {fmtMoney(ls.thisMonthBill)}
                       {ls.outstanding > 0.005 && <span className="text-amber-600"> + ยกมา {fmtMoney(ls.outstanding)}</span>}
-                      {ls.thisMonthHasPayment && <span className="text-emerald-600"> − จ่ายแล้ว {fmtMoney(ls.thisMonthPaidAmt)}</span>}
+                      {ls.thisMonthHasPayment && <span className="text-cyan-600"> − จ่ายแล้ว {fmtMoney(ls.thisMonthPaidAmt)}</span>}
                       {' = ค้าง '}<b className="text-slate-700">{fmtMoney(ls.loanDueNow)} บาท</b>
                     </div>
                   )}
@@ -1454,7 +1442,7 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
     <div className="px-4 pt-4 pb-28 space-y-4">
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+          <div className="h-11 w-11 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-bold">
             {(currentUser?.name || '?').charAt(0)}
           </div>
           <div className="min-w-0">
@@ -1469,8 +1457,8 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
 
       {/* จัดการผู้ใช้ */}
       <button onClick={onManageUsers}
-        className="w-full bg-white rounded-2xl border border-stone-200 p-4 shadow-sm flex items-center gap-3 text-left hover:border-emerald-300 transition">
-        <div className="h-10 w-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+        className="w-full bg-white rounded-2xl border border-stone-200 p-4 shadow-sm flex items-center gap-3 text-left hover:border-cyan-300 transition">
+        <div className="h-10 w-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
           <Users size={19} />
         </div>
         <div className="flex-1 min-w-0">
@@ -1485,10 +1473,10 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
       {/* การแจ้งเตือน */}
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
         <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
-          <Bell size={17} className="text-emerald-700" /> การแจ้งเตือนรอบเรียกเก็บ
+          <Bell size={17} className="text-cyan-700" /> การแจ้งเตือนรอบเรียกเก็บ
         </h3>
         {notifyPerm === 'granted' ? (
-          <div className="text-sm text-emerald-700 flex items-center gap-1.5">
+          <div className="text-sm text-cyan-700 flex items-center gap-1.5">
             <CheckCircle2 size={15} /> เปิดการแจ้งเตือนแล้ว
             {swReady ? ' · รองรับแจ้งเตือนเบื้องหลัง' : ' · แจ้งเตือนขณะเปิดแอป'}
           </div>
@@ -1513,7 +1501,7 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
       {/* กุญแจกู้คืนรหัสผ่าน */}
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
         <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
-          <KeyRound size={17} className="text-emerald-700" /> กุญแจกู้คืนรหัสผ่าน
+          <KeyRound size={17} className="text-cyan-700" /> กุญแจกู้คืนรหัสผ่าน
         </h3>
         {currentUser?.recovery ? (
           <div className="text-sm text-slate-500">
@@ -1531,29 +1519,29 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
       </div>
 
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm space-y-3">
-        <h3 className="font-semibold text-slate-700 flex items-center gap-2"><ShieldCheck size={17} className="text-emerald-700" /> ความปลอดภัย</h3>
+        <h3 className="font-semibold text-slate-700 flex items-center gap-2"><ShieldCheck size={17} className="text-cyan-700" /> ความปลอดภัย</h3>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <CheckCircle2 size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>ข้อมูลทั้งหมดถูก{encOK ? 'เข้ารหัสด้วย AES-256 (GCM)' : 'จัดเก็บ (เบราว์เซอร์นี้ไม่รองรับการเข้ารหัส)'}ก่อนบันทึก</span>
         </div>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <Lock size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <Lock size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>รหัสผ่านถูกแฮชด้วย PBKDF2 (เกลือเฉพาะคน) — ไม่เก็บรหัสผ่านจริง</span>
         </div>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <KeyRound size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <KeyRound size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>กุญแจกู้คืนเก็บเป็นค่าแฮชเท่านั้น — ต้องมีไฟล์กุญแจจริงจึงรีเซ็ตได้</span>
         </div>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <AlertTriangle size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <AlertTriangle size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>ล็อกการเข้าสู่ระบบชั่วคราวเมื่อกรอกรหัสผิดเกิน {LOGIN_MAX_FAILS} ครั้ง</span>
         </div>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <Clock size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <Clock size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งานครบ 5 นาที (เตือนล่วงหน้า 1 นาที)</span>
         </div>
         <div className="flex items-start gap-2.5 text-sm text-slate-600">
-          <RefreshCw size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+          <RefreshCw size={15} className="text-cyan-600 mt-0.5 shrink-0" />
           <span>บันทึกอัตโนมัติทุกการเปลี่ยนแปลง — รีเฟรชหน้าจอแล้วข้อมูลและหน้าเดิมยังอยู่</span>
         </div>
       </div>
@@ -1581,7 +1569,7 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
       </div>
 
       <p className="text-xs text-slate-400 text-center px-4">
-        เวอร์ชันตัวอย่าง (Prototype) · ระบบจัดการดอกเบี้ยเงินกู้
+        เวอร์ชันตัวอย่าง (Prototype) · FinNote
       </p>
     </div>
   );
@@ -1592,7 +1580,7 @@ function UsersView({ users, currentUser, onBack, onAdd, onEdit, onDelete }) {
   const isAdmin = currentUser?.role === 'admin';
   return (
     <div className="pb-28">
-      <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-3 pb-5">
+      <div className="bg-gradient-to-br from-cyan-800 to-cyan-950 px-4 pt-3 pb-5">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="p-2 -ml-2 rounded-lg text-white/90 hover:bg-white/10">
             <ChevronLeft size={22} />
@@ -1619,12 +1607,12 @@ function UsersView({ users, currentUser, onBack, onAdd, onEdit, onDelete }) {
             return (
               <div key={usr.id} className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-semibold shrink-0">
+                  <div className="h-11 w-11 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-semibold shrink-0">
                     {(usr.name || '?').charAt(0)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold text-slate-800 truncate">
-                      {usr.name} {me && <span className="text-xs text-emerald-600 font-normal">(ฉัน)</span>}
+                      {usr.name} {me && <span className="text-xs text-cyan-600 font-normal">(ฉัน)</span>}
                     </div>
                     <div className="text-xs text-slate-400">{usr.username}</div>
                   </div>
@@ -1718,7 +1706,7 @@ function UserForm({ initial, existingUsernames, mode, onSave }) {
               {[{ id: 'staff', label: 'พนักงาน' }, { id: 'admin', label: 'ผู้ดูแลระบบ' }].map((o) => (
                 <button key={o.id} onClick={() => setRole(o.id)}
                   className={`rounded-xl py-2.5 text-sm font-semibold border transition ${
-                    role === o.id ? 'bg-emerald-800 text-white border-emerald-800'
+                    role === o.id ? 'bg-cyan-800 text-white border-cyan-800'
                       : 'bg-white text-slate-600 border-stone-300'}`}>
                   {o.label}
                 </button>
@@ -1826,7 +1814,7 @@ function LoanForm({ initial, onSave }) {
           {TYPES.map((t) => (
             <button key={t.id} onClick={() => setType(t.id)}
               className={`rounded-xl py-2 px-1 text-xs font-semibold border transition ${
-                type === t.id ? 'bg-emerald-800 text-white border-emerald-800'
+                type === t.id ? 'bg-cyan-800 text-white border-cyan-800'
                   : 'bg-white text-slate-600 border-stone-300'}`}>
               {t.label}
             </button>
@@ -1852,7 +1840,7 @@ function LoanForm({ initial, onSave }) {
             {RATE_OPTIONS.map((r) => (
               <button key={r} onClick={() => setRate(r)}
                 className={`rounded-xl py-2.5 text-sm font-semibold border transition ${
-                  rate === r ? 'bg-emerald-800 text-white border-emerald-800'
+                  rate === r ? 'bg-cyan-800 text-white border-cyan-800'
                     : 'bg-white text-slate-600 border-stone-300'}`}>
                 {r}%
               </button>
@@ -1889,12 +1877,12 @@ function LoanForm({ initial, onSave }) {
 
       {/* กล่องพรีวิว */}
       {p > 0 && type === 'interest' && (
-        <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800">
+        <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800">
           ดอกเบี้ยต่อเดือน = <b>{fmtMoney(p * rate / 100)} บาท</b>
         </div>
       )}
       {p > 0 && type === 'installment' && inst > 0 && (
-        <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 leading-relaxed">
+        <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800 leading-relaxed">
           ผ่อนเดือนละ <b>{fmtMoney(inst)} บาท</b> · ทั้งหมด <b>{numInstallments} งวด</b>
           {lastAmt > 0 && lastAmt !== inst && <> (งวดสุดท้าย {fmtMoney(lastAmt)} บาท)</>}
           <br />หักจนเงินต้นเหลือ 0 บาท
@@ -1908,7 +1896,7 @@ function LoanForm({ initial, onSave }) {
             กรุณาเพิ่มยอดผ่อน
           </div>
         ) : (
-          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800 leading-relaxed">
+          <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800 leading-relaxed">
             ผ่อนเดือนละ <b>{fmtMoney(pay)} บาท</b> · ทั้งหมด <b>{amort.months.length} งวด</b><br />
             ผ่อนหมดเดือน <b>{amort.months.length ? ymLabel(amort.months[amort.months.length - 1]) : '-'}</b><br />
             ดอกเบี้ยรวมตลอดสัญญา <b>{fmtMoney(amort.totalInterest)} บาท</b>
@@ -1957,7 +1945,7 @@ function PaymentForm({ loan, month, onSave }) {
     <div className="space-y-4">
       <div className="bg-stone-50 rounded-xl p-3 text-sm text-slate-600 leading-relaxed">
         รอบบิล <b className="text-slate-800">{ymLabelFull(month)}</b><br />
-        {billLabel} <b className="text-emerald-700">{fmtMoney(bill)} บาท</b>
+        {billLabel} <b className="text-cyan-700">{fmtMoney(bill)} บาท</b>
         {carryIn > 0.005 && (
           <><br /><span className="text-amber-600">+ ยอดค้างยกมา {fmtMoney(carryIn)} บาท</span>
             <br />รวมที่ควรจ่าย <b className="text-slate-800">{fmtMoney(required)} บาท</b></>
@@ -1990,11 +1978,11 @@ function PaymentForm({ loan, month, onSave }) {
             จ่ายไม่ครบ — จะเหลือยอดค้าง <b>{fmtMoney(afterShort)} บาท</b> ยกไปรอบถัดไป
           </div>
         ) : afterShort < -0.005 ? (
-          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-700">
+          <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-700">
             จ่ายเกิน <b>{fmtMoney(-afterShort)} บาท</b> — ส่วนเกินเป็นเครดิตหักรอบถัดไป
           </div>
         ) : (
-          <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-700">
+          <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-700">
             จ่ายครบพอดี ✓
           </div>
         )
@@ -2080,11 +2068,11 @@ function ShareModal({ debtor, onClose }) {
     <Modal open={true} onClose={onClose} title="แชร์สรุปยอดผ่านไลน์">
       <pre className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>
       <div className="flex gap-2 mt-4">
-        <PrimaryBtn className="flex-1 py-3 bg-emerald-700" onClick={doShare}>
+        <PrimaryBtn className="flex-1 py-3 bg-cyan-700" onClick={doShare}>
           <Share2 size={17} /> ส่งทางไลน์
         </PrimaryBtn>
         <GhostBtn onClick={doCopy} className="flex-1 py-3">
-          {copied ? <><CheckCircle2 size={16} className="text-emerald-600" /> คัดลอกแล้ว</> : <><Copy size={16} /> คัดลอกข้อความ</>}
+          {copied ? <><CheckCircle2 size={16} className="text-cyan-600" /> คัดลอกแล้ว</> : <><Copy size={16} /> คัดลอกข้อความ</>}
         </GhostBtn>
       </div>
       <p className="text-xs text-slate-400 mt-3 text-center">
@@ -2119,24 +2107,20 @@ function InactivityModal({ secLeft, onStay, onLeave }) {
 }
 
 /* ---------------- แถบนำทางล่าง ---------------- */
-/* ---- ไฟแสดงสถานะซิงค์ cloud ---- */
+
 function SyncBadge() {
-  const [status, setStatus] = useState(window._syncStatus || 'ok');
-  useEffect(() => {
+  const [status, setStatus] = React.useState(
+    typeof window !== 'undefined' ? (window._syncStatus || 'ok') : 'ok'
+  );
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window._syncListeners) window._syncListeners = [];
     const fn = (s) => setStatus(s);
     window._syncListeners.push(fn);
-    return () => { window._syncListeners = window._syncListeners.filter((f) => f !== fn); };
+    return () => { window._syncListeners = (window._syncListeners||[]).filter(f=>f!==fn); };
   }, []);
-  const map = {
-    ok:      { color: 'bg-emerald-400', title: 'ซิงค์แล้ว' },
-    syncing: { color: 'bg-amber-400 animate-pulse', title: 'กำลังซิงค์...' },
-    offline: { color: 'bg-slate-400', title: 'ออฟไลน์ — ใช้ข้อมูลในเครื่อง' },
-    error:   { color: 'bg-red-400', title: 'ซิงค์ไม่ได้ — ตรวจ Supabase' },
-  };
-  const { color, title } = map[status] || map.ok;
-  return (
-    <div title={title} className={`h-2.5 w-2.5 rounded-full ${color} shrink-0`} />
-  );
+  const colors = { ok:'bg-cyan-400', syncing:'bg-amber-400 animate-pulse', offline:'bg-slate-400', error:'bg-red-400' };
+  return <div title={status} className={`h-2.5 w-2.5 rounded-full ${colors[status]||colors.ok} shrink-0`} />;
 }
 
 function BottomNav({ view, setView }) {
@@ -2155,7 +2139,7 @@ function BottomNav({ view, setView }) {
           const Icon = it.icon;
           return (
             <button key={it.id} onClick={() => setView(it.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${active ? 'text-emerald-800' : 'text-slate-400'}`}>
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${active ? 'text-cyan-800' : 'text-slate-400'}`}>
               <Icon size={22} strokeWidth={active ? 2.4 : 2} />
               <span className={`text-xs ${active ? 'font-semibold' : ''}`}>{it.label}</span>
             </button>
@@ -2200,7 +2184,6 @@ function App() {
   useEffect(() => {
     (async () => {
       setEncOK(!!(window.crypto && window.crypto.subtle));
-      _checkSupaConn();  // ตรวจการเชื่อมต่อ Supabase ตอนเปิดแอป
       let d = await loadData();
       if (!d || !Array.isArray(d.debtors)) {
         d = await makeSeed();
@@ -2520,7 +2503,7 @@ function App() {
     setCurrentUser(updated);
     // ดาวน์โหลดไฟล์กุญแจให้ผู้ใช้เก็บลง USB
     const fileObj = {
-      app: 'loan-interest-tracker',
+      app: 'finnote',
       kind: 'recovery-key',
       username: currentUser.username,
       name: currentUser.name,
@@ -2550,9 +2533,9 @@ function App() {
 
   if (phase === 'loading') {
     return (
-      <div className="lt-root min-h-screen flex items-center justify-center bg-emerald-900">
+      <div className="lt-root min-h-screen flex items-center justify-center bg-cyan-900">
         <style>{fontCss}</style>
-        <div className="text-emerald-200 flex flex-col items-center gap-3">
+        <div className="text-cyan-200 flex flex-col items-center gap-3">
           <Wallet size={40} className="animate-pulse" />
           <div className="text-sm">กำลังโหลดข้อมูล...</div>
         </div>
@@ -2587,19 +2570,17 @@ function App() {
 
         {/* ส่วนหัว (ยกเว้นหน้าที่มีหัวของตัวเอง) */}
         {view !== 'debtor' && view !== 'users' && (
-          <div className="bg-gradient-to-br from-emerald-800 to-emerald-950 px-4 pt-5 pb-5">
+          <div className="bg-gradient-to-br from-cyan-800 to-cyan-950 px-4 pt-5 pb-5">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-emerald-200/70 text-xs">ระบบจัดการดอกเบี้ยเงินกู้</div>
+                <div className="text-cyan-200/70 text-xs">FinNote</div>
                 <h1 className="text-white text-xl font-bold">{headerTitle}</h1>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <SyncBadge />
-                  <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
-                    {(currentUser?.name || '?').charAt(0)}
-                  </div>
+                <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
+                  {(currentUser?.name || '?').charAt(0)}
                 </div>
+                <SyncBadge />
               </div>
             </div>
           </div>
@@ -2651,7 +2632,7 @@ function App() {
         {/* ปุ่มลอยเพิ่มลูกหนี้ */}
         {view === 'debtors' && (
           <button onClick={() => setDebtorForm({ mode: 'add' })}
-            className="fixed bottom-20 right-4 z-30 h-14 w-14 rounded-full bg-emerald-800 text-white shadow-lg flex items-center justify-center hover:bg-emerald-900 active:scale-95 transition"
+            className="fixed bottom-20 right-4 z-30 h-14 w-14 rounded-full bg-cyan-800 text-white shadow-lg flex items-center justify-center hover:bg-cyan-900 active:scale-95 transition"
             style={{ marginRight: 'max(0px, calc((100vw - 28rem) / 2))' }}>
             <Plus size={26} />
           </button>
@@ -2697,7 +2678,7 @@ function App() {
       <Modal open={!!recoveryInfo} onClose={() => setRecoveryInfo(null)} title="กุญแจกู้คืนรหัสผ่าน">
         {recoveryInfo && (
           <div className="space-y-4">
-            <div className="bg-emerald-50 rounded-xl p-3 text-sm text-emerald-800">
+            <div className="bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800">
               สร้างกุญแจกู้คืนสำหรับบัญชี <b>{recoveryInfo.username}</b> เรียบร้อย
               และดาวน์โหลดไฟล์ <b>recovery-key-{recoveryInfo.username}.json</b> แล้ว
             </div>
@@ -2747,17 +2728,9 @@ function App() {
   );
 }
 
-
-/* ---- PWA: ลงทะเบียน Service Worker ---- */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => { /* SW registered */ })
-      .catch(() => { /* ไม่มี sw.js ก็ไม่เป็นไร */ });
-  });
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
 }
-
-/* ---- เริ่มต้นแอป ---- */
 const _root = ReactDOM.createRoot(document.getElementById('root'));
 _root.render(<App />);
 </script>
