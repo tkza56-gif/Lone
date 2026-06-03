@@ -16,8 +16,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  html,body{margin:0;padding:0;background:#f5f5f4;}
-  #root{min-height:100vh;}
+  html,body{margin:0;padding:0;background:#f5f5f4;}#root{min-height:100vh;}
   #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#0e7490;color:rgba(255,255,255,0.85);font-family:sans-serif;font-size:14px;}
 </style>
@@ -209,7 +208,10 @@ const _mem={};
 async function storageSet(k,v){_mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 async function storageGet(k){try{const r=localStorage.getItem(k);if(r!=null)return JSON.parse(r);}catch(e){}return k in _mem?_mem[k]:null;}
 async function storageDel(k){delete _mem[k];try{localStorage.removeItem(k);}catch(e){}}
-async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
+async function saveData(data) {
+  await storageSet(DATA_KEY, await encryptObj(data));
+  saveBackup(data);  // auto-backup ทุกครั้งที่บันทึก
+}
 async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
 async function saveSession(s){try{localStorage.setItem(SESSION_KEY,JSON.stringify(s));}catch(e){}}
 async function loadSession(){try{const r=localStorage.getItem(SESSION_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
@@ -1438,6 +1440,156 @@ function ShareAppCard() {
 
 /* ---- Toggle เปิด/ปิดการล็อกอิน ---- */
 /* ---- ตั้งวันเรียกเก็บ ---- */
+
+/* =====================================================================
+   ระบบสำรองข้อมูล (Backup)
+   - auto-backup: บันทึกอัตโนมัติทุกครั้งที่ข้อมูลเปลี่ยน (เก็บ 5 ชุดล่าสุด)
+   - manual export: ดาวน์โหลด JSON
+   - manual import: นำเข้าจากไฟล์ JSON
+===================================================================== */
+const BACKUP_KEY_PREFIX = 'lt_backup_';
+const MAX_BACKUPS = 5;
+
+function listBackups() {
+  const backups = [];
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k && k.startsWith(BACKUP_KEY_PREFIX)) {
+        try {
+          const v = JSON.parse(localStorage.getItem(k));
+          if (v && v.ts) backups.push({ key: k, ...v });
+        } catch(e) {}
+      }
+    });
+  } catch(e) {}
+  return backups.sort((a,b) => b.ts - a.ts);
+}
+
+function saveBackup(data) {
+  try {
+    const ts = Date.now();
+    const label = new Date(ts).toLocaleString('th-TH');
+    const payload = JSON.stringify({ ts, label, data });
+    // เก็บล่าสุดก่อน
+    localStorage.setItem(BACKUP_KEY_PREFIX + ts, payload);
+    // ลบเก่าสุดถ้าเกิน MAX_BACKUPS
+    const all = listBackups();
+    if (all.length > MAX_BACKUPS) {
+      all.slice(MAX_BACKUPS).forEach(b => localStorage.removeItem(b.key));
+    }
+  } catch(e) {}
+}
+
+function exportJSON(data) {
+  try {
+    const ts = new Date().toISOString().slice(0,10);
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), data }, null, 2)],
+      { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FinNote-backup-${ts}.json`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return true;
+  } catch(e) { return false; }
+}
+
+/* ---- การสำรองและกู้คืนข้อมูล ---- */
+function BackupCard({ data, onRestore }) {
+  const [backups, setBackups] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const [msg, setMsg] = useState('');
+  const fileRef = React.useRef(null);
+
+  useEffect(() => { setBackups(listBackups()); }, []);
+
+  const doExport = () => {
+    const ok = exportJSON(data);
+    setMsg(ok ? 'ดาวน์โหลดไฟล์สำรองแล้ว ✓' : 'ดาวน์โหลดไม่สำเร็จ');
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  const doImport = (file) => {
+    if (!file) return;
+    setImporting(true);
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        const obj = JSON.parse(fr.result);
+        const d = obj.data || obj;
+        if (!d || !d.debtors) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+        onRestore(d);
+        setMsg('นำเข้าข้อมูลสำเร็จ ✓');
+        setBackups(listBackups());
+      } catch(e) {
+        setMsg('ไฟล์ไม่ถูกต้อง — ' + (e.message || 'ลองใหม่'));
+      }
+      setImporting(false);
+      setTimeout(() => setMsg(''), 4000);
+    };
+    fr.readAsText(file);
+  };
+
+  const restoreFromBackup = (backup) => {
+    if (!window.confirm(`กู้คืนข้อมูลจาก ${backup.label} ?\nข้อมูลปัจจุบันจะถูกแทนที่`)) return;
+    onRestore(backup.data);
+    setMsg('กู้คืนแล้ว ✓');
+    setTimeout(() => setMsg(''), 3000);
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+      <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-3">
+        <RefreshCw size={17} className="text-cyan-700" /> สำรอง / กู้คืนข้อมูล
+      </h3>
+
+      <div className="flex gap-2 mb-3">
+        <PrimaryBtn onClick={doExport} className="flex-1 py-2 text-sm">
+          <FileDown size={15} /> ดาวน์โหลด JSON
+        </PrimaryBtn>
+        <GhostBtn onClick={() => fileRef.current?.click()} disabled={importing} className="flex-1 py-2 text-sm">
+          <RefreshCw size={15} /> นำเข้าไฟล์
+        </GhostBtn>
+        <input ref={fileRef} type="file" accept=".json,application/json" className="hidden"
+          onChange={e => doImport(e.target.files?.[0])} />
+      </div>
+
+      {msg && (
+        <div className={`text-sm rounded-lg px-3 py-2 mb-3 ${msg.includes('✓') ? 'bg-cyan-50 text-cyan-700' : 'bg-red-50 text-red-600'}`}>
+          {msg}
+        </div>
+      )}
+
+      {backups.length > 0 && (
+        <div>
+          <div className="text-xs text-slate-400 mb-2">บันทึกอัตโนมัติล่าสุด (กดเพื่อกู้คืน)</div>
+          <div className="space-y-1.5">
+            {backups.map((b, idx) => (
+              <button key={b.key} onClick={() => restoreFromBackup(b)}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-stone-100 hover:border-cyan-200 hover:bg-cyan-50 transition text-left">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">{b.label}</div>
+                  <div className="text-xs text-slate-400">
+                    {(b.data?.debtors?.length || 0)} ลูกหนี้ · {(b.data?.debtors || []).reduce((t,d)=>t+(d.loans?.length||0),0)} ก้อน
+                  </div>
+                </div>
+                {idx === 0 && <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full">ล่าสุด</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {backups.length === 0 && (
+        <div className="text-xs text-slate-400 text-center py-2">
+          ยังไม่มีข้อมูลสำรอง — จะบันทึกอัตโนมัติทุกครั้งที่มีการเปลี่ยนแปลง
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CollectDayPicker() {
   const [day, setDay] = useState(() => {
     try { const v=parseInt(localStorage.getItem(COLLECT_DAY_KEY)); return(v>=1&&v<=28)?v:25; }
@@ -1543,7 +1695,7 @@ function AuthToggle() {
 }
 
 function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encOK,
-  onManageUsers, onChangePassword, onRecoveryKey, notifyPerm, swReady, onEnableNotify }) {
+  onManageUsers, onChangePassword, onRecoveryKey, notifyPerm, swReady, onEnableNotify, onRestore }) {
   const debtors = (data.debtors || []).length;
   const loans = (data.debtors || []).reduce((t, d) => t + (d.loans?.length || 0), 0);
   const users = (data.users || []).length;
@@ -1671,6 +1823,9 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
         </div>
         <div className="text-xs text-slate-400 mt-1.5">ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน</div>
       </div>
+
+      {/* สำรอง/กู้คืน */}
+      <BackupCard data={data} onRestore={onRestore} />
 
       {/* วันเรียกเก็บ */}
       <CollectDayPicker />
@@ -2732,6 +2887,7 @@ function App() {
               onManageUsers={() => setView('users')}
               onRecoveryKey={makeRecoveryKey}
               notifyPerm={notifyPerm} swReady={swReady} onEnableNotify={enableNotifications}
+              onRestore={(d) => { setData(d); saveData(d); }}
               onChangePassword={() => setUserForm({ mode: 'password', user: currentUser })} />
           )}
           {view === 'users' && (
