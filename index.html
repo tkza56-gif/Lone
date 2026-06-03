@@ -1180,7 +1180,7 @@ function LoanLedger({ loan, cur, onRecord, onUndo }) {
 
 /* ---------------- หน้ารายละเอียดลูกหนี้ ---------------- */
 function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditLoan,
-  onDeleteLoan, onRecord, onUndo, onShare, onCalc }) {
+  onDeleteLoan, onRecord, onUndo, onShare }) {
   const cur = curYM();
   const s = debtorStats(debtor, cur);
 
@@ -1226,14 +1226,11 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
         </div>
       </div>
 
-      {/* ปุ่มแชร์ + ตารางผ่อน */}
-      <div className="px-4 mt-3 flex gap-2">
-        <PrimaryBtn onClick={() => onShare(debtor)} className="flex-1 py-3 bg-cyan-800">
-          <Share2 size={18} /> แชร์สรุปยอด
+      {/* ปุ่มแชร์ */}
+      <div className="px-4 mt-3">
+        <PrimaryBtn onClick={() => onShare(debtor)} className="w-full py-3 bg-cyan-800">
+          <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
         </PrimaryBtn>
-        <GhostBtn onClick={() => onCalc(debtor.name)} className="flex-1 py-3">
-          <Calculator size={18} /> ตารางผ่อน
-        </GhostBtn>
       </div>
 
       {/* ยอดค้างเตือน */}
@@ -2329,7 +2326,7 @@ async function generateDebtorImage(debtor) {
   const monthLabel = `${THAI_MONTHS_F[m-1]} ${y+543}`;
 
   // คำนวณความสูง
-  const activeLoans = ds.loans.filter(({ls}) => ls.thisMonthInBilling);
+  const activeLoans = ds.loans.filter(({s}) => s.thisMonthInBilling);
   const HEADER_H = 130, STAT_H = 90, LOAN_H = activeLoans.length * 90 + 24, FOOTER_H = 44;
   const totalH = HEADER_H + STAT_H + LOAN_H + FOOTER_H + 24;
 
@@ -2386,34 +2383,34 @@ async function generateDebtorImage(debtor) {
 
   /* แต่ละก้อนเงินกู้ */
   let ly = HEADER_H + STAT_H + 12;
-  activeLoans.forEach(({loan, ls}, idx) => {
+  activeLoans.forEach(({loan, s}, idx) => {
     const lh = 82;
     rr(PAD/2,ly,W-PAD,lh,12); ctx.fillStyle='white'; ctx.fill();
     ctx.strokeStyle='#e0f2fe'; ctx.lineWidth=1; ctx.stroke();
     // badge ชนิด
     const kindMap = {interest:'ดอกเบี้ย',amortized:'ลดต้นลดดอก',installment:'ผ่อนตัดต้น'};
     const kindColor = {interest:'#0e7490',amortized:'#7c3aed',installment:'#059669'};
-    const kind = ls.kind;
+    const kind = s.kind;
     rr(PAD+8, ly+10, 72, 20, 6);
     ctx.fillStyle = kindColor[kind]||'#64748b'; ctx.fill();
     txt(kindMap[kind]||kind, PAD+44, ly+24, 'center','white',10,'600');
     // ยอดผ่อนเดือนนี้
-    txt('เงินต้น '+fmtMoney(ls.principal)+' บ.', PAD+90, ly+24,'left','#475569',12);
+    txt('เงินต้น '+fmtMoney(s.principal)+' บ.', PAD+90, ly+24,'left','#475569',12);
     // สถานะ
-    const settled = ls.thisMonthSettled||ls.complete;
-    const statusTxt = ls.complete?'ปิดบัญชีแล้ว ✅': settled?'ชำระแล้ว ✅': ls.thisMonthHasPayment?'จ่ายบางส่วน ⚠️':'รอชำระ 🔴';
-    const statusColor = ls.complete||settled?'#059669': ls.thisMonthHasPayment?'#d97706':'#dc2626';
+    const settled = s.thisMonthSettled||s.complete;
+    const statusTxt = s.complete?'ปิดบัญชีแล้ว ✅': settled?'ชำระแล้ว ✅': s.thisMonthHasPayment?'จ่ายบางส่วน ⚠️':'รอชำระ 🔴';
+    const statusColor = s.complete||settled?'#059669': s.thisMonthHasPayment?'#d97706':'#dc2626';
     txt(statusTxt, W-PAD-8, ly+24,'right',statusColor,12,'600');
     // ยอดเดือนนี้ + ค้าง
     txt('ยอดเดือนนี้:', PAD+8, ly+52,'left','#64748b',12);
-    txt(fmtMoney(ls.thisMonthBill)+' บ.', PAD+88, ly+52,'left','#0f172a',13,'700');
-    if (ls.outstanding>0.005) {
+    txt(fmtMoney(s.thisMonthBill)+' บ.', PAD+88, ly+52,'left','#0f172a',13,'700');
+    if (s.outstanding>0.005) {
       txt('ค้างชำระ:', PAD+8, ly+70,'left','#64748b',11);
-      txt(fmtMoney(ls.outstanding)+' บ.', PAD+72, ly+70,'left','#dc2626',12,'600');
+      txt(fmtMoney(s.outstanding)+' บ.', PAD+72, ly+70,'left','#dc2626',12,'600');
     }
-    if (ls.kind!=='interest') {
+    if (s.kind!=='interest') {
       txt('คงเหลือ:', W-PAD-110, ly+70,'left','#64748b',11);
-      txt(fmtMoney(ls.remaining)+' บ.', W-PAD-8, ly+70,'right','#0e7490',12,'600');
+      txt(fmtMoney(s.remaining)+' บ.', W-PAD-8, ly+70,'right','#0e7490',12,'600');
     }
     ly += lh + 8;
   });
