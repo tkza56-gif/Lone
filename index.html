@@ -19,7 +19,7 @@
   html,body{margin:0;padding:0;background:#f5f5f4;}
   #root{min-height:100vh;}
   #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
-         background:#0e7490;color:rgba(255,255,255,0.85);font-family:sans-serif;font-size:14px;}
+    background:#0e7490;color:rgba(255,255,255,0.85);font-family:sans-serif;font-size:14px;}
 </style>
 </head>
 <body>
@@ -75,7 +75,7 @@ const QrCode = _Icon('<rect width="5" height="5" x="3" y="3" rx="1"/><rect width
 
 /* =======================================================================
    FinNote  (Loan Interest Tracker)  — ตัวอย่าง / Prototype
-   - Login: admin / Potato@12
+   - Login: admin / admin1234
    - ออกจากระบบอัตโนมัติเมื่อไม่มีการใช้งาน 5 นาที
    - บันทึกข้อมูลอัตโนมัติ + เข้ารหัส AES-GCM
    ======================================================================= */
@@ -205,26 +205,16 @@ async function decryptObj(blob) {
 }
 
 /* ---------------- ชั้นจัดเก็บข้อมูล (persistent + cache) ---------------- */
-const _SUPA_URL='https://jmjdxfhxzmpzggehlwao.supabase.co',_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
-const _SUPA_H=()=>({apikey:_SUPA_KEY,'Authorization':`Bearer ${_SUPA_KEY}`,'Content-Type':'application/json'});
 const _mem={};
-window._syncStatus='ok'; window._syncListeners=[];
-function _setSyncStatus(s){window._syncStatus=s;(window._syncListeners||[]).forEach(fn=>{try{fn(s);}catch(e){}});}
-async function _supaSet(k,v){try{_setSyncStatus('syncing');const r=await fetch(`${_SUPA_URL}/rest/v1/app_store`,{method:'POST',headers:{..._SUPA_H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:JSON.stringify(v),updated_at:new Date().toISOString()})});_setSyncStatus(r.ok?'ok':'error');return r.ok;}catch(e){_setSyncStatus('offline');return false;}}
-async function _supaGet(k){try{const r=await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(k)}&select=value`,{headers:_SUPA_H()});if(!r.ok)return null;const d=await r.json();return d&&d.length?JSON.parse(d[0].value):null;}catch(e){return null;}}
-async function _supaDel(k){try{await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(k)}`,{method:'DELETE',headers:_SUPA_H()});}catch(e){}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-function lsGet(k){try{const r=localStorage.getItem(k);return r!=null?JSON.parse(r):null;}catch(e){return null;}}
-function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
-async function storageSet(k,v){_mem[k]=v;lsSet(k,v);await _supaSet(k,v);}
-async function storageGet(k){const c=await _supaGet(k);if(c!==null){lsSet(k,c);_mem[k]=c;return c;}const r=lsGet(k);if(r!=null)return r;return k in _mem?_mem[k]:null;}
-async function storageDel(k){delete _mem[k];lsDel(k);await _supaDel(k);}
+async function storageSet(k,v){_mem[k]=v;try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+async function storageGet(k){try{const r=localStorage.getItem(k);if(r!=null)return JSON.parse(r);}catch(e){}return k in _mem?_mem[k]:null;}
+async function storageDel(k){delete _mem[k];try{localStorage.removeItem(k);}catch(e){}}
 async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
 async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
-async function saveSession(s) { lsSet(SESSION_KEY, s); }
-async function loadSession() { return lsGet(SESSION_KEY); }
-async function saveLock(s) { lsSet(LOCK_KEY, s); }
-async function loadLock() { return lsGet(LOCK_KEY); }
+async function saveSession(s){try{localStorage.setItem(SESSION_KEY,JSON.stringify(s));}catch(e){}}
+async function loadSession(){try{const r=localStorage.getItem(SESSION_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
+async function saveLock(s){try{localStorage.setItem(LOCK_KEY,JSON.stringify(s));}catch(e){}}
+async function loadLock(){try{const r=localStorage.getItem(LOCK_KEY);return r?JSON.parse(r):null;}catch(e){return null;}}
 
 /* ---------------- เครื่องมือวันที่ / การเงิน ---------------- */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -234,13 +224,21 @@ function ymOf(date) {
 }
 function curYM() { return ymOf(new Date()); }
 
-// วันแจ้งเตือน: วันที่ 25 — ถ้าตรงเสาร์ย้อนเป็น 24 (ศุกร์), ถ้าตรงอาทิตย์ย้อนเป็น 23 (ศุกร์)
-function getNotifyDay(year, month1) {
-  const d = new Date(year, month1 - 1, 25);
-  const dow = d.getDay(); // 0 อาทิตย์ ... 6 เสาร์
-  if (dow === 6) return 24;
-  if (dow === 0) return 23;
+// วันเรียกเก็บ — อ่านจาก setting (default 25), เลื่อนถ้าตรงเสาร์/อาทิตย์
+function getCollectDay() {
+  try {
+    const v = parseInt(localStorage.getItem(COLLECT_DAY_KEY));
+    if (v >= 1 && v <= 28) return v;
+  } catch(e) {}
   return 25;
+}
+function getNotifyDay(year, month1) {
+  const baseDay = getCollectDay();
+  const d = new Date(year, month1 - 1, baseDay);
+  const dow = d.getDay();
+  if (dow === 6) return baseDay - 1;   // เสาร์ → ย้อน 1 วัน
+  if (dow === 0) return baseDay - 2;   // อาทิตย์ → ย้อน 2 วัน
+  return baseDay;
 }
 function getNotifyDate(year, month1) {
   return new Date(year, month1 - 1, getNotifyDay(year, month1));
@@ -263,7 +261,9 @@ function isCollectionPeriod() {
    - Service Worker เปิดให้แจ้งเตือนแบบเบื้องหลัง + ใช้งานออฟไลน์
      จะทำงานได้ต่อเมื่อนำไฟล์ทั้งชุด (index.html + sw.js + manifest.json)
      ไปวางบนเว็บโฮสต์จริงที่เป็น HTTPS — ในตัวอย่างนี้จะข้ามไปอย่างนุ่มนวล */
-const NOTIFY_FLAG_KEY = 'lt_notified_v1';   // กันแจ้งซ้ำในเดือนเดียวกัน
+const NOTIFY_FLAG_KEY = 'lt_notified_v1';
+const AUTH_ENABLED_KEY = 'lt_auth_enabled';  // 'true'/'false' ต้องการ login หรือไม่
+const COLLECT_DAY_KEY = 'lt_collect_day';   // วันเรียกเก็บ 1-28 (default 25)   // กันแจ้งซ้ำในเดือนเดียวกัน
 
 function notifySupported() {
   return typeof window !== 'undefined' && 'Notification' in window;
@@ -552,7 +552,7 @@ async function makeSeed() {
   const now = new Date();
   const ym = (off) => ymOf(new Date(now.getFullYear(), now.getMonth() + off, 1));
   const pay = (m, a) => ({ amount: a, date: `${m}-25` });
-  const adminCred = await makeCredential('Potato@12');
+  const adminCred = await makeCredential('admin1234');
   return {
     users: [
       {
@@ -1436,6 +1436,112 @@ function ShareAppCard() {
   );
 }
 
+/* ---- Toggle เปิด/ปิดการล็อกอิน ---- */
+/* ---- ตั้งวันเรียกเก็บ ---- */
+function CollectDayPicker() {
+  const [day, setDay] = useState(() => {
+    try { const v=parseInt(localStorage.getItem(COLLECT_DAY_KEY)); return(v>=1&&v<=28)?v:25; }
+    catch(e){ return 25; }
+  });
+
+  const save = (d) => {
+    setDay(d);
+    localStorage.setItem(COLLECT_DAY_KEY, String(d));
+  };
+
+  // แสดงตัวอย่างวันจริง (คำนวณจากเดือนถัดไป)
+  const now = new Date();
+  const nm = now.getMonth() === 11 ? 1 : now.getMonth() + 2;
+  const ny = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+  const preview = new Date(ny, nm - 1, day);
+  const dow = preview.getDay();
+  const THAI_DOW = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+  const shifted = dow === 6 ? day - 1 : dow === 0 ? day - 2 : day;
+  const previewLabel = shifted !== day
+    ? `วันที่ ${day} ตรงวัน${THAI_DOW[dow]} → เลื่อนเป็นวันที่ ${shifted}`
+    : `วันที่ ${day} ของทุกเดือน (วัน${THAI_DOW[dow]})`;
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+      <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-3">
+        <Calendar size={17} className="text-cyan-700" /> วันเรียกเก็บเงิน
+      </h3>
+      <div className="flex items-center gap-3 mb-3">
+        <div className="text-sm text-slate-600">วันที่</div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => save(Math.max(1, day - 1))}
+            className="h-8 w-8 rounded-lg border border-stone-200 flex items-center justify-center text-slate-600 hover:bg-stone-50 text-lg font-bold">−</button>
+          <div className="h-10 w-14 rounded-xl bg-cyan-50 border border-cyan-200 flex items-center justify-center text-xl font-bold text-cyan-800 tabular-nums">
+            {day}
+          </div>
+          <button onClick={() => save(Math.min(28, day + 1))}
+            className="h-8 w-8 rounded-lg border border-stone-200 flex items-center justify-center text-slate-600 hover:bg-stone-50 text-lg font-bold">+</button>
+        </div>
+        <div className="text-sm text-slate-400">ของทุกเดือน</div>
+      </div>
+      {/* Preset shortcuts */}
+      <div className="flex gap-2 flex-wrap mb-3">
+        {[1,5,10,15,20,25,28].map(d => (
+          <button key={d} onClick={() => save(d)}
+            className={`px-3 py-1 rounded-lg text-sm font-medium border transition ${
+              day === d ? 'bg-cyan-700 text-white border-cyan-700' : 'bg-white text-slate-600 border-stone-200 hover:border-cyan-300'
+            }`}>{d}</button>
+        ))}
+      </div>
+      <div className="text-xs text-slate-400 flex items-center gap-1.5">
+        <Clock size={12} /> {previewLabel}
+        {shifted !== day && ' (เลื่อนเพราะตรงวันหยุด)'}
+      </div>
+    </div>
+  );
+}
+
+function AuthToggle() {
+  const [enabled, setEnabled] = useState(() => {
+    return localStorage.getItem(AUTH_ENABLED_KEY) !== 'false';
+  });
+
+  const toggle = () => {
+    const next = !enabled;
+    setEnabled(next);
+    localStorage.setItem(AUTH_ENABLED_KEY, String(next));
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-cyan-50 text-cyan-700 flex items-center justify-center shrink-0">
+            <Lock size={19} />
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800 text-sm">ต้องใส่รหัสผ่านตอนเปิดแอป</div>
+            <div className="text-xs text-slate-400 mt-0.5">
+              {enabled ? 'เปิดอยู่ — ปิดแอปแล้วต้องใส่รหัสก่อน' : 'ปิดอยู่ — เปิดแอปได้เลยไม่ต้องใส่รหัส'}
+            </div>
+          </div>
+        </div>
+        {/* Toggle switch */}
+        <button
+          onClick={toggle}
+          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${
+            enabled ? 'bg-cyan-600' : 'bg-slate-200'
+          }`}
+        >
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+            enabled ? 'translate-x-6' : 'translate-x-1'
+          }`} />
+        </button>
+      </div>
+      {!enabled && (
+        <div className="mt-2.5 text-xs text-amber-600 flex items-center gap-1.5">
+          <AlertTriangle size={13} /> ทุกคนที่มีเครื่องนี้จะเข้าถึงข้อมูลได้
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encOK,
   onManageUsers, onChangePassword, onRecoveryKey, notifyPerm, swReady, onEnableNotify }) {
   const debtors = (data.debtors || []).length;
@@ -1493,7 +1599,7 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
         ) : (
           <>
             <div className="text-sm text-slate-500 mb-2.5">
-              เปิดเพื่อให้ระบบเตือนเมื่อถึงวันเรียกเก็บ (วันที่ 25 ของเดือน)
+              เปิดเพื่อให้ระบบเตือนเมื่อถึงวันเรียกเก็บ
             </div>
             <GhostBtn onClick={onEnableNotify} className="w-full">
               <Bell size={15} /> เปิดการแจ้งเตือน
@@ -1565,6 +1671,12 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
         </div>
         <div className="text-xs text-slate-400 mt-1.5">ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน</div>
       </div>
+
+      {/* วันเรียกเก็บ */}
+      <CollectDayPicker />
+
+      {/* Toggle เปิด/ปิด การล็อกอิน */}
+      <AuthToggle />
 
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm space-y-2">
         <GhostBtn onClick={onLogout} className="w-full"><LogOut size={16} /> ออกจากระบบ</GhostBtn>
@@ -2115,23 +2227,7 @@ function InactivityModal({ secLeft, onStay, onLeave }) {
 }
 
 /* ---------------- แถบนำทางล่าง ---------------- */
-
-function SyncBadge() {
-  const [status, setStatus] = React.useState(
-    typeof window !== 'undefined' ? (window._syncStatus || 'ok') : 'ok'
-  );
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!window._syncListeners) window._syncListeners = [];
-    const fn = (s) => setStatus(s);
-    window._syncListeners.push(fn);
-    return () => { window._syncListeners = (window._syncListeners||[]).filter(f=>f!==fn); };
-  }, []);
-  const colors = { ok:'bg-cyan-400', syncing:'bg-amber-400 animate-pulse',
-                   offline:'bg-slate-400', error:'bg-red-400' };
-  return <div title={status} className={`h-2.5 w-2.5 rounded-full ${colors[status]||colors.ok} shrink-0`} />;
-}
-
+function SyncBadge(){return null;}
 function BottomNav({ view, setView }) {
   const items = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'หน้าหลัก' },
@@ -2199,7 +2295,7 @@ function App() {
         await saveData(d);
       } else if (!Array.isArray(d.users) || d.users.length === 0) {
         // ข้อมูลเดิมยังไม่มีระบบผู้ใช้ — สร้างผู้ดูแลระบบเริ่มต้น
-        const cred = await makeCredential('Potato@12');
+        const cred = await makeCredential('admin1234');
         d = { ...d, users: [{
           id: uid(), username: 'admin', name: 'ผู้ดูแลระบบ', role: 'admin',
           cred, createdAt: Date.now(),
@@ -2218,7 +2314,15 @@ function App() {
         lastActivity.current = Date.now();   // การรีเฟรช = การใช้งาน
         setPhase('app');
       } else {
-        setPhase('login');
+        // ตรวจว่าปิด login ไว้ไหม
+        const authEnabled = localStorage.getItem(AUTH_ENABLED_KEY);
+        if (authEnabled === 'false') {
+          setView(sess && sess.view ? sess.view : 'dashboard');
+          setSelectedId(sess && sess.selectedId ? sess.selectedId : null);
+          setPhase('app');
+        } else {
+          setPhase('login');
+        }
       }
       hydrated.current = true;
     })();
@@ -2304,7 +2408,9 @@ function App() {
     await saveSession({ loggedIn: false, lastActivity: 0, view: 'dashboard', selectedId: null, userId: null });
     setWarn(false);
     setCurrentUser(null);
-    setPhase('login');
+    const authEnabled = localStorage.getItem(AUTH_ENABLED_KEY);
+    if (authEnabled === 'false') { setView('dashboard'); setPhase('app'); }
+    else { setPhase('login'); }
   }, []);
 
   /* ---- ติดตามการใช้งาน + ออกจากระบบอัตโนมัติ ---- */
@@ -2589,7 +2695,6 @@ function App() {
                 <div className="h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold">
                   {(currentUser?.name || '?').charAt(0)}
                 </div>
-                <SyncBadge />
               </div>
             </div>
           </div>
@@ -2737,11 +2842,9 @@ function App() {
   );
 }
 
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
-}
-const _root = ReactDOM.createRoot(document.getElementById('root'));
-_root.render(<App />);
+if(typeof navigator!=='undefined'&&'serviceWorker' in navigator)
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
