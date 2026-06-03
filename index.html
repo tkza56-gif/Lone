@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FinNote — ฟ้าเขียว</title>
+<title>FinNote</title>
 <meta name="theme-color" content="#0e7490">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,9 +26,6 @@
 <div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
-/* ===== ไอคอน (ฝังในไฟล์ ไม่ต้องโหลดจาก CDN) =====
-   path data จาก Lucide (lucide.dev) — ใบอนุญาต ISC
-   ห่อเป็น React component ที่รับ props เหมือน lucide-react เดิม */
 function _Icon(paths) {
   return function I({ size = 24, className = '', strokeWidth = 2, ...rest }) {
     return React.createElement('svg', {
@@ -72,6 +69,7 @@ const Banknote = _Icon('<rect width="20" height="12" x="2" y="6" rx="2"/><circle
 const BadgePercent = _Icon('<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m15 9-6 6"/><path d="M9 9h.01"/><path d="M15 15h.01"/>');
 const RefreshCw = _Icon('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>');
 const KeyRound = _Icon('<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>');
+const QrCode = _Icon('<rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>');
 
 /* ============ แอปหลัก ============ */
 
@@ -88,9 +86,9 @@ const WARNING_MS = 60 * 1000;           // เตือนล่วงหน้�
 const DATA_KEY = 'lt_data_v1';
 const SESSION_KEY = 'lt_session_v1';
 const LOCK_KEY = 'lt_lock_v1';          // สถานะล็อกหลังกรอกรหัสผิดหลายครั้ง
-const KDF_SECRET = 'finnote::a7F#9kPmZ2!qR4';
+const KDF_SECRET = 'loan-tracker::a7F#9kPmZ2!qR4';
 const KDF_SALT = 'salt::lt::v1::8x@Lw';
-const PW_ITER = 50000;  // รอบ PBKDF2 (ลดจาก 210k → 50k เพื่อความเร็วใน browser)
+const PW_ITER = 50000;
 const LOGIN_MAX_FAILS = 5;              // กรอกผิดครบจำนวนนี้จึงล็อกชั่วคราว
 
 const THAI_MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -207,95 +205,26 @@ async function decryptObj(blob) {
 }
 
 /* ---------------- ชั้นจัดเก็บข้อมูล (persistent + cache) ---------------- */
-/* --- Supabase Cloud Storage + localStorage fallback ---
-   ข้อมูลหลัก (DATA_KEY) ซิงค์ข้ามเครื่องผ่าน Supabase
-   session/lock ใช้ localStorage เท่านั้น (เร็ว ไม่รอ network) */
-const _SUPA_URL = 'https://jmjdxfhxzmpzggehlwao.supabase.co';
-const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
-const _SUPA_H = () => ({
-  'apikey': _SUPA_KEY,
-  'Authorization': `Bearer ${_SUPA_KEY}`,
-  'Content-Type': 'application/json',
-});
-const _mem = {};
-window._syncStatus = 'ok';
-window._syncListeners = [];
-function _setSyncStatus(s) {
-  window._syncStatus = s;
-  (window._syncListeners || []).forEach((fn) => { try { fn(s); } catch(e) {} });
-}
-async function _supaSet(key, val) {
-  try {
-    _setSyncStatus('syncing');
-    const res = await fetch(`${_SUPA_URL}/rest/v1/app_store`, {
-      method: 'POST',
-      headers: { ..._SUPA_H(), 'Prefer': 'resolution=merge-duplicates' },
-      body: JSON.stringify({ key, value: JSON.stringify(val), updated_at: new Date().toISOString() }),
-    });
-    _setSyncStatus(res.ok ? 'ok' : 'error');
-    return res.ok;
-  } catch(e) { _setSyncStatus('offline'); return false; }
-}
-async function _supaGet(key) {
-  try {
-    const res = await fetch(
-      `${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}&select=value`,
-      { headers: _SUPA_H() }
-    );
-    if (!res.ok) return null;
-    const rows = await res.json();
-    return rows && rows.length ? JSON.parse(rows[0].value) : null;
-  } catch(e) { return null; }
-}
-async function _supaDel(key) {
-  try {
-    await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(key)}`,
-      { method: 'DELETE', headers: _SUPA_H() });
-  } catch(e) {}
-}
-async function storageSet(key, val) {
-  _mem[key] = val;
-  try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
-  await _supaSet(key, val);  // sync to cloud
-}
-async function storageGet(key) {
-  // cloud ก่อน (ข้อมูลล่าสุดข้ามเครื่อง) → localStorage → memory
-  const cloud = await _supaGet(key);
-  if (cloud !== null) {
-    try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(cloud)); } catch(e) {}
-    _mem[key] = cloud; return cloud;
-  }
-  try {
-    const r = window.localStorage && window.localStorage.getItem(key);
-    if (r != null) return JSON.parse(r);
-  } catch(e) {}
-  return key in _mem ? _mem[key] : null;
-}
-async function storageDel(key) {
-  delete _mem[key];
-  try { window.localStorage && window.localStorage.removeItem(key); } catch(e) {}
-  await _supaDel(key);
-}
-
-/* localStorage-only helpers (เร็ว ไม่รอ network) */
-function lsSet(key, val) {
-  try { window.localStorage && window.localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
-}
-function lsGet(key) {
-  try {
-    const r = window.localStorage && window.localStorage.getItem(key);
-    return r != null ? JSON.parse(r) : null;
-  } catch(e) { return null; }
-}
-function lsDel(key) {
-  try { window.localStorage && window.localStorage.removeItem(key); } catch(e) {}
-}
+const _SUPA_URL='https://jmjdxfhxzmpzggehlwao.supabase.co',_SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImptamR4Zmh4em1wemdnZWhsd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTgzMjEsImV4cCI6MjA5NDczNDMyMX0.9m_AAdXO5FPXx0_2-hNwBqczz_YEuJLaHdab7LKFFaM';
+const _SUPA_H=()=>({apikey:_SUPA_KEY,'Authorization':`Bearer ${_SUPA_KEY}`,'Content-Type':'application/json'});
+const _mem={};
+window._syncStatus='ok'; window._syncListeners=[];
+function _setSyncStatus(s){window._syncStatus=s;(window._syncListeners||[]).forEach(fn=>{try{fn(s);}catch(e){}});}
+async function _supaSet(k,v){try{_setSyncStatus('syncing');const r=await fetch(`${_SUPA_URL}/rest/v1/app_store`,{method:'POST',headers:{..._SUPA_H(),'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:JSON.stringify(v),updated_at:new Date().toISOString()})});_setSyncStatus(r.ok?'ok':'error');return r.ok;}catch(e){_setSyncStatus('offline');return false;}}
+async function _supaGet(k){try{const r=await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(k)}&select=value`,{headers:_SUPA_H()});if(!r.ok)return null;const d=await r.json();return d&&d.length?JSON.parse(d[0].value):null;}catch(e){return null;}}
+async function _supaDel(k){try{await fetch(`${_SUPA_URL}/rest/v1/app_store?key=eq.${encodeURIComponent(k)}`,{method:'DELETE',headers:_SUPA_H()});}catch(e){}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function lsGet(k){try{const r=localStorage.getItem(k);return r!=null?JSON.parse(r):null;}catch(e){return null;}}
+function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
+async function storageSet(k,v){_mem[k]=v;lsSet(k,v);await _supaSet(k,v);}
+async function storageGet(k){const c=await _supaGet(k);if(c!==null){lsSet(k,c);_mem[k]=c;return c;}const r=lsGet(k);if(r!=null)return r;return k in _mem?_mem[k]:null;}
+async function storageDel(k){delete _mem[k];lsDel(k);await _supaDel(k);}
 async function saveData(data) { await storageSet(DATA_KEY, await encryptObj(data)); }
 async function loadData() { return decryptObj(await storageGet(DATA_KEY)); }
-async function saveSession(s) { lsSet(SESSION_KEY, s); }  // session: localStorage เท่านั้น
-async function loadSession() { return lsGet(SESSION_KEY); }  // session: localStorage เท่านั้น
-async function saveLock(s) { lsSet(LOCK_KEY, s); }  // lock: localStorage เท่านั้น
-async function loadLock() { return lsGet(LOCK_KEY); }  // lock: localStorage เท่านั้น
+async function saveSession(s) { lsSet(SESSION_KEY, s); }
+async function loadSession() { return lsGet(SESSION_KEY); }
+async function saveLock(s) { lsSet(LOCK_KEY, s); }
+async function loadLock() { return lsGet(LOCK_KEY); }
 
 /* ---------------- เครื่องมือวันที่ / การเงิน ---------------- */
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1432,6 +1361,81 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
 }
 
 /* ---------------- หน้าตั้งค่า ---------------- */
+/* ---- แชร์แอปให้คนอื่นติดตั้ง ---- */
+function ShareAppCard() {
+  const [showQR, setShowQR] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const appUrl = typeof window !== 'undefined'
+    ? window.location.href.split('?')[0].split('#')[0]
+    : '';
+
+  const doShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'FinNote — ระบบจัดการเงินกู้',
+          text: 'ลองใช้ FinNote จัดการเงินกู้และดอกเบี้ย ติดตั้งบนมือถือได้เลย',
+          url: appUrl,
+        });
+      } catch (e) { /* ยกเลิก */ }
+    } else {
+      // fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(appUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch (e) { setShowQR(true); }
+    }
+  };
+
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0e7490&bgcolor=ffffff&data=${encodeURIComponent(appUrl)}`;
+
+  return (
+    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+      <h3 className="font-semibold text-slate-700 flex items-center gap-2 mb-1.5">
+        <Share2 size={17} className="text-cyan-700" /> แชร์แอปให้คนอื่น
+      </h3>
+      <p className="text-sm text-slate-500 mb-3">
+        ส่งลิงก์หรือ QR Code ให้เพื่อน — เปิดในเบราว์เซอร์แล้วกด "เพิ่มลงหน้าจอหลัก" ได้เลย
+      </p>
+
+      <div className="flex gap-2">
+        <PrimaryBtn onClick={doShare} className="flex-1">
+          <Share2 size={16} /> {copied ? 'คัดลอกแล้ว ✓' : 'แชร์ / ส่งลิงก์'}
+        </PrimaryBtn>
+        <GhostBtn onClick={() => setShowQR(!showQR)} className="px-3">
+          {showQR ? <X size={16} /> : <QrCode size={16} />}
+        </GhostBtn>
+      </div>
+
+      {showQR && (
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <div className="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+            <img
+              src={qrUrl}
+              alt="QR Code"
+              width={160} height={160}
+              className="rounded"
+              onError={(e) => { e.target.style.display='none'; }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 text-center">
+            สแกน QR Code ด้วยกล้องมือถือ
+          </p>
+          <button
+            onClick={async () => {
+              try { await navigator.clipboard.writeText(appUrl); setCopied(true); setTimeout(()=>setCopied(false),2500); } catch(e) {}
+            }}
+            className="text-xs text-slate-500 underline break-all text-center px-2"
+          >
+            {copied ? '✓ คัดลอกแล้ว' : appUrl}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encOK,
   onManageUsers, onChangePassword, onRecoveryKey, notifyPerm, swReady, onEnableNotify }) {
   const debtors = (data.debtors || []).length;
@@ -1545,6 +1549,10 @@ function SettingsView({ data, currentUser, onLogout, onClearData, onExport, encO
           <span>บันทึกอัตโนมัติทุกการเปลี่ยนแปลง — รีเฟรชหน้าจอแล้วข้อมูลและหน้าเดิมยังอยู่</span>
         </div>
       </div>
+
+
+      {/* แชร์แอปให้คนอื่น */}
+      <ShareAppCard />
 
       <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
         <h3 className="font-semibold text-slate-700 mb-2">ข้อมูลในระบบ</h3>
@@ -2119,7 +2127,8 @@ function SyncBadge() {
     window._syncListeners.push(fn);
     return () => { window._syncListeners = (window._syncListeners||[]).filter(f=>f!==fn); };
   }, []);
-  const colors = { ok:'bg-cyan-400', syncing:'bg-amber-400 animate-pulse', offline:'bg-slate-400', error:'bg-red-400' };
+  const colors = { ok:'bg-cyan-400', syncing:'bg-amber-400 animate-pulse',
+                   offline:'bg-slate-400', error:'bg-red-400' };
   return <div title={status} className={`h-2.5 w-2.5 rounded-full ${colors[status]||colors.ok} shrink-0`} />;
 }
 
@@ -2503,7 +2512,7 @@ function App() {
     setCurrentUser(updated);
     // ดาวน์โหลดไฟล์กุญแจให้ผู้ใช้เก็บลง USB
     const fileObj = {
-      app: 'finnote',
+      app: 'loan-interest-tracker',
       kind: 'recovery-key',
       username: currentUser.username,
       name: currentUser.name,
