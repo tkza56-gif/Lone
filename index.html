@@ -2403,7 +2403,9 @@ function CalcView({ initName = '' }) {
   const [principal, setPrincipal] = useState('');
   const [rate, setRate] = useState('');
   const [rateType, setRateType] = useState('month');
+  const [calcMode, setCalcMode] = useState('months');   // 'months' | 'payment'
   const [months, setMonths] = useState('');
+  const [fixedPmt, setFixedPmt] = useState('');         // ยอดผ่อนต่องวด (mode=payment)
   const [startYM, setStartYM] = useState(nextMonth);
   const [schedule, setSchedule] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -2413,12 +2415,29 @@ function CalcView({ initName = '' }) {
 
   const calculate = () => {
     setErr('');
-    const P = parseFloat(principal); const rIn = parseFloat(rate); const n = parseInt(months);
+    const P = parseFloat(principal);
+    const rIn = parseFloat(rate);
     if (!P || P <= 0) { setErr('กรุณากรอกเงินต้น'); return; }
     if (!rIn || rIn <= 0) { setErr('กรุณากรอกอัตราดอกเบี้ย'); return; }
-    if (!n || n <= 0 || n > 360) { setErr('จำนวนงวดต้องอยู่ระหว่าง 1-360'); return; }
     const r = rateType === 'year' ? rIn / 100 / 12 : rIn / 100;
-    const pmt = r === 0 ? P / n : P * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+
+    let pmt, n;
+    if (calcMode === 'months') {
+      n = parseInt(months);
+      if (!n || n <= 0 || n > 360) { setErr('จำนวนงวดต้องอยู่ระหว่าง 1-360'); return; }
+      pmt = r === 0 ? P / n : P * r * Math.pow(1+r, n) / (Math.pow(1+r, n) - 1);
+    } else {
+      pmt = parseFloat(fixedPmt);
+      if (!pmt || pmt <= 0) { setErr('กรุณากรอกยอดผ่อนต่องวด'); return; }
+      const minPmt = round2(P * r);  // ยอดต่ำสุดต้องจ่ายดอกได้
+      if (r > 0 && pmt <= minPmt) {
+        setErr(`ยอดผ่อนต้องมากกว่า ${fmtMoney(minPmt)} บาท (เพื่อตัดดอกเบี้ยได้)`); return;
+      }
+      // คำนวณจำนวนงวด: n = -log(1 - P*r/PMT) / log(1+r)
+      n = r === 0 ? Math.ceil(P / pmt) : Math.ceil(-Math.log(1 - P * r / pmt) / Math.log(1 + r));
+      if (!isFinite(n) || n <= 0 || n > 3600) { setErr('ยอดผ่อนน้อยเกินไป ผ่อนนานเกินไป'); return; }
+    }
+
     let bal = P; const rows = [];
     for (let i = 1; i <= n; i++) {
       const int = round2(bal * r);
@@ -2474,6 +2493,19 @@ function CalcView({ initName = '' }) {
           <label className={labelCls}>ชื่อผู้กู้</label>
           <input className={inputCls} value={borrower} onChange={e => setBorrower(e.target.value)} placeholder="เช่น นายสมชาย ใจดี" />
         </div>
+        {/* Mode toggle */}
+        <div className="flex rounded-xl border border-stone-200 overflow-hidden">
+          {[
+            { id:'months',  label:'กำหนดจำนวนงวด' },
+            { id:'payment', label:'กำหนดยอดผ่อน/งวด' },
+          ].map(m => (
+            <button key={m.id} onClick={() => { setCalcMode(m.id); setSchedule(null); setErr(''); }}
+              className={`flex-1 py-2 text-sm font-medium transition ${calcMode===m.id ? 'bg-cyan-700 text-white' : 'bg-white text-slate-500 hover:bg-stone-50'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <label className={labelCls}>เงินต้น (บาท)</label>
@@ -2495,11 +2527,21 @@ function CalcView({ initName = '' }) {
               </div>
             </div>
           </div>
-          <div>
-            <label className={labelCls}>จำนวนงวด</label>
-            <input className={inputCls} value={months} inputMode="numeric"
-              onChange={e => setMonths(e.target.value.replace(/[^0-9]/g,''))} placeholder="12" />
-          </div>
+
+          {calcMode === 'months' ? (
+            <div>
+              <label className={labelCls}>จำนวนงวด (เดือน)</label>
+              <input className={inputCls} value={months} inputMode="numeric"
+                onChange={e => setMonths(e.target.value.replace(/[^0-9]/g,''))} placeholder="12" />
+            </div>
+          ) : (
+            <div>
+              <label className={labelCls}>ยอดผ่อนต่องวด (บาท)</label>
+              <input className={inputCls} value={fixedPmt} inputMode="decimal"
+                onChange={e => setFixedPmt(e.target.value.replace(/[^0-9.]/g,''))} placeholder="5,000" />
+            </div>
+          )}
+
           <div>
             <label className={labelCls}>เริ่มงวดแรก</label>
             <input type="month" className={inputCls} value={startYM} onChange={e => setStartYM(e.target.value)} />
