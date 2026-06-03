@@ -2318,9 +2318,121 @@ function buildShareText(debtor) {
   return lines.join('\n');
 }
 
+/* ---- วาดสรุปยอดผู้กู้เป็นรูปภาพ ---- */
+async function generateDebtorImage(debtor) {
+  const cur = curYM();
+  const ds = debtorStats(debtor, cur);
+  const scale = 2, W = 680, PAD = 24;
+  const THAI_MONTHS_F = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+    'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  const [y, m] = cur.split('-').map(Number);
+  const monthLabel = `${THAI_MONTHS_F[m-1]} ${y+543}`;
+
+  // คำนวณความสูง
+  const activeLoans = ds.loans.filter(({ls}) => ls.thisMonthInBilling);
+  const HEADER_H = 130, STAT_H = 90, LOAN_H = activeLoans.length * 90 + 24, FOOTER_H = 44;
+  const totalH = HEADER_H + STAT_H + LOAN_H + FOOTER_H + 24;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale; canvas.height = totalH * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  /* helpers */
+  const rr = (x, y, w, h, r) => {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+  };
+  const txt = (t, x, y, align='left', color='#0f172a', size=13, weight='400') => {
+    ctx.font = `${weight} ${size}px Sarabun,Thonburi,sans-serif`;
+    ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(String(t), x, y);
+  };
+
+  /* พื้นหลัง */
+  ctx.fillStyle = '#f0f9ff'; ctx.fillRect(0,0,W,totalH);
+
+  /* Header */
+  const grd = ctx.createLinearGradient(0,0,W,HEADER_H);
+  grd.addColorStop(0,'#164e63'); grd.addColorStop(1,'#0e7490');
+  rr(PAD/2,PAD/2,W-PAD,HEADER_H-8,16); ctx.fillStyle=grd; ctx.fill();
+  txt('FinNote',PAD+14,PAD+22,'left','rgba(255,255,255,0.6)',12,'500');
+  txt('สรุปยอดเงินกู้',PAD+14,PAD+52,'left','white',22,'700');
+  // avatar circle
+  const ax = W-PAD-30; const ay = PAD+40;
+  ctx.beginPath(); ctx.arc(ax,ay,26,0,Math.PI*2);
+  ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fill();
+  txt(debtor.name.charAt(0),ax,ay+8,'center','white',22,'700');
+  txt(debtor.name,PAD+14,PAD+80,'left','white',15,'600');
+  txt(`รอบเดือน ${monthLabel}`,PAD+14,PAD+100,'left','rgba(255,255,255,0.75)',12);
+
+  /* Stats row */
+  let sy = HEADER_H + 8;
+  const statItems = [
+    {label:'ยอดรวมเดือนนี้', value: fmtMoney(ds.dueNow)+' บ.', color:'#0e7490'},
+    {label:'ค้างชำระรวม', value: fmtMoney(ds.outstanding)+' บ.', color: ds.outstanding>0?'#dc2626':'#059669'},
+    {label:'จ่ายมาแล้ว', value: fmtMoney(ds.paidTotal)+' บ.', color:'#059669'},
+  ];
+  const SW = (W-PAD*2-16)/3;
+  statItems.forEach((s,i) => {
+    const sx = PAD + i*(SW+8);
+    rr(sx,sy,SW,56,10); ctx.fillStyle='white'; ctx.fill();
+    ctx.strokeStyle='#e0f2fe'; ctx.lineWidth=1; ctx.stroke();
+    txt(s.label, sx+SW/2, sy+18, 'center','#64748b',10);
+    txt(s.value, sx+SW/2, sy+40, 'center', s.color, 13,'700');
+  });
+
+  /* แต่ละก้อนเงินกู้ */
+  let ly = HEADER_H + STAT_H + 12;
+  activeLoans.forEach(({loan, ls}, idx) => {
+    const lh = 82;
+    rr(PAD/2,ly,W-PAD,lh,12); ctx.fillStyle='white'; ctx.fill();
+    ctx.strokeStyle='#e0f2fe'; ctx.lineWidth=1; ctx.stroke();
+    // badge ชนิด
+    const kindMap = {interest:'ดอกเบี้ย',amortized:'ลดต้นลดดอก',installment:'ผ่อนตัดต้น'};
+    const kindColor = {interest:'#0e7490',amortized:'#7c3aed',installment:'#059669'};
+    const kind = ls.kind;
+    rr(PAD+8, ly+10, 72, 20, 6);
+    ctx.fillStyle = kindColor[kind]||'#64748b'; ctx.fill();
+    txt(kindMap[kind]||kind, PAD+44, ly+24, 'center','white',10,'600');
+    // ยอดผ่อนเดือนนี้
+    txt('เงินต้น '+fmtMoney(ls.principal)+' บ.', PAD+90, ly+24,'left','#475569',12);
+    // สถานะ
+    const settled = ls.thisMonthSettled||ls.complete;
+    const statusTxt = ls.complete?'ปิดบัญชีแล้ว ✅': settled?'ชำระแล้ว ✅': ls.thisMonthHasPayment?'จ่ายบางส่วน ⚠️':'รอชำระ 🔴';
+    const statusColor = ls.complete||settled?'#059669': ls.thisMonthHasPayment?'#d97706':'#dc2626';
+    txt(statusTxt, W-PAD-8, ly+24,'right',statusColor,12,'600');
+    // ยอดเดือนนี้ + ค้าง
+    txt('ยอดเดือนนี้:', PAD+8, ly+52,'left','#64748b',12);
+    txt(fmtMoney(ls.thisMonthBill)+' บ.', PAD+88, ly+52,'left','#0f172a',13,'700');
+    if (ls.outstanding>0.005) {
+      txt('ค้างชำระ:', PAD+8, ly+70,'left','#64748b',11);
+      txt(fmtMoney(ls.outstanding)+' บ.', PAD+72, ly+70,'left','#dc2626',12,'600');
+    }
+    if (ls.kind!=='interest') {
+      txt('คงเหลือ:', W-PAD-110, ly+70,'left','#64748b',11);
+      txt(fmtMoney(ls.remaining)+' บ.', W-PAD-8, ly+70,'right','#0e7490',12,'600');
+    }
+    ly += lh + 8;
+  });
+
+  if (activeLoans.length === 0) {
+    txt('ไม่มีก้อนเงินกู้ในรอบนี้', W/2, ly+30,'center','#94a3b8',13);
+    ly += 60;
+  }
+
+  /* Footer */
+  txt('สร้างโดย FinNote', W/2, ly+28,'center','#94a3b8',11);
+
+  return canvas;
+}
+
 function ShareModal({ debtor, onClose }) {
   const text = useMemo(() => buildShareText(debtor), [debtor]);
   const [copied, setCopied] = useState(false);
+  const [genImg, setGenImg] = useState(false);
 
   const doCopy = async () => {
     try {
@@ -2342,16 +2454,38 @@ function ShareModal({ debtor, onClose }) {
       window.open('https://line.me/R/share?text=' + encodeURIComponent(text), '_blank');
     } catch (e) { doCopy(); }
   };
+  const doShareImage = async () => {
+    setGenImg(true);
+    try {
+      const canvas = await generateDebtorImage(debtor);
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `FinNote-${debtor.name}.png`, { type:'image/png' });
+        if (navigator.canShare && navigator.canShare({ files:[file] })) {
+          await navigator.share({ files:[file], title:`สรุปยอด ${debtor.name}` });
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href=url; a.download=`FinNote-${debtor.name}.png`;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+        setGenImg(false);
+      }, 'image/png');
+    } catch(e) { setGenImg(false); }
+  };
 
   return (
     <Modal open={true} onClose={onClose} title="แชร์สรุปยอดผ่านไลน์">
       <pre className="bg-stone-50 border border-stone-200 rounded-xl p-3.5 text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>
-      <div className="flex gap-2 mt-4">
-        <PrimaryBtn className="flex-1 py-3 bg-cyan-700" onClick={doShare}>
-          <Share2 size={17} /> ส่งทางไลน์
+      <div className="flex gap-2 mt-4 flex-wrap">
+        <PrimaryBtn className="flex-1 min-w-[140px] py-3" onClick={doShareImage} disabled={genImg}>
+          <Share2 size={17} /> {genImg ? 'กำลังสร้างรูป...' : 'ส่ง LINE (รูปภาพ)'}
         </PrimaryBtn>
-        <GhostBtn onClick={doCopy} className="flex-1 py-3">
-          {copied ? <><CheckCircle2 size={16} className="text-cyan-600" /> คัดลอกแล้ว</> : <><Copy size={16} /> คัดลอกข้อความ</>}
+        <GhostBtn onClick={doShare} className="py-3 px-4">
+          <Share2 size={16} /> ข้อความ
+        </GhostBtn>
+        <GhostBtn onClick={doCopy} className="py-3 px-4">
+          {copied ? <CheckCircle2 size={16} className="text-cyan-600" /> : <Copy size={16} />}
         </GhostBtn>
       </div>
       <p className="text-xs text-slate-400 mt-3 text-center">
