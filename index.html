@@ -2410,6 +2410,7 @@ function CalcView({ initName = '' }) {
   const [schedule, setSchedule] = useState(null);
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState('');
+  const [genImg, setGenImg] = useState(false);
 
   useEffect(() => { if (initName) setBorrower(initName); }, [initName]);
 
@@ -2480,6 +2481,159 @@ function CalcView({ initName = '' }) {
       await navigator.clipboard.writeText(buildText());
       setCopied(true); setTimeout(() => setCopied(false), 2500);
     } catch(e) {}
+  };
+
+  /* ---- วาดตารางเป็นรูปภาพด้วย Canvas ---- */
+  const generateImage = async () => {
+    if (!schedule) return null;
+    const rLabel = rateType === 'year' ? `${rate}%/ปี` : `${rate}%/เดือน`;
+    const scale = 2;
+    const W = 760;
+    const PAD = 24;
+    const ROW_H = 38;
+    const COLS = [44, 96, 110, 110, 110, 110];   // width ของแต่ละคอลัมน์
+    const HEADER_H = borrower ? 150 : 120;
+    const SUMMARY_H = 120;
+    const TBL_HDR_H = 42;
+    const FOOTER_H = 48;
+    const totalH = HEADER_H + SUMMARY_H + TBL_HDR_H + (schedule.rows.length + 1) * ROW_H + FOOTER_H + 32;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W * scale;
+    canvas.height = totalH * scale;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+
+    /* helpers */
+    const rr = (x, y, w, h, r) => {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
+      ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+      ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+      ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+      ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+      ctx.closePath();
+    };
+    const txt = (text, x, y, align='left', color='#0f172a', size=13, weight='400') => {
+      ctx.font = `${weight} ${size}px Sarabun,Thonburi,sans-serif`;
+      ctx.fillStyle = color; ctx.textAlign = align;
+      ctx.fillText(String(text), x, y);
+    };
+    const colX = (i) => {
+      let x = PAD;
+      for (let j = 0; j < i; j++) x += COLS[j];
+      return x;
+    };
+
+    /* ---- พื้นหลัง ---- */
+    ctx.fillStyle = '#f0f9ff';
+    ctx.fillRect(0, 0, W, totalH);
+
+    /* ---- Header gradient ---- */
+    const grd = ctx.createLinearGradient(0, 0, W, HEADER_H);
+    grd.addColorStop(0, '#164e63'); grd.addColorStop(1, '#0e7490');
+    rr(PAD/2, PAD/2, W-PAD, HEADER_H-8, 16);
+    ctx.fillStyle = grd; ctx.fill();
+
+    let hy = PAD + 28;
+    txt('FinNote', PAD+16, hy, 'left', 'rgba(255,255,255,0.6)', 13, '500');
+    hy += 28;
+    txt('ตารางผ่อนชำระ', PAD+16, hy, 'left', 'white', 22, '700');
+    hy += 24;
+    txt(`เงินต้น ${fmtMoney(schedule.P)} บ.  |  ดอก ${rLabel}  |  ${schedule.n} งวด`, PAD+16, hy, 'left', 'rgba(255,255,255,0.8)', 12);
+    if (borrower) {
+      hy += 22;
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      rr(PAD+12, hy-16, 200, 26, 8); ctx.fill();
+      txt(`👤 ${borrower}`, PAD+20, hy+4, 'left', 'white', 13, '600');
+    }
+
+    /* ---- Summary row ---- */
+    let sy = HEADER_H + 12;
+    const sumItems = [
+      { label:'ผ่อน/เดือน', value:fmtMoney(schedule.pmt)+' บ.', color:'#0e7490' },
+      { label:'จำนวนงวด', value:`${schedule.n} เดือน`, color:'#0f172a' },
+      { label:'ดอกเบี้ยรวม', value:fmtMoney(schedule.totalInt)+' บ.', color:'#dc2626' },
+      { label:'รวมทั้งหมด', value:fmtMoney(schedule.total)+' บ.', color:'#d97706' },
+    ];
+    const SW = (W - PAD*2 - 12) / 4;
+    sumItems.forEach((s, i) => {
+      const sx = PAD + i*(SW+4);
+      rr(sx, sy, SW, 52, 10);
+      ctx.fillStyle = 'white'; ctx.fill();
+      ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 1; ctx.stroke();
+      txt(s.label, sx+SW/2, sy+16, 'center', '#64748b', 10);
+      txt(s.value, sx+SW/2, sy+38, 'center', s.color, 12, '700');
+    });
+
+    /* ---- Table Header ---- */
+    let ty = HEADER_H + SUMMARY_H + 4;
+    const headers = ['งวด','เดือน','ผ่อน','ดอกเบี้ย','ตัดต้น','คงเหลือ'];
+    const aligns = ['center','left','right','right','right','right'];
+    const grd2 = ctx.createLinearGradient(0, ty, 0, ty+TBL_HDR_H);
+    grd2.addColorStop(0, '#155e75'); grd2.addColorStop(1, '#0e7490');
+    rr(PAD/2, ty, W-PAD, TBL_HDR_H, 10); ctx.fillStyle=grd2; ctx.fill();
+    headers.forEach((h, i) => {
+      const cx = i===0 ? colX(0)+COLS[0]/2 : colX(i)+(i<2?4:COLS[i]-4);
+      txt(h, cx, ty+27, aligns[i], 'white', 12, '600');
+    });
+
+    /* ---- Table Rows ---- */
+    let ry = ty + TBL_HDR_H;
+    schedule.rows.forEach((row, idx) => {
+      ctx.fillStyle = idx%2===0 ? 'white' : '#f8fafc';
+      ctx.fillRect(PAD/2, ry, W-PAD, ROW_H);
+      ctx.strokeStyle='#f1f5f9'; ctx.lineWidth=0.5;
+      ctx.beginPath(); ctx.moveTo(PAD/2,ry+ROW_H); ctx.lineTo(W-PAD/2,ry+ROW_H); ctx.stroke();
+
+      const mid = ry+ROW_H/2+5;
+      txt(String(row.no), colX(0)+COLS[0]/2, mid, 'center', '#64748b', 12, '600');
+      txt(ymLabel(row.ym), colX(1)+4, mid, 'left', '#475569', 12);
+      txt(fmtMoney(row.pmt), colX(2)+COLS[2]-4, mid, 'right', '#0f172a', 12, '600');
+      txt(fmtMoney(row.int), colX(3)+COLS[3]-4, mid, 'right', '#dc2626', 12);
+      txt(fmtMoney(row.prin), colX(4)+COLS[4]-4, mid, 'right', '#059669', 12);
+      txt(fmtMoney(row.bal), colX(5)+COLS[5]-4, mid, 'right', '#0e7490', 12, '500');
+      ry += ROW_H;
+    });
+
+    /* ---- Total Row ---- */
+    ctx.fillStyle = '#e0f2fe';
+    ctx.fillRect(PAD/2, ry, W-PAD, ROW_H);
+    const mid2 = ry+ROW_H/2+5;
+    txt('รวม', colX(0)+COLS[0]/2, mid2, 'center', '#0f172a', 12, '700');
+    txt(fmtMoney(schedule.total), colX(2)+COLS[2]-4, mid2, 'right', '#0f172a', 12, '700');
+    txt(fmtMoney(schedule.totalInt), colX(3)+COLS[3]-4, mid2, 'right', '#dc2626', 12, '700');
+    txt(fmtMoney(schedule.P), colX(4)+COLS[4]-4, mid2, 'right', '#059669', 12, '700');
+    txt('0.00', colX(5)+COLS[5]-4, mid2, 'right', '#0e7490', 12, '700');
+    ry += ROW_H;
+
+    /* ---- Footer ---- */
+    txt('สร้างโดย FinNote', W/2, ry+28, 'center', '#94a3b8', 11);
+
+    return canvas;
+  };
+
+  const shareImage = async () => {
+    setGenImg(true);
+    try {
+      const canvas = await generateImage();
+      if (!canvas) return;
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], 'FinNote-ตารางผ่อน.png', { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'ตารางผ่อนชำระ — FinNote' });
+        } else {
+          // fallback: download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = 'FinNote-ตารางผ่อน.png';
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+        setGenImg(false);
+      }, 'image/png');
+    } catch(e) { setGenImg(false); }
   };
 
   return (
@@ -2611,16 +2765,21 @@ function CalcView({ initName = '' }) {
             </div>
 
             {/* Share buttons */}
-            <div className="flex gap-2 p-3 border-t border-stone-100">
-              <button onClick={shareLine}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-green-500 text-green-600 font-semibold text-sm hover:bg-green-500 hover:text-white transition">
+            <div className="flex gap-2 p-3 border-t border-stone-100 flex-wrap">
+              <button onClick={shareImage} disabled={genImg}
+                className="flex-1 min-w-[130px] flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-green-500 text-green-600 font-semibold text-sm hover:bg-green-500 hover:text-white transition disabled:opacity-60">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
-                ส่ง LINE
+                {genImg ? 'กำลังสร้างรูป...' : 'ส่ง LINE (รูปภาพ)'}
+              </button>
+              <button onClick={shareLine}
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-green-300 text-green-600 font-semibold text-sm hover:bg-green-50 transition">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m22 2-7 20-4-9-9-4Z"/></svg>
+                ข้อความ
               </button>
               <button onClick={copyText}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-cyan-600 text-cyan-700 font-semibold text-sm hover:bg-cyan-600 hover:text-white transition">
+                className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border-2 border-cyan-600 text-cyan-700 font-semibold text-sm hover:bg-cyan-600 hover:text-white transition">
                 <Copy size={15} />
-                {copied ? 'คัดลอกแล้ว ✓' : 'คัดลอกข้อความ'}
+                {copied ? '✓' : 'คัดลอก'}
               </button>
             </div>
           </div>
