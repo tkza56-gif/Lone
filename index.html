@@ -540,23 +540,41 @@ function loanStats(loan, cur) {
 /* ===== บีบอัดรูปสลิป (กัน localStorage เต็ม) ===== */
 function compressSlipImage(file) {
   return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 1000;
+    let settled = false;
+    const done = (val) => { if (!settled) { settled = true; resolve(val); } };
+    // กันค้าง: ถ้าเกิน 15 วินาทียังไม่เสร็จ คืน null
+    const timer = setTimeout(() => done(null), 15000);
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const maxDim = 1000;                       // จำกัดด้านยาวสุด 1000px
         let { width, height } = img;
-        if (width > maxW) { height = Math.round(height * maxW / width); width = maxW; }
+        const longSide = Math.max(width, height);
+        if (longSide > maxDim) {
+          const ratio = maxDim / longSide;
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.7));
-      };
-      img.onerror = () => resolve(null);
-      img.src = e.target.result;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';                 // พื้นขาว กัน PNG โปร่งใสเป็นดำ
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
+        URL.revokeObjectURL(url);
+        clearTimeout(timer);
+        done(dataUrl);
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        clearTimeout(timer);
+        done(null);
+      }
     };
-    reader.onerror = () => resolve(null);
-    reader.readAsDataURL(file);
+    img.onerror = () => { URL.revokeObjectURL(url); clearTimeout(timer); done(null); };
+    img.src = url;
   });
 }
 
@@ -2553,17 +2571,18 @@ function BulkPaymentModal({ debtor, onClose, onSubmit }) {
   }, [amount, debtor, cur]);
 
   const addSlips = async (files) => {
+    const arr = Array.from(files || []).filter((f) => f.type.startsWith('image/'));
+    if (fileRef.current) fileRef.current.value = '';   // เคลียร์ทันที กันค้าง
+    if (!arr.length) return;
     setBusy(true);
-    const arr = Array.from(files || []);
-    const compressed = [];
+    // ประมวลผลทีละรูป + แสดงผลทันทีที่เสร็จแต่ละรูป
     for (const f of arr) {
-      if (!f.type.startsWith('image/')) continue;
       const d = await compressSlipImage(f);
-      if (d) compressed.push(d);
+      if (d) setSlips((prev) => [...prev, d]);
+      // ปล่อยให้ UI วาดก่อนทำรูปถัดไป
+      await new Promise((r) => setTimeout(r, 30));
     }
-    setSlips((prev) => [...prev, ...compressed]);
     setBusy(false);
-    if (fileRef.current) fileRef.current.value = '';
   };
 
   const loanName = (id) => {
