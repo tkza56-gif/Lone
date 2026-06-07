@@ -443,9 +443,15 @@ function loanStats(loan, cur) {
   let payoffMonth = null, totalInterest = 0, neverPayoff = false;
 
   if (kind === 'interest') {
-    const monthly = round2(principal * rate / 100);
+    const prinCuts = loan.prinCuts || {};   // { 'YYYY-MM': จำนวนเงินต้นที่ถูกตัด }
     months = monthRange(loan.startMonth, cur);
-    months.forEach((m) => { scheduleMap[m] = monthly; });
+    months.forEach((m) => {
+      // เงินต้นที่ถูกตัดมีผลกับดอกเบี้ยเดือนถัดไป (cutMonth < m)
+      let effPrin = principal;
+      Object.keys(prinCuts).forEach((cm) => { if (cm < m) effPrin -= (Number(prinCuts[cm]) || 0); });
+      effPrin = Math.max(0, effPrin);
+      scheduleMap[m] = round2(effPrin * rate / 100);
+    });
   } else if (kind === 'amortized') {
     const payment = Number(loan.payment) || 0;
     const sch = buildAmortSchedule(principal, rate, payment, loan.startMonth);
@@ -501,7 +507,9 @@ function loanStats(loan, cur) {
   let remaining = principal;
   let complete = false;
   if (kind === 'interest') {
-    remaining = principal;                       // เงินต้นคงเดิม
+    const totalCut = Object.values(loan.prinCuts || {}).reduce((s, v) => s + (Number(v) || 0), 0);
+    remaining = Math.max(0, round2(principal - totalCut));   // เงินต้นลดลงตามที่ถูกตัด
+    complete = remaining <= 0.005 && Object.keys(loan.payments || {}).length > 0;
   } else if (kind === 'installment') {
     remaining = Math.max(0, round2(principal - paidTotal));
     complete = months.length > 0 && remaining <= 0.005;
@@ -529,6 +537,113 @@ function loanStats(loan, cur) {
   };
 }
 /* รวมสถานะของลูกหนี้ทั้งคน */
+/* ===== บีบอัดรูปสลิป (กัน localStorage เต็ม) ===== */
+function compressSlipImage(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 1000;
+        let { width, height } = img;
+        if (width > maxW) { height = Math.round(height * maxW / width); width = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ===== กระจายเงินรับชำระรวม =====
+   1) ตัดยอดค้างเก่าสุด → ใหม่ → เดือนปัจจุบัน (ทุกก้อน)
+   2) เงินส่วนเกิน → ตัดต้นเฉพาะก้อนชนิด interest
+   คืน { allocations:[{loanId, add:{ym:amount}}], prinCuts:{loanId:amount}, leftover } */
+function distributeBulkPayment(loans, cur, totalPaid) {
+  const allocations = loans.map((l) => {
+    const s = loanStats(l, cur);
+    return { loanId: l.id, loan: l, stats: s, add: {} };
+  });
+  let remaining = round2(Number(totalPaid) || 0);
+
+  // คิวยอดค้างรายเดือน (เก่าสุดก่อน) — ใช้ ledger จาก loanStats
+  const queue = [];
+  allocations.forEach((a, li) => {
+    (a.stats.ledger || []).forEach((row) => {
+      if (row.month > cur) return;                 // ไม่ตัดเดือนอนาคต
+      const owed = round2(row.bill - row.paid);
+      if (owed > 0.005) queue.push({ li, month: row.month, owed });
+    });
+  });
+  queue.sort((x, y) => (x.month < y.month ? -1 : x.month > y.month ? 1 : x.li - y.li));
+
+  for (const q of queue) {
+    if (remaining <= 0.005) break;
+    const payAmt = Math.min(remaining, q.owed);
+    allocations[q.li].add[q.month] = round2((allocations[q.li].add[q.month] || 0) + payAmt);
+    remaining = round2(remaining - payAmt);
+  }
+
+  // ส่วนเกิน → ตัดต้นเฉพาะ interest
+  const prinCuts = {};
+  if (remaining > 0.005) {
+    for (let li = 0; li < allocations.length; li++) {
+      if (remaining <= 0.005) break;
+      const loan = allocations[li].loan;
+      if (loanType(loan) !== 'interest') continue;
+      const curPrin = Number(loan.principal) || 0;
+      const alreadyCut = Object.values(loan.prinCuts || {}).reduce((s, v) => s + (Number(v) || 0), 0);
+      const canCut = Math.max(0, round2(curPrin - alreadyCut));
+      const cut = Math.min(remaining, canCut);
+      if (cut > 0.005) { prinCuts[li] = round2(cut); remaining = round2(remaining - cut); }
+    }
+  }
+  return { allocations, prinCuts, leftover: round2(remaining) };
+}
+
+/* ใช้ผลลัพธ์จาก distributeBulkPayment ไปอัปเดต debtor (ไม่ทำลายข้อมูลเดิม) */
+function applyBulkPayment(debtor, cur, totalPaid, slips, payDate) {
+  const result = distributeBulkPayment(debtor.loans || [], cur, totalPaid);
+  const bulkId = uid();
+  const newLoans = (debtor.loans || []).map((loan, li) => {
+    const alloc = result.allocations[li];
+    const updated = { ...loan, payments: { ...(loan.payments || {}) } };
+    // รวมเงินที่กระจายเข้าแต่ละเดือน
+    Object.keys(alloc.add).forEach((ym) => {
+      const prev = updated.payments[ym] ? (Number(updated.payments[ym].amount) || 0) : 0;
+      const prevSlips = (updated.payments[ym] && updated.payments[ym].slips) || [];
+      updated.payments[ym] = {
+        amount: round2(prev + alloc.add[ym]),
+        date: payDate || `${ym}-25`,
+        slips: prevSlips,
+        bulkId,
+      };
+    });
+    // ตัดต้น (interest)
+    if (result.prinCuts[li] != null) {
+      updated.prinCuts = { ...(loan.prinCuts || {}) };
+      updated.prinCuts[cur] = round2((updated.prinCuts[cur] || 0) + result.prinCuts[li]);
+    }
+    return updated;
+  });
+  // เก็บประวัติการรับชำระรวม + สลิป
+  const bulkRecord = {
+    id: bulkId, date: payDate || new Date().toISOString().slice(0,10),
+    total: round2(totalPaid), cur,
+    allocations: result.allocations.map((a) => ({ loanId: a.loanId, add: a.add })),
+    prinCuts: result.prinCuts, leftover: result.leftover,
+    slips: slips || [],
+    createdAt: Date.now(),
+  };
+  const bulkPayments = [...(debtor.bulkPayments || []), bulkRecord];
+  return { ...debtor, loans: newLoans, bulkPayments, _lastBulk: result };
+}
+
 function debtorStats(debtor, cur) {
   const loans = (debtor.loans || []).map((l) => ({ loan: l, s: loanStats(l, cur) }));
   let totalPrincipal = 0, totalRemaining = 0, monthlyInterest = 0,
@@ -1180,7 +1295,7 @@ function LoanLedger({ loan, cur, onRecord, onUndo }) {
 
 /* ---------------- หน้ารายละเอียดลูกหนี้ ---------------- */
 function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditLoan,
-  onDeleteLoan, onRecord, onUndo, onShare }) {
+  onDeleteLoan, onRecord, onUndo, onShare, onBulkPay }) {
   const cur = curYM();
   const s = debtorStats(debtor, cur);
 
@@ -1226,11 +1341,14 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
         </div>
       </div>
 
-      {/* ปุ่มแชร์ */}
-      <div className="px-4 mt-3">
-        <PrimaryBtn onClick={() => onShare(debtor)} className="w-full py-3 bg-cyan-800">
-          <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
+      {/* ปุ่มรับชำระรวม + แชร์ */}
+      <div className="px-4 mt-3 space-y-2">
+        <PrimaryBtn onClick={() => onBulkPay(debtor)} className="w-full py-3">
+          <Banknote size={18} /> รับชำระรวม + แนบสลิป
         </PrimaryBtn>
+        <GhostBtn onClick={() => onShare(debtor)} className="w-full py-3">
+          <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
+        </GhostBtn>
       </div>
 
       {/* ยอดค้างเตือน */}
@@ -2319,23 +2437,21 @@ function buildShareText(debtor) {
 async function generateDebtorImage(debtor) {
   const cur = curYM();
   const ds = debtorStats(debtor, cur);
-  const scale = 2, W = 680, PAD = 24;
+  const scale = 2, F = 1.7, W = 880, PAD = 36;
   const THAI_MONTHS_F = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
     'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
   const [y, m] = cur.split('-').map(Number);
   const monthLabel = `${THAI_MONTHS_F[m-1]} ${y+543}`;
 
-  // คำนวณความสูง
   const activeLoans = ds.loans.filter(({s}) => s.thisMonthInBilling);
-  const HEADER_H = 130, STAT_H = 90, LOAN_H = activeLoans.length * 90 + 24, FOOTER_H = 44;
-  const totalH = HEADER_H + STAT_H + LOAN_H + FOOTER_H + 24;
+  const HEADER_H = 200, STAT_H = 140, LOAN_H = activeLoans.length * 140 + 36, FOOTER_H = 66;
+  const totalH = HEADER_H + STAT_H + LOAN_H + FOOTER_H + 36;
 
   const canvas = document.createElement('canvas');
   canvas.width = W * scale; canvas.height = totalH * scale;
   const ctx = canvas.getContext('2d');
   ctx.scale(scale, scale);
 
-  /* helpers */
   const rr = (x, y, w, h, r) => {
     ctx.beginPath();
     ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -2348,82 +2464,205 @@ async function generateDebtorImage(debtor) {
     ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(String(t), x, y);
   };
 
-  /* พื้นหลัง */
   ctx.fillStyle = '#f0f9ff'; ctx.fillRect(0,0,W,totalH);
 
-  /* Header */
   const grd = ctx.createLinearGradient(0,0,W,HEADER_H);
   grd.addColorStop(0,'#164e63'); grd.addColorStop(1,'#0e7490');
-  rr(PAD/2,PAD/2,W-PAD,HEADER_H-8,16); ctx.fillStyle=grd; ctx.fill();
-  txt('FinNote',PAD+14,PAD+22,'left','rgba(255,255,255,0.6)',12,'500');
-  txt('สรุปยอดเงินกู้',PAD+14,PAD+52,'left','white',22,'700');
-  // avatar circle
-  const ax = W-PAD-30; const ay = PAD+40;
-  ctx.beginPath(); ctx.arc(ax,ay,26,0,Math.PI*2);
+  rr(PAD/2,PAD/2,W-PAD,HEADER_H-12,18); ctx.fillStyle=grd; ctx.fill();
+  txt('FinNote',PAD+20,PAD+34,'left','rgba(255,255,255,0.6)',12*F,'500');
+  txt('สรุปยอดเงินกู้',PAD+20,PAD+78,'left','white',22*F,'700');
+  const ax = W-PAD-44; const ay = PAD+58;
+  ctx.beginPath(); ctx.arc(ax,ay,40,0,Math.PI*2);
   ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fill();
-  txt(debtor.name.charAt(0),ax,ay+8,'center','white',22,'700');
-  txt(debtor.name,PAD+14,PAD+80,'left','white',15,'600');
-  txt(`รอบเดือน ${monthLabel}`,PAD+14,PAD+100,'left','rgba(255,255,255,0.75)',12);
+  txt(debtor.name.charAt(0),ax,ay+13,'center','white',22*F,'700');
+  txt(debtor.name,PAD+20,PAD+120,'left','white',15*F,'600');
+  txt(`รอบเดือน ${monthLabel}`,PAD+20,PAD+150,'left','rgba(255,255,255,0.75)',12*F);
 
-  /* Stats row */
-  let sy = HEADER_H + 8;
+  let sy = HEADER_H + 12;
   const statItems = [
     {label:'ยอดรวมเดือนนี้', value: fmtMoney(ds.dueNow)+' บ.', color:'#0e7490'},
     {label:'ค้างชำระรวม', value: fmtMoney(ds.outstanding)+' บ.', color: ds.outstanding>0?'#dc2626':'#059669'},
     {label:'จ่ายมาแล้ว', value: fmtMoney(ds.paidTotal)+' บ.', color:'#059669'},
   ];
-  const SW = (W-PAD*2-16)/3;
+  const SW = (W-PAD*2-24)/3;
   statItems.forEach((s,i) => {
-    const sx = PAD + i*(SW+8);
-    rr(sx,sy,SW,56,10); ctx.fillStyle='white'; ctx.fill();
+    const sx = PAD + i*(SW+12);
+    rr(sx,sy,SW,90,12); ctx.fillStyle='white'; ctx.fill();
     ctx.strokeStyle='#e0f2fe'; ctx.lineWidth=1; ctx.stroke();
-    txt(s.label, sx+SW/2, sy+18, 'center','#64748b',10);
-    txt(s.value, sx+SW/2, sy+40, 'center', s.color, 13,'700');
+    txt(s.label, sx+SW/2, sy+32, 'center','#64748b',10*F);
+    txt(s.value, sx+SW/2, sy+68, 'center', s.color, 13*F,'700');
   });
 
-  /* แต่ละก้อนเงินกู้ */
-  let ly = HEADER_H + STAT_H + 12;
-  activeLoans.forEach(({loan, s}, idx) => {
-    const lh = 82;
-    rr(PAD/2,ly,W-PAD,lh,12); ctx.fillStyle='white'; ctx.fill();
+  let ly = HEADER_H + STAT_H + 16;
+  activeLoans.forEach(({loan, s}) => {
+    const lh = 128;
+    rr(PAD/2,ly,W-PAD,lh,14); ctx.fillStyle='white'; ctx.fill();
     ctx.strokeStyle='#e0f2fe'; ctx.lineWidth=1; ctx.stroke();
-    // badge ชนิด
     const kindMap = {interest:'ดอกเบี้ย',amortized:'ลดต้นลดดอก',installment:'ผ่อนตัดต้น'};
     const kindColor = {interest:'#0e7490',amortized:'#7c3aed',installment:'#059669'};
     const kind = s.kind;
-    rr(PAD+8, ly+10, 72, 20, 6);
+    rr(PAD+14, ly+18, 130, 36, 8);
     ctx.fillStyle = kindColor[kind]||'#64748b'; ctx.fill();
-    txt(kindMap[kind]||kind, PAD+44, ly+24, 'center','white',10,'600');
-    // ยอดผ่อนเดือนนี้
-    txt('เงินต้น '+fmtMoney(s.principal)+' บ.', PAD+90, ly+24,'left','#475569',12);
-    // สถานะ
+    txt(kindMap[kind]||kind, PAD+14+65, ly+42, 'center','white',10*F,'600');
+    txt('เงินต้น '+fmtMoney(s.principal)+' บ.', PAD+160, ly+42, 'left','#475569',12*F);
     const settled = s.thisMonthSettled||s.complete;
-    const statusTxt = s.complete?'ปิดบัญชีแล้ว ✅': settled?'ชำระแล้ว ✅': s.thisMonthHasPayment?'จ่ายบางส่วน ⚠️':'รอชำระ 🔴';
+    const statusTxt = s.complete?'ปิดบัญชี ✅': settled?'ชำระแล้ว ✅': s.thisMonthHasPayment?'จ่ายบางส่วน ⚠️':'รอชำระ 🔴';
     const statusColor = s.complete||settled?'#059669': s.thisMonthHasPayment?'#d97706':'#dc2626';
-    txt(statusTxt, W-PAD-8, ly+24,'right',statusColor,12,'600');
-    // ยอดเดือนนี้ + ค้าง
-    txt('ยอดเดือนนี้:', PAD+8, ly+52,'left','#64748b',12);
-    txt(fmtMoney(s.thisMonthBill)+' บ.', PAD+88, ly+52,'left','#0f172a',13,'700');
+    txt(statusTxt, W-PAD-14, ly+42,'right',statusColor,12*F,'600');
+    txt('ยอดเดือนนี้:', PAD+14, ly+88,'left','#64748b',12*F);
+    txt(fmtMoney(s.thisMonthBill)+' บ.', PAD+150, ly+88,'left','#0f172a',13*F,'700');
     if (s.outstanding>0.005) {
-      txt('ค้างชำระ:', PAD+8, ly+70,'left','#64748b',11);
-      txt(fmtMoney(s.outstanding)+' บ.', PAD+72, ly+70,'left','#dc2626',12,'600');
+      txt('ค้างชำระ:', PAD+14, ly+116,'left','#64748b',11*F);
+      txt(fmtMoney(s.outstanding)+' บ.', PAD+130, ly+116,'left','#dc2626',12*F,'600');
     }
     if (s.kind!=='interest') {
-      txt('คงเหลือ:', W-PAD-110, ly+70,'left','#64748b',11);
-      txt(fmtMoney(s.remaining)+' บ.', W-PAD-8, ly+70,'right','#0e7490',12,'600');
+      txt('คงเหลือ:', W-PAD-220, ly+116,'left','#64748b',11*F);
+      txt(fmtMoney(s.remaining)+' บ.', W-PAD-14, ly+116,'right','#0e7490',12*F,'600');
     }
-    ly += lh + 8;
+    ly += 140;
   });
 
   if (activeLoans.length === 0) {
-    txt('ไม่มีก้อนเงินกู้ในรอบนี้', W/2, ly+30,'center','#94a3b8',13);
-    ly += 60;
+    txt('ไม่มีก้อนเงินกู้ในรอบนี้', W/2, ly+40,'center','#94a3b8',13*F);
+    ly += 80;
   }
 
-  /* Footer */
-  txt('สร้างโดย FinNote', W/2, ly+28,'center','#94a3b8',11);
-
+  txt('สร้างโดย FinNote', W/2, ly+40,'center','#94a3b8',11*F);
   return canvas;
+}
+
+/* ===== Modal รับชำระรวม + แนบสลิป ===== */
+function BulkPaymentModal({ debtor, onClose, onSubmit }) {
+  const cur = curYM();
+  const ds = debtorStats(debtor, cur);
+  const [amount, setAmount] = useState(String(ds.dueNow || ''));
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0,10));
+  const [slips, setSlips] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const fileRef = useRef(null);
+
+  // คำนวณ preview การกระจายเงินแบบ real-time
+  useEffect(() => {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) { setPreview(null); return; }
+    try {
+      const r = distributeBulkPayment(debtor.loans || [], cur, amt);
+      setPreview(r);
+    } catch(e) { setPreview(null); }
+  }, [amount, debtor, cur]);
+
+  const addSlips = async (files) => {
+    setBusy(true);
+    const arr = Array.from(files || []);
+    const compressed = [];
+    for (const f of arr) {
+      if (!f.type.startsWith('image/')) continue;
+      const d = await compressSlipImage(f);
+      if (d) compressed.push(d);
+    }
+    setSlips((prev) => [...prev, ...compressed]);
+    setBusy(false);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const loanName = (id) => {
+    const l = (debtor.loans || []).find((x) => x.id === id);
+    if (!l) return '-';
+    const km = { interest:'ดอกเบี้ย', amortized:'ลดต้นลดดอก', installment:'ผ่อนตัดต้น' };
+    return `${km[loanType(l)] || ''} ${fmtMoney(l.principal)}บ.`;
+  };
+
+  const submit = () => {
+    const amt = parseFloat(amount);
+    if (!amt || amt <= 0) return;
+    onSubmit(amt, slips, payDate);
+  };
+
+  return (
+    <Modal open={true} onClose={onClose} title="รับชำระรวม + แนบสลิป">
+      <div className="space-y-3">
+        <div className="bg-cyan-50 rounded-xl p-3 text-sm">
+          <div className="flex justify-between"><span className="text-slate-500">ยอดที่ต้องชำระทั้งหมด</span>
+            <span className="font-bold text-cyan-800">{fmtMoney(ds.dueNow)} บ.</span></div>
+          <div className="flex justify-between mt-1"><span className="text-slate-500">ค้างเก่า</span>
+            <span className="font-medium text-red-600">{fmtMoney(ds.outstanding)} บ.</span></div>
+        </div>
+
+        <div>
+          <label className={labelCls}>จำนวนเงินที่รับชำระ (บาท)</label>
+          <input className={inputCls} value={amount} inputMode="decimal"
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g,''))} placeholder="0.00" />
+        </div>
+        <div>
+          <label className={labelCls}>วันที่ชำระ</label>
+          <input type="date" className={inputCls} value={payDate} onChange={(e) => setPayDate(e.target.value)} />
+        </div>
+
+        {/* preview การกระจายเงิน */}
+        {preview && (
+          <div className="bg-stone-50 rounded-xl p-3 text-sm space-y-1.5">
+            <div className="font-semibold text-slate-600 text-xs mb-1">ระบบจะตัดยอดดังนี้:</div>
+            {preview.allocations.map((a) => {
+              const ents = Object.entries(a.add);
+              if (!ents.length) return null;
+              return (
+                <div key={a.loanId} className="text-xs">
+                  <span className="text-slate-700 font-medium">{loanName(a.loanId)}</span>
+                  {ents.map(([ym, amt]) => (
+                    <div key={ym} className="flex justify-between pl-3 text-slate-500">
+                      <span>{ym}</span><span className="text-cyan-700">{fmtMoney(amt)} บ.</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+            {Object.keys(preview.prinCuts).length > 0 && (
+              <div className="text-xs text-violet-700 border-t border-stone-200 pt-1.5 mt-1.5">
+                💡 ส่วนเกินตัดเงินต้น: {Object.entries(preview.prinCuts).map(([li,amt]) =>
+                  `${loanName(preview.allocations[li].loanId)} ${fmtMoney(amt)}บ.`).join(', ')}
+              </div>
+            )}
+            {preview.leftover > 0.005 && (
+              <div className="text-xs text-amber-600 border-t border-stone-200 pt-1.5 mt-1.5">
+                ⚠️ เหลือ {fmtMoney(preview.leftover)} บ. (เกินยอดค้าง + ตัดต้นได้สูงสุดแล้ว)
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* แนบสลิป */}
+        <div>
+          <label className={labelCls}>สลิปโอนเงิน (แนบได้หลายรูป)</label>
+          <button onClick={() => fileRef.current?.click()} disabled={busy}
+            className="w-full border-2 border-dashed border-cyan-300 rounded-xl py-4 text-cyan-600 font-medium flex flex-col items-center gap-1 hover:bg-cyan-50 transition text-sm disabled:opacity-60">
+            <ImageIcon size={22} />
+            {busy ? 'กำลังบีบอัด...' : 'แตะเพื่อแนบรูปสลิป'}
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={(e) => addSlips(e.target.files)} />
+          {slips.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {slips.map((s, i) => (
+                <div key={i} className="relative">
+                  <img src={s} className="w-full h-16 object-cover rounded-lg border border-stone-200" />
+                  <button onClick={() => setSlips(slips.filter((_, j) => j !== i))}
+                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2 mt-4">
+        <PrimaryBtn className="flex-1 py-3" onClick={submit} disabled={!parseFloat(amount) || busy}>
+          <CheckCircle2 size={17} /> บันทึกรับชำระ
+        </PrimaryBtn>
+        <GhostBtn onClick={onClose} className="py-3 px-4">ยกเลิก</GhostBtn>
+      </div>
+    </Modal>
+  );
 }
 
 function ShareModal({ debtor, onClose }) {
@@ -2619,128 +2858,106 @@ function CalcView({ initName = '' }) {
     if (!schedule) return null;
     const rLabel = rateType === 'year' ? `${rate}%/ปี` : `${rate}%/เดือน`;
     const scale = 2;
-    const W = 760;
-    const PAD = 24;
-    const ROW_H = 38;
-    const COLS = [44, 96, 110, 110, 110, 110];   // width ของแต่ละคอลัมน์
-    const HEADER_H = borrower ? 150 : 120;
-    const SUMMARY_H = 120;
-    const TBL_HDR_H = 42;
-    const FOOTER_H = 48;
-    const totalH = HEADER_H + SUMMARY_H + TBL_HDR_H + (schedule.rows.length + 1) * ROW_H + FOOTER_H + 32;
+    const F = 1.7;            // ตัวคูณขนาดตัวหนังสือ XXXL
+    const S = 1.5;            // ตัวคูณระยะ/ขนาดกล่อง
+    const W = 920;
+    const PAD = 36;
+    const ROW_H = 60;
+    const COLS = [60, 150, 170, 170, 170, 170];
+    const HEADER_H = borrower ? 230 : 190;
+    const SUMMARY_H = 170;
+    const TBL_HDR_H = 62;
+    const FOOTER_H = 72;
+    const totalH = HEADER_H + SUMMARY_H + TBL_HDR_H + (schedule.rows.length + 1) * ROW_H + FOOTER_H + 48;
 
     const canvas = document.createElement('canvas');
-    canvas.width = W * scale;
-    canvas.height = totalH * scale;
+    canvas.width = W * scale; canvas.height = totalH * scale;
     const ctx = canvas.getContext('2d');
     ctx.scale(scale, scale);
 
-    /* helpers */
     const rr = (x, y, w, h, r) => {
       ctx.beginPath();
-      ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y);
-      ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+      ctx.moveTo(x+r, y); ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
       ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
       ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
-      ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
-      ctx.closePath();
+      ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y); ctx.closePath();
     };
     const txt = (text, x, y, align='left', color='#0f172a', size=13, weight='400') => {
       ctx.font = `${weight} ${size}px Sarabun,Thonburi,sans-serif`;
-      ctx.fillStyle = color; ctx.textAlign = align;
-      ctx.fillText(String(text), x, y);
+      ctx.fillStyle = color; ctx.textAlign = align; ctx.fillText(String(text), x, y);
     };
-    const colX = (i) => {
-      let x = PAD;
-      for (let j = 0; j < i; j++) x += COLS[j];
-      return x;
-    };
+    const colX = (i) => { let x = PAD; for (let j = 0; j < i; j++) x += COLS[j]; return x; };
 
-    /* ---- พื้นหลัง ---- */
-    ctx.fillStyle = '#f0f9ff';
-    ctx.fillRect(0, 0, W, totalH);
+    ctx.fillStyle = '#f0f9ff'; ctx.fillRect(0, 0, W, totalH);
 
-    /* ---- Header gradient ---- */
     const grd = ctx.createLinearGradient(0, 0, W, HEADER_H);
     grd.addColorStop(0, '#164e63'); grd.addColorStop(1, '#0e7490');
-    rr(PAD/2, PAD/2, W-PAD, HEADER_H-8, 16);
-    ctx.fillStyle = grd; ctx.fill();
+    rr(PAD/2, PAD/2, W-PAD, HEADER_H-12, 18); ctx.fillStyle = grd; ctx.fill();
 
-    let hy = PAD + 28;
-    txt('FinNote', PAD+16, hy, 'left', 'rgba(255,255,255,0.6)', 13, '500');
-    hy += 28;
-    txt('ตารางผ่อนชำระ', PAD+16, hy, 'left', 'white', 22, '700');
-    hy += 24;
-    txt(`เงินต้น ${fmtMoney(schedule.P)} บ.  |  ดอก ${rLabel}  |  ${schedule.n} งวด`, PAD+16, hy, 'left', 'rgba(255,255,255,0.8)', 12);
+    let hy = PAD + 40;
+    txt('FinNote', PAD+22, hy, 'left', 'rgba(255,255,255,0.6)', 13*F, '500'); hy += 44;
+    txt('ตารางผ่อนชำระ', PAD+22, hy, 'left', 'white', 22*F, '700'); hy += 38;
+    txt(`เงินต้น ${fmtMoney(schedule.P)} บ.  |  ดอก ${rLabel}  |  ${schedule.n} งวด`, PAD+22, hy, 'left', 'rgba(255,255,255,0.8)', 12*F);
     if (borrower) {
-      hy += 22;
+      hy += 36;
       ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      rr(PAD+12, hy-16, 200, 26, 8); ctx.fill();
-      txt(`👤 ${borrower}`, PAD+20, hy+4, 'left', 'white', 13, '600');
+      rr(PAD+18, hy-24, 340, 42, 10); ctx.fill();
+      txt(`👤 ${borrower}`, PAD+30, hy+4, 'left', 'white', 13*F, '600');
     }
 
-    /* ---- Summary row ---- */
-    let sy = HEADER_H + 12;
+    let sy = HEADER_H + 16;
     const sumItems = [
       { label:'ผ่อน/เดือน', value:fmtMoney(schedule.pmt)+' บ.', color:'#0e7490' },
       { label:'จำนวนงวด', value:`${schedule.n} เดือน`, color:'#0f172a' },
       { label:'ดอกเบี้ยรวม', value:fmtMoney(schedule.totalInt)+' บ.', color:'#dc2626' },
       { label:'รวมทั้งหมด', value:fmtMoney(schedule.total)+' บ.', color:'#d97706' },
     ];
-    const SW = (W - PAD*2 - 12) / 4;
+    const SW = (W - PAD*2 - 18) / 4;
     sumItems.forEach((s, i) => {
-      const sx = PAD + i*(SW+4);
-      rr(sx, sy, SW, 52, 10);
-      ctx.fillStyle = 'white'; ctx.fill();
+      const sx = PAD + i*(SW+6);
+      rr(sx, sy, SW, 78, 12); ctx.fillStyle = 'white'; ctx.fill();
       ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 1; ctx.stroke();
-      txt(s.label, sx+SW/2, sy+16, 'center', '#64748b', 10);
-      txt(s.value, sx+SW/2, sy+38, 'center', s.color, 12, '700');
+      txt(s.label, sx+SW/2, sy+26, 'center', '#64748b', 10*F);
+      txt(s.value, sx+SW/2, sy+60, 'center', s.color, 12*F, '700');
     });
 
-    /* ---- Table Header ---- */
-    let ty = HEADER_H + SUMMARY_H + 4;
+    let ty = HEADER_H + SUMMARY_H + 6;
     const headers = ['งวด','เดือน','ผ่อน','ดอกเบี้ย','ตัดต้น','คงเหลือ'];
     const aligns = ['center','left','right','right','right','right'];
     const grd2 = ctx.createLinearGradient(0, ty, 0, ty+TBL_HDR_H);
     grd2.addColorStop(0, '#155e75'); grd2.addColorStop(1, '#0e7490');
-    rr(PAD/2, ty, W-PAD, TBL_HDR_H, 10); ctx.fillStyle=grd2; ctx.fill();
+    rr(PAD/2, ty, W-PAD, TBL_HDR_H, 12); ctx.fillStyle=grd2; ctx.fill();
     headers.forEach((h, i) => {
-      const cx = i===0 ? colX(0)+COLS[0]/2 : colX(i)+(i<2?4:COLS[i]-4);
-      txt(h, cx, ty+27, aligns[i], 'white', 12, '600');
+      const cx = i===0 ? colX(0)+COLS[0]/2 : colX(i)+(i<2?6:COLS[i]-6);
+      txt(h, cx, ty+TBL_HDR_H/2+7, aligns[i], 'white', 12*F, '600');
     });
 
-    /* ---- Table Rows ---- */
     let ry = ty + TBL_HDR_H;
     schedule.rows.forEach((row, idx) => {
       ctx.fillStyle = idx%2===0 ? 'white' : '#f8fafc';
       ctx.fillRect(PAD/2, ry, W-PAD, ROW_H);
       ctx.strokeStyle='#f1f5f9'; ctx.lineWidth=0.5;
       ctx.beginPath(); ctx.moveTo(PAD/2,ry+ROW_H); ctx.lineTo(W-PAD/2,ry+ROW_H); ctx.stroke();
-
-      const mid = ry+ROW_H/2+5;
-      txt(String(row.no), colX(0)+COLS[0]/2, mid, 'center', '#64748b', 12, '600');
-      txt(ymLabel(row.ym), colX(1)+4, mid, 'left', '#475569', 12);
-      txt(fmtMoney(row.pmt), colX(2)+COLS[2]-4, mid, 'right', '#0f172a', 12, '600');
-      txt(fmtMoney(row.int), colX(3)+COLS[3]-4, mid, 'right', '#dc2626', 12);
-      txt(fmtMoney(row.prin), colX(4)+COLS[4]-4, mid, 'right', '#059669', 12);
-      txt(fmtMoney(row.bal), colX(5)+COLS[5]-4, mid, 'right', '#0e7490', 12, '500');
+      const mid = ry+ROW_H/2+7;
+      txt(String(row.no), colX(0)+COLS[0]/2, mid, 'center', '#64748b', 12*F, '600');
+      txt(ymLabel(row.ym), colX(1)+6, mid, 'left', '#475569', 12*F);
+      txt(fmtMoney(row.pmt), colX(2)+COLS[2]-6, mid, 'right', '#0f172a', 12*F, '600');
+      txt(fmtMoney(row.int), colX(3)+COLS[3]-6, mid, 'right', '#dc2626', 12*F);
+      txt(fmtMoney(row.prin), colX(4)+COLS[4]-6, mid, 'right', '#059669', 12*F);
+      txt(fmtMoney(row.bal), colX(5)+COLS[5]-6, mid, 'right', '#0e7490', 12*F, '500');
       ry += ROW_H;
     });
 
-    /* ---- Total Row ---- */
-    ctx.fillStyle = '#e0f2fe';
-    ctx.fillRect(PAD/2, ry, W-PAD, ROW_H);
-    const mid2 = ry+ROW_H/2+5;
-    txt('รวม', colX(0)+COLS[0]/2, mid2, 'center', '#0f172a', 12, '700');
-    txt(fmtMoney(schedule.total), colX(2)+COLS[2]-4, mid2, 'right', '#0f172a', 12, '700');
-    txt(fmtMoney(schedule.totalInt), colX(3)+COLS[3]-4, mid2, 'right', '#dc2626', 12, '700');
-    txt(fmtMoney(schedule.P), colX(4)+COLS[4]-4, mid2, 'right', '#059669', 12, '700');
-    txt('0.00', colX(5)+COLS[5]-4, mid2, 'right', '#0e7490', 12, '700');
+    ctx.fillStyle = '#e0f2fe'; ctx.fillRect(PAD/2, ry, W-PAD, ROW_H);
+    const mid2 = ry+ROW_H/2+7;
+    txt('รวม', colX(0)+COLS[0]/2, mid2, 'center', '#0f172a', 12*F, '700');
+    txt(fmtMoney(schedule.total), colX(2)+COLS[2]-6, mid2, 'right', '#0f172a', 12*F, '700');
+    txt(fmtMoney(schedule.totalInt), colX(3)+COLS[3]-6, mid2, 'right', '#dc2626', 12*F, '700');
+    txt(fmtMoney(schedule.P), colX(4)+COLS[4]-6, mid2, 'right', '#059669', 12*F, '700');
+    txt('0.00', colX(5)+COLS[5]-6, mid2, 'right', '#0e7490', 12*F, '700');
     ry += ROW_H;
 
-    /* ---- Footer ---- */
-    txt('สร้างโดย FinNote', W/2, ry+28, 'center', '#94a3b8', 11);
-
+    txt('สร้างโดย FinNote', W/2, ry+44, 'center', '#94a3b8', 11*F);
     return canvas;
   };
 
@@ -2961,6 +3178,7 @@ function App() {
   const [selectedId, setSelectedId] = useState(null);
   const [warn, setWarn] = useState(false);
   const [calcInitName, setCalcInitName] = useState('');
+  const [bulkPayDebtor, setBulkPayDebtor] = useState(null);
   const [secLeft, setSecLeft] = useState(60);
   const [encOK, setEncOK] = useState(true);
 
@@ -3417,6 +3635,7 @@ function App() {
               onRecord={(loanId, month) => setPaymentForm({ debtorId: selectedDebtor.id, loanId, month })}
               onUndo={(loanId, month) => undoPayment(selectedDebtor.id, loanId, month)}
               onShare={(d) => setShareDebtor(d)}
+              onBulkPay={(d) => setBulkPayDebtor(d)}
             />
           )}
           {view === 'debtor' && !selectedDebtor && (
@@ -3473,6 +3692,17 @@ function App() {
           return l ? <PaymentForm loan={l} month={paymentForm.month} onSave={savePayment} /> : null;
         })()}
       </Modal>
+
+      {bulkPayDebtor && (
+        <BulkPaymentModal
+          debtor={bulkPayDebtor}
+          onClose={() => setBulkPayDebtor(null)}
+          onSubmit={(amt, slips, payDate) => {
+            updateDebtor(bulkPayDebtor.id, (d) => applyBulkPayment(d, curYM(), amt, slips, payDate));
+            setBulkPayDebtor(null);
+          }}
+        />
+      )}
 
       {shareDebtor && <ShareModal debtor={shareDebtor} onClose={() => setShareDebtor(null)} />}
 
