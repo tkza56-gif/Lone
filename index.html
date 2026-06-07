@@ -537,47 +537,6 @@ function loanStats(loan, cur) {
   };
 }
 /* รวมสถานะของลูกหนี้ทั้งคน */
-/* ===== บีบอัดรูปสลิป (กัน localStorage เต็ม) ===== */
-function compressSlipImage(file) {
-  return new Promise((resolve) => {
-    let settled = false;
-    const done = (val) => { if (!settled) { settled = true; resolve(val); } };
-    // กันค้าง: ถ้าเกิน 15 วินาทียังไม่เสร็จ คืน null
-    const timer = setTimeout(() => done(null), 15000);
-
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      try {
-        const maxDim = 1000;                       // จำกัดด้านยาวสุด 1000px
-        let { width, height } = img;
-        const longSide = Math.max(width, height);
-        if (longSide > maxDim) {
-          const ratio = maxDim / longSide;
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';                 // พื้นขาว กัน PNG โปร่งใสเป็นดำ
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
-        URL.revokeObjectURL(url);
-        clearTimeout(timer);
-        done(dataUrl);
-      } catch (e) {
-        URL.revokeObjectURL(url);
-        clearTimeout(timer);
-        done(null);
-      }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); clearTimeout(timer); done(null); };
-    img.src = url;
-  });
-}
-
 /* ===== กระจายเงินรับชำระรวม =====
    1) ตัดยอดค้างเก่าสุด → ใหม่ → เดือนปัจจุบัน (ทุกก้อน)
    2) เงินส่วนเกิน → ตัดต้นเฉพาะก้อนชนิด interest
@@ -625,7 +584,7 @@ function distributeBulkPayment(loans, cur, totalPaid) {
 }
 
 /* ใช้ผลลัพธ์จาก distributeBulkPayment ไปอัปเดต debtor (ไม่ทำลายข้อมูลเดิม) */
-function applyBulkPayment(debtor, cur, totalPaid, slips, payDate) {
+function applyBulkPayment(debtor, cur, totalPaid, payDate) {
   const result = distributeBulkPayment(debtor.loans || [], cur, totalPaid);
   const bulkId = uid();
   const newLoans = (debtor.loans || []).map((loan, li) => {
@@ -634,11 +593,9 @@ function applyBulkPayment(debtor, cur, totalPaid, slips, payDate) {
     // รวมเงินที่กระจายเข้าแต่ละเดือน
     Object.keys(alloc.add).forEach((ym) => {
       const prev = updated.payments[ym] ? (Number(updated.payments[ym].amount) || 0) : 0;
-      const prevSlips = (updated.payments[ym] && updated.payments[ym].slips) || [];
       updated.payments[ym] = {
         amount: round2(prev + alloc.add[ym]),
         date: payDate || `${ym}-25`,
-        slips: prevSlips,
         bulkId,
       };
     });
@@ -655,7 +612,6 @@ function applyBulkPayment(debtor, cur, totalPaid, slips, payDate) {
     total: round2(totalPaid), cur,
     allocations: result.allocations.map((a) => ({ loanId: a.loanId, add: a.add })),
     prinCuts: result.prinCuts, leftover: result.leftover,
-    slips: slips || [],
     createdAt: Date.now(),
   };
   const bulkPayments = [...(debtor.bulkPayments || []), bulkRecord];
@@ -1362,7 +1318,7 @@ function DebtorDetailView({ debtor, onBack, onEdit, onDelete, onAddLoan, onEditL
       {/* ปุ่มรับชำระรวม + แชร์ */}
       <div className="px-4 mt-3 space-y-2">
         <PrimaryBtn onClick={() => onBulkPay(debtor)} className="w-full py-3">
-          <Banknote size={18} /> รับชำระรวม + แนบสลิป
+          <Banknote size={18} /> รับชำระรวม
         </PrimaryBtn>
         <GhostBtn onClick={() => onShare(debtor)} className="w-full py-3">
           <Share2 size={18} /> แชร์สรุปยอดผ่านไลน์
@@ -2555,10 +2511,7 @@ function BulkPaymentModal({ debtor, onClose, onSubmit }) {
   const ds = debtorStats(debtor, cur);
   const [amount, setAmount] = useState(String(ds.dueNow || ''));
   const [payDate, setPayDate] = useState(new Date().toISOString().slice(0,10));
-  const [slips, setSlips] = useState([]);
-  const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState(null);
-  const fileRef = useRef(null);
 
   // คำนวณ preview การกระจายเงินแบบ real-time
   useEffect(() => {
@@ -2570,21 +2523,6 @@ function BulkPaymentModal({ debtor, onClose, onSubmit }) {
     } catch(e) { setPreview(null); }
   }, [amount, debtor, cur]);
 
-  const addSlips = async (files) => {
-    const arr = Array.from(files || []).filter((f) => f.type.startsWith('image/'));
-    if (fileRef.current) fileRef.current.value = '';   // เคลียร์ทันที กันค้าง
-    if (!arr.length) return;
-    setBusy(true);
-    // ประมวลผลทีละรูป + แสดงผลทันทีที่เสร็จแต่ละรูป
-    for (const f of arr) {
-      const d = await compressSlipImage(f);
-      if (d) setSlips((prev) => [...prev, d]);
-      // ปล่อยให้ UI วาดก่อนทำรูปถัดไป
-      await new Promise((r) => setTimeout(r, 30));
-    }
-    setBusy(false);
-  };
-
   const loanName = (id) => {
     const l = (debtor.loans || []).find((x) => x.id === id);
     if (!l) return '-';
@@ -2595,11 +2533,11 @@ function BulkPaymentModal({ debtor, onClose, onSubmit }) {
   const submit = () => {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) return;
-    onSubmit(amt, slips, payDate);
+    onSubmit(amt, payDate);
   };
 
   return (
-    <Modal open={true} onClose={onClose} title="รับชำระรวม + แนบสลิป">
+    <Modal open={true} onClose={onClose} title="รับชำระรวม">
       <div className="space-y-3">
         <div className="bg-cyan-50 rounded-xl p-3 text-sm">
           <div className="flex justify-between"><span className="text-slate-500">ยอดที่ต้องชำระทั้งหมด</span>
@@ -2649,33 +2587,10 @@ function BulkPaymentModal({ debtor, onClose, onSubmit }) {
             )}
           </div>
         )}
-
-        {/* แนบสลิป */}
-        <div>
-          <label className={labelCls}>สลิปโอนเงิน (แนบได้หลายรูป)</label>
-          <button onClick={() => fileRef.current?.click()} disabled={busy}
-            className="w-full border-2 border-dashed border-cyan-300 rounded-xl py-4 text-cyan-600 font-medium flex flex-col items-center gap-1 hover:bg-cyan-50 transition text-sm disabled:opacity-60">
-            <ImageIcon size={22} />
-            {busy ? 'กำลังบีบอัด...' : 'แตะเพื่อแนบรูปสลิป'}
-          </button>
-          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
-            onChange={(e) => addSlips(e.target.files)} />
-          {slips.length > 0 && (
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {slips.map((s, i) => (
-                <div key={i} className="relative">
-                  <img src={s} className="w-full h-16 object-cover rounded-lg border border-stone-200" />
-                  <button onClick={() => setSlips(slips.filter((_, j) => j !== i))}
-                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow">×</button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="flex gap-2 mt-4">
-        <PrimaryBtn className="flex-1 py-3" onClick={submit} disabled={!parseFloat(amount) || busy}>
+        <PrimaryBtn className="flex-1 py-3" onClick={submit} disabled={!parseFloat(amount)}>
           <CheckCircle2 size={17} /> บันทึกรับชำระ
         </PrimaryBtn>
         <GhostBtn onClick={onClose} className="py-3 px-4">ยกเลิก</GhostBtn>
@@ -3716,8 +3631,8 @@ function App() {
         <BulkPaymentModal
           debtor={bulkPayDebtor}
           onClose={() => setBulkPayDebtor(null)}
-          onSubmit={(amt, slips, payDate) => {
-            updateDebtor(bulkPayDebtor.id, (d) => applyBulkPayment(d, curYM(), amt, slips, payDate));
+          onSubmit={(amt, payDate) => {
+            updateDebtor(bulkPayDebtor.id, (d) => applyBulkPayment(d, curYM(), amt, payDate));
             setBulkPayDebtor(null);
           }}
         />
