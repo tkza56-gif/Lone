@@ -11,6 +11,9 @@
 <meta name="apple-mobile-web-app-title" content="FinNote">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -119,15 +122,86 @@
     *, button { transition: none !important; animation: none !important; }
   }
 
+  /* ===== Dashboard iOS Wallet (navy) ===== */
+  .wallet-hero {
+    border-radius: 22px; padding: 22px; margin-bottom: 14px;
+    background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 60%, #2b6cb0 100%);
+    box-shadow: 0 16px 32px -14px rgba(30,58,95,0.55), 0 4px 12px rgba(0,0,0,0.18);
+    position: relative; overflow: hidden; color: #fff;
+  }
+  .wallet-hero::before { content:''; position:absolute; top:-40%; right:-15%;
+    width:200px; height:200px; border-radius:50%; background:rgba(255,255,255,0.08); }
+  .wallet-hero-label { font-size: 14px; opacity: 0.85; position: relative; z-index: 1; }
+  .wallet-hero-amount { font-size: 40px; font-weight: 800; letter-spacing: -0.03em;
+    margin: 4px 0 8px; position: relative; z-index: 1; }
+  .wallet-hero-pill { display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(255,255,255,0.2); padding: 5px 13px; border-radius: 100px;
+    font-size: 14px; font-weight: 600; position: relative; z-index: 1; }
+  .wallet-hero-row { display: flex; gap: 14px; margin-top: 18px; padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.2); position: relative; z-index: 1; }
+  .wallet-hero-row > div { flex: 1; }
+  .wallet-hero-k { font-size: 12px; opacity: 0.75; }
+  .wallet-hero-v { font-size: 18px; font-weight: 700; margin-top: 2px; }
+
+  .wallet-tile { background: #fff; border-radius: 16px; padding: 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03); }
+  .wallet-tile-k { font-size: 13px; color: #8e8e93; }
+  .wallet-tile-v { font-size: 23px; font-weight: 700; margin-top: 4px;
+    letter-spacing: -0.01em; color: #1c1c1e; }
+
+  .wallet-sec { font-size: 15px; font-weight: 600; margin: 6px 4px 10px; color: #6b7280; }
+
+  .wallet-panel { background: #fff; border-radius: 18px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.03); }
+
+  .wallet-seg { display: flex; background: #e9e9ec; border-radius: 9px; padding: 2px; margin-bottom: 16px; }
+  .wallet-seg button { flex: 1; padding: 7px; border: none; background: transparent;
+    border-radius: 7px; color: #6b7280; font-family: inherit; font-size: 13px;
+    font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .wallet-seg button.on { background: #fff; color: #1e3a5f;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+  .wallet-chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+  .wallet-bcol { flex: 1; display: flex; flex-direction: column; align-items: center;
+    gap: 6px; height: 100%; justify-content: flex-end; }
+  .wallet-bar { width: 100%; background: linear-gradient(to top, #2c5282, #4299e1);
+    border-radius: 5px 5px 0 0; min-height: 3px; transition: height 0.3s; }
+  .wallet-bar.cur { background: linear-gradient(to top, #d97706, #fbbf24); }
+  .wallet-bv { font-size: 9px; color: #b0b0b5; height: 12px; }
+  .wallet-bl { font-size: 10px; color: #8e8e93; }
+
+  .wallet-row { display: flex; align-items: center; gap: 12px; padding: 13px 0;
+    width: 100%; background: transparent; border: none; cursor: pointer; }
+  .wallet-row-icon { width: 40px; height: 40px; border-radius: 12px; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0; font-size: 17px; }
+  .wallet-row-icon.red { background: rgba(255,69,58,0.12); }
+  .wallet-row-icon.amber { background: rgba(255,159,10,0.12); }
+  .wallet-row-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+    font-size: 16px; color: #fff; background: linear-gradient(135deg, #2c5282, #4299e1); }
+  .wallet-row-name { font-weight: 600; font-size: 16px; color: #1c1c1e; }
+  .wallet-row-meta { font-size: 13px; color: #8e8e93; margin-top: 1px; }
+  .wallet-row-amt { font-weight: 700; font-size: 16px; color: #1e3a5f; }
+  .wallet-row-badge { font-size: 13px; font-weight: 700; padding: 4px 11px;
+    border-radius: 100px; flex-shrink: 0; }
+  .wallet-row-badge.red { background: rgba(255,69,58,0.12); color: #dc2626; }
+  .wallet-row-badge.amber { background: rgba(255,159,10,0.12); color: #d97706; }
+
+  /* ฟอนต์ IBM Plex Sans Thai ทั้งแอป + ตัวเลข IBM Plex Sans */
+  html, body {
+    font-family: 'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont,
+                 'Thonburi', 'Sarabun', sans-serif !important;
+  }
+  .tabular-nums { font-family: 'IBM Plex Sans', 'IBM Plex Sans Thai', sans-serif;
+    font-variant-numeric: tabular-nums; }
   #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
     background:#0e7490;color:rgba(255,255,255,0.85);
-    font-family:-apple-system,BlinkMacSystemFont,'Thonburi','Sarabun',sans-serif;font-size:15px;}
+    font-family:'IBM Plex Sans Thai',-apple-system,'Thonburi',sans-serif;font-size:15px;}
 </style>
 </head>
 <body>
 <div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
 <script>
-/* JSX แปลงเป็น JS ล่วงหน้าแล้ว — ไม่ต้องใช้ Babel โหลดเร็วทันที */
 (function() {
   function start() {
     if (!window.React || !window.ReactDOM) { setTimeout(start, 50); return; }
@@ -1170,10 +1244,8 @@ function LoginScreen({
     size: 30,
     className: "text-cyan-200"
   })), React.createElement("h1", {
-    className: "text-2xl font-bold text-white"
-  }, "FinNote"), React.createElement("p", {
-    className: "text-cyan-200/80 text-sm mt-1"
-  }, "เข้าสู่ระบบเพื่อจัดการข้อมูลลูกหนี้")), React.createElement("div", {
+    className: "text-5xl font-extrabold text-white tracking-tight"
+  }, "FinNote")), React.createElement("div", {
     className: "bg-white rounded-3xl shadow-2xl p-6"
   }, React.createElement("div", {
     className: "mb-4"
@@ -1445,148 +1517,328 @@ function StatCard({
     className: "text-xs text-slate-400 mt-0.5"
   }, sub));
 }
+function _interestSchedForCollect(loan, cur) {
+  const principal = Number(loan.principal) || 0,
+    rate = Number(loan.rate) || 0;
+  const prinCuts = loan.prinCuts || {};
+  const months = monthRange(loan.startMonth, cur);
+  const sm = {};
+  months.forEach(m => {
+    let eff = principal;
+    Object.keys(prinCuts).forEach(cm => {
+      if (cm < m) eff -= Number(prinCuts[cm]) || 0;
+    });
+    sm[m] = round2(Math.max(0, eff) * rate / 100);
+  });
+  return {
+    months,
+    scheduleMap: sm
+  };
+}
+function interestCollectedInMonth(loan, m) {
+  const t = loanType(loan);
+  const pay = loan.payments && loan.payments[m];
+  const paid = pay ? Number(pay.amount) || 0 : 0;
+  if (paid <= 0) return 0;
+  if (t === 'interest') {
+    const {
+      scheduleMap
+    } = _interestSchedForCollect(loan, m);
+    return round2(Math.min(paid, scheduleMap[m] || 0));
+  }
+  if (t === 'amortized') {
+    try {
+      const sch = buildAmortSchedule(Number(loan.principal) || 0, Number(loan.rate) || 0, Number(loan.payment) || 0, loan.startMonth);
+      const bd = sch.breakdownMap && sch.breakdownMap[m];
+      if (bd) return round2(Math.min(paid, bd.interest || 0));
+    } catch (e) {}
+    return 0;
+  }
+  return 0;
+}
+function portfolioStats(debtors, cur) {
+  let principalLent = 0,
+    interestThisMonth = 0,
+    interestCumulative = 0;
+  const monthlyInterest = {};
+  (debtors || []).forEach(d => {
+    (d.loans || []).forEach(loan => {
+      const t = loanType(loan);
+      const principal = Number(loan.principal) || 0;
+      const s = loanStats(loan, cur);
+      if (!s.complete) {
+        if (t === 'interest') {
+          const totalCut = Object.values(loan.prinCuts || {}).reduce((a, v) => a + (Number(v) || 0), 0);
+          principalLent += Math.max(0, principal - totalCut);
+        } else {
+          principalLent += s.remaining != null ? s.remaining : principal;
+        }
+      }
+      const months = monthRange(loan.startMonth, cur);
+      months.forEach(m => {
+        const ic = interestCollectedInMonth(loan, m);
+        if (ic > 0) {
+          interestCumulative += ic;
+          monthlyInterest[m] = round2((monthlyInterest[m] || 0) + ic);
+          if (m === cur) interestThisMonth += ic;
+        }
+      });
+    });
+  });
+  const yieldPct = principalLent > 0 ? round2(interestThisMonth / principalLent * 100) : 0;
+  return {
+    principalLent: round2(principalLent),
+    interestThisMonth: round2(interestThisMonth),
+    interestCumulative: round2(interestCumulative),
+    yieldPct,
+    monthlyInterest
+  };
+}
+function overdueDebtors(debtors, cur) {
+  const out = [];
+  (debtors || []).forEach(d => {
+    const s = debtorStats(d, cur);
+    let maxOverdue = 0;
+    (d.loans || []).forEach(loan => {
+      const ls = loanStats(loan, cur);
+      if (ls.overdueMonths && ls.overdueMonths > maxOverdue) maxOverdue = ls.overdueMonths;
+    });
+    if (s.outstanding > 0.005 && maxOverdue >= 1) {
+      out.push({
+        debtor: d,
+        months: maxOverdue,
+        amount: s.outstanding
+      });
+    }
+  });
+  out.sort((a, b) => b.months - a.months || b.amount - a.amount);
+  return out;
+}
 function DashboardView({
   data,
   onOpenDebtor
 }) {
   const cur = curYM();
+  const [range, setRange] = useState('month');
+  const pf = useMemo(() => portfolioStats(data.debtors || [], cur), [data, cur]);
+  const overdue = useMemo(() => overdueDebtors(data.debtors || [], cur), [data, cur]);
   const agg = useMemo(() => {
-    let principal = 0,
-      collected = 0,
-      outstanding = 0,
-      thisMonth = 0;
+    let outstanding = 0,
+      debtorCount = 0,
+      loanCount = 0,
+      dueThisMonth = 0,
+      paidThisMonth = 0;
     const dueList = [];
     (data.debtors || []).forEach(d => {
       const s = debtorStats(d, cur);
-      principal += s.totalPrincipal;
-      collected += s.paidTotal;
       outstanding += s.outstanding;
-      thisMonth += s.thisMonthDue;
+      debtorCount += 1;
+      loanCount += (d.loans || []).length;
+      dueThisMonth += s.thisMonthDue;
       if (s.dueNow > 0) dueList.push({
         debtor: d,
         s
       });
     });
     dueList.sort((a, b) => b.s.dueNow - a.s.dueNow);
+    let billed = 0,
+      collected = 0;
+    (data.debtors || []).forEach(d => {
+      (d.loans || []).forEach(loan => {
+        const ls = loanStats(loan, cur);
+        billed += ls.thisMonthBill || 0;
+        collected += ls.thisMonthPaidAmt || 0;
+      });
+    });
+    const collectRate = billed > 0 ? Math.round(collected / billed * 100) : 100;
     return {
-      principal,
-      collected,
       outstanding,
-      thisMonth,
-      dueList
+      debtorCount,
+      loanCount,
+      dueThisMonth,
+      dueList,
+      collectRate
     };
   }, [data, cur]);
-  const nextDate = nextNotifyDate();
-  const collecting = isCollectionPeriod();
+  const chartData = useMemo(() => {
+    const mi = pf.monthlyInterest || {};
+    if (range === 'month') {
+      const arr = [];
+      let [y, m] = cur.split('-').map(Number);
+      for (let i = 0; i < 12; i++) {
+        const key = `${y}-${String(m).padStart(2, '0')}`;
+        arr.unshift({
+          key,
+          label: THAI_MON[m - 1],
+          value: mi[key] || 0
+        });
+        m -= 1;
+        if (m < 1) {
+          m = 12;
+          y -= 1;
+        }
+      }
+      return arr;
+    }
+    const byYear = {};
+    Object.keys(mi).forEach(k => {
+      const yr = k.split('-')[0];
+      byYear[yr] = (byYear[yr] || 0) + mi[k];
+    });
+    return Object.keys(byYear).sort().map(yr => ({
+      key: yr,
+      label: String(+yr + 543),
+      value: round2(byYear[yr])
+    }));
+  }, [pf, range, cur]);
+  const maxVal = Math.max(1, ...chartData.map(d => d.value));
+  const curUser = (data.users || [])[0];
+  const avatarChar = (curUser && curUser.name ? curUser.name : 'F').charAt(0);
   return React.createElement("div", {
-    className: "px-4 pt-4 pb-28 space-y-4"
+    className: "dash-wallet px-4 pt-3 pb-28"
   }, React.createElement("div", {
-    className: `rounded-2xl p-4 border ${collecting && agg.dueList.length ? 'bg-amber-50 border-amber-200' : 'bg-cyan-50 border-cyan-200'}`
+    className: "flex items-center justify-between mb-4 mt-1"
+  }, React.createElement("div", null, React.createElement("h1", {
+    className: "text-3xl font-bold text-slate-900 tracking-tight"
+  }, "แดชบอร์ด"), React.createElement("div", {
+    className: "text-slate-400 text-sm"
+  }, ymLabelFull(cur)))), React.createElement("div", {
+    className: "wallet-hero"
   }, React.createElement("div", {
-    className: "flex items-start gap-3"
-  }, React.createElement("div", {
-    className: `inline-flex h-10 w-10 items-center justify-center rounded-xl shrink-0 ${collecting && agg.dueList.length ? 'bg-amber-100 text-amber-700' : 'bg-cyan-100 text-cyan-700'}`
-  }, React.createElement(Bell, {
-    size: 20
-  })), React.createElement("div", {
-    className: "min-w-0"
-  }, collecting && agg.dueList.length ? React.createElement(React.Fragment, null, React.createElement("div", {
-    className: "font-semibold text-amber-800"
-  }, "ถึงกำหนดเรียกเก็บแล้ว"), React.createElement("div", {
-    className: "text-sm text-amber-700 mt-0.5"
-  }, "มี ", agg.dueList.length, " รายที่ยังมียอดต้องเก็บ รวม ", fmtMoney(agg.dueList.reduce((t, x) => t + x.s.dueNow, 0)), " บาท")) : React.createElement(React.Fragment, null, React.createElement("div", {
-    className: "font-semibold text-cyan-800"
-  }, "รอบเรียกเก็บถัดไป"), React.createElement("div", {
-    className: "text-sm text-cyan-700 mt-0.5"
-  }, "วันที่ ", fmtThaiDate(nextDate), " — เลื่อนอัตโนมัติเมื่อตรงเสาร์/อาทิตย์"))))), React.createElement("div", {
-    className: "grid grid-cols-2 gap-3"
-  }, React.createElement(StatCard, {
-    tone: "blue",
-    icon: React.createElement(Users, {
-      size: 18
-    }),
-    label: "ลูกหนี้ทั้งหมด",
-    value: (data.debtors || []).length
-  }), React.createElement(StatCard, {
-    tone: "slate",
-    icon: React.createElement(Banknote, {
-      size: 18
-    }),
-    label: "เงินต้นที่ปล่อยกู้",
-    value: fmtMoney(agg.principal),
-    sub: "บาท"
-  }), React.createElement(StatCard, {
-    tone: "green",
-    icon: React.createElement(TrendingUp, {
-      size: 18
-    }),
-    label: "เก็บเข้ามาแล้ว",
-    value: fmtMoney(agg.collected),
-    sub: "บาท (สะสม)"
-  }), React.createElement(StatCard, {
-    tone: "amber",
-    icon: React.createElement(AlertTriangle, {
-      size: 18
-    }),
-    label: "ยอดค้างชำระ",
-    value: fmtMoney(agg.outstanding),
-    sub: "บาท"
-  })), React.createElement("div", {
-    className: "bg-white rounded-2xl border border-stone-200 p-4 shadow-sm"
-  }, React.createElement("div", {
-    className: "flex items-center justify-between"
+    className: "wallet-hero-label"
+  }, "ดอกเบี้ยที่เก็บได้เดือนนี้"), React.createElement("div", {
+    className: "wallet-hero-amount tabular-nums"
+  }, "฿", fmtMoney(pf.interestThisMonth)), React.createElement("div", {
+    className: "wallet-hero-pill"
+  }, "↑ ผลตอบแทน ", React.createElement("span", {
+    className: "tabular-nums"
+  }, pf.yieldPct), "%/เดือน"), React.createElement("div", {
+    className: "wallet-hero-row"
   }, React.createElement("div", null, React.createElement("div", {
-    className: "text-sm text-slate-500"
-  }, "ยอดที่กำลังจะถึงรอบนี้"), React.createElement("div", {
-    className: "text-2xl font-bold text-cyan-800 tabular-nums mt-0.5"
-  }, fmtMoney(agg.thisMonth), " บาท")), React.createElement(Calendar, {
-    size: 34,
-    className: "text-cyan-200"
-  })), React.createElement("div", {
-    className: "text-xs text-slate-400 mt-1"
-  }, "รอบเดือน ", ymLabelFull(cur))), React.createElement("div", null, React.createElement("div", {
-    className: "flex items-center gap-2 mb-2 px-1"
-  }, React.createElement(AlertTriangle, {
-    size: 16,
-    className: "text-amber-600"
-  }), React.createElement("h3", {
-    className: "font-semibold text-slate-700"
-  }, "รายการที่มียอดต้องเก็บ")), agg.dueList.length === 0 ? React.createElement("div", {
-    className: "bg-white rounded-2xl border border-stone-200 p-6 text-center text-slate-400 text-sm"
-  }, React.createElement(CheckCircle2, {
-    size: 28,
-    className: "mx-auto mb-2 text-cyan-300"
-  }), "ทุกคนชำระครบแล้ว 🎉") : React.createElement("div", {
-    className: "space-y-2"
-  }, agg.dueList.map(({
+    className: "wallet-hero-k"
+  }, "เงินต้นปล่อยรวม"), React.createElement("div", {
+    className: "wallet-hero-v tabular-nums"
+  }, "฿", fmtMoney(pf.principalLent))), React.createElement("div", null, React.createElement("div", {
+    className: "wallet-hero-k"
+  }, "กำไรสะสม"), React.createElement("div", {
+    className: "wallet-hero-v tabular-nums"
+  }, "฿", fmtMoney(pf.interestCumulative))))), React.createElement("div", {
+    className: "grid grid-cols-2 gap-2.5 mb-5"
+  }, React.createElement("div", {
+    className: "wallet-tile"
+  }, React.createElement("div", {
+    className: "wallet-tile-k"
+  }, "ลูกหนี้"), React.createElement("div", {
+    className: "wallet-tile-v tabular-nums"
+  }, agg.debtorCount, " คน")), React.createElement("div", {
+    className: "wallet-tile"
+  }, React.createElement("div", {
+    className: "wallet-tile-k"
+  }, "ก้อนเงินกู้"), React.createElement("div", {
+    className: "wallet-tile-v tabular-nums"
+  }, agg.loanCount)), React.createElement("div", {
+    className: "wallet-tile"
+  }, React.createElement("div", {
+    className: "wallet-tile-k"
+  }, "ค้างชำระรวม"), React.createElement("div", {
+    className: "wallet-tile-v tabular-nums",
+    style: {
+      color: '#dc2626'
+    }
+  }, "฿", fmtMoney(agg.outstanding))), React.createElement("div", {
+    className: "wallet-tile"
+  }, React.createElement("div", {
+    className: "wallet-tile-k"
+  }, "เก็บได้เดือนนี้"), React.createElement("div", {
+    className: "wallet-tile-v tabular-nums",
+    style: {
+      color: '#059669'
+    }
+  }, agg.collectRate, "%"))), React.createElement("div", {
+    className: "wallet-sec"
+  }, "รายงานดอกเบี้ยที่เก็บได้"), React.createElement("div", {
+    className: "wallet-panel mb-4"
+  }, React.createElement("div", {
+    className: "wallet-seg"
+  }, React.createElement("button", {
+    className: range === 'month' ? 'on' : '',
+    onClick: () => setRange('month')
+  }, "รายเดือน"), React.createElement("button", {
+    className: range === 'year' ? 'on' : '',
+    onClick: () => setRange('year')
+  }, "รายปี")), React.createElement("div", {
+    className: "wallet-chart"
+  }, chartData.map((d, i) => {
+    const h = Math.round(d.value / maxVal * 100);
+    const isCur = i === chartData.length - 1;
+    return React.createElement("div", {
+      key: d.key,
+      className: "wallet-bcol"
+    }, React.createElement("div", {
+      className: "wallet-bv tabular-nums"
+    }, d.value >= 1000 ? (d.value / 1000).toFixed(0) + 'k' : d.value > 0 ? d.value.toFixed(0) : ''), React.createElement("div", {
+      className: `wallet-bar ${isCur ? 'cur' : ''}`,
+      style: {
+        height: `${h}%`
+      }
+    }), React.createElement("div", {
+      className: "wallet-bl"
+    }, d.label));
+  }))), overdue.length > 0 && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "wallet-sec"
+  }, "ลูกหนี้ค้างชำระนาน"), React.createElement("div", {
+    className: "wallet-panel mb-4"
+  }, overdue.slice(0, 5).map((o, i) => {
+    const lvl = o.months >= 3 ? 'red' : 'amber';
+    return React.createElement("button", {
+      key: o.debtor.id,
+      onClick: () => onOpenDebtor(o.debtor.id),
+      className: "wallet-row",
+      style: {
+        borderBottom: i < Math.min(overdue.length, 5) - 1 ? '0.5px solid rgba(60,60,67,0.12)' : 'none'
+      }
+    }, React.createElement("div", {
+      className: `wallet-row-icon ${lvl}`
+    }, lvl === 'red' ? '🔴' : '🟠'), React.createElement("div", {
+      className: "flex-1 text-left"
+    }, React.createElement("div", {
+      className: "wallet-row-name"
+    }, o.debtor.name), React.createElement("div", {
+      className: "wallet-row-meta tabular-nums"
+    }, "ค้าง ", o.months, " เดือน · ฿", fmtMoney(o.amount))), React.createElement("div", {
+      className: `wallet-row-badge ${lvl}`
+    }, o.months, " เดือน"));
+  }))), agg.dueList.length > 0 && React.createElement(React.Fragment, null, React.createElement("div", {
+    className: "wallet-sec"
+  }, "รอชำระเดือนนี้"), React.createElement("div", {
+    className: "wallet-panel"
+  }, agg.dueList.slice(0, 6).map(({
     debtor,
     s
-  }) => React.createElement("button", {
+  }, i) => React.createElement("button", {
     key: debtor.id,
     onClick: () => onOpenDebtor(debtor.id),
-    className: "w-full bg-white rounded-2xl border border-stone-200 p-3.5 flex items-center gap-3 text-left hover:border-cyan-300 hover:shadow-sm transition"
+    className: "wallet-row",
+    style: {
+      borderBottom: i < Math.min(agg.dueList.length, 6) - 1 ? '0.5px solid rgba(60,60,67,0.12)' : 'none'
+    }
   }, React.createElement("div", {
-    className: "h-10 w-10 rounded-full bg-cyan-100 text-cyan-800 flex items-center justify-center font-semibold shrink-0"
-  }, debtor.name.charAt(0)), React.createElement("div", {
-    className: "min-w-0 flex-1"
+    className: "wallet-row-avatar"
+  }, (debtor.name || '?').charAt(0)), React.createElement("div", {
+    className: "flex-1 text-left"
   }, React.createElement("div", {
-    className: "font-medium text-slate-800 truncate"
+    className: "wallet-row-name"
   }, debtor.name), React.createElement("div", {
-    className: "flex gap-1.5 mt-1"
-  }, s.outstanding > 0 && React.createElement(Pill, {
-    tone: "red"
-  }, "ค้าง ", fmtMoney(s.outstanding)), s.thisMonthDue > 0 && React.createElement(Pill, {
-    tone: "amber"
-  }, "เดือนนี้ ", fmtMoney(s.thisMonthDue)))), React.createElement("div", {
+    className: "wallet-row-meta"
+  }, s.outstanding > 0 && React.createElement("span", {
+    style: {
+      color: '#dc2626'
+    }
+  }, "ค้าง ฿", fmtMoney(s.outstanding), " "))), React.createElement("div", {
     className: "text-right shrink-0"
   }, React.createElement("div", {
-    className: "font-bold text-slate-800 tabular-nums"
-  }, fmtMoney(s.dueNow)), React.createElement("div", {
-    className: "text-xs text-slate-400"
-  }, "บาท")), React.createElement(ChevronLeft, {
-    size: 18,
-    className: "text-slate-300 rotate-180"
-  }))))));
+    className: "wallet-row-amt tabular-nums"
+  }, "฿", fmtMoney(s.dueNow))))))));
 }
 function DebtorsView({
   data,
