@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FinNote</title>
 <meta name="theme-color" content="#0e7490">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,14 +16,120 @@
 <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
-  html,body{margin:0;padding:0;background:#f5f5f4;}#root{min-height:100vh;}
+  /* ===== iOS-style design layer (เพิ่มความสวย ไม่แตะ logic) ===== */
+  :root {
+    --ios-bg: #f2f2f7;           /* systemGroupedBackground */
+    --ios-card: #ffffff;
+    --ios-text: #1c1c1e;         /* label */
+    --ios-text2: #8e8e93;        /* secondaryLabel */
+    --ios-sep: rgba(60,60,67,0.12);
+    --ios-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.04);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--ios-bg);
+    /* ฟอนต์ระบบ iOS + ฟอนต์ไทยของ iOS (Thonburi) */
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+                 'Thonburi', 'Sarabun', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    color: var(--ios-text);
+  }
+
+  /* พื้นหลังหลักเป็นสีเทา iOS */
+  #root { min-height: 100vh; background: var(--ios-bg); }
+
+  /* การ์ด: เงานุ่มแบบ iOS + มุมโค้งต่อเนื่อง */
+  .rounded-2xl { border-radius: 18px !important; }
+  .rounded-xl  { border-radius: 13px !important; }
+
+  .bg-white.rounded-2xl.shadow-sm,
+  .bg-white.rounded-2xl.border,
+  .bg-white.rounded-xl.shadow-sm {
+    box-shadow: var(--ios-shadow) !important;
+    border-color: var(--ios-sep) !important;
+  }
+
+  /* ตัวหนังสือหัวข้อใหญ่: คมชัด ระยะตัวอักษรแบบ iOS */
+  h1, .text-2xl, .text-xl {
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  .text-lg { letter-spacing: -0.01em; }
+
+  /* ตัวเลขเงิน: ใช้ตัวเลขความกว้างเท่ากัน อ่านง่าย */
+  .tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+
+  /* input แบบ iOS: ช่องใหญ่ขึ้น แตะง่าย โฟกัสชัด */
+  input, select, textarea {
+    font-size: 16px !important;          /* กัน iOS zoom ตอนแตะ */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+  }
+
+  /* ปุ่มแตะแบบ iOS: หดเล็กน้อยตอนกด (active state) */
+  button { transition: transform 0.08s ease, opacity 0.15s ease; }
+  button:active { transform: scale(0.97); opacity: 0.85; }
+
+  /* การ์ด/แถวที่กดได้: feedback ตอนแตะ */
+  [class*="hover:bg-"]:active { transform: scale(0.99); }
+
+  /* เลื่อนแบบ momentum (iOS) */
+  .overflow-x-auto, .overflow-y-auto, .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* bottom nav: รองรับขอบจอ iPhone (safe area) + เบลอแบบ iOS */
+  .fixed.bottom-0 {
+    padding-bottom: var(--safe-bottom);
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-top: 0.5px solid var(--ios-sep) !important;
+  }
+
+  /* header gradient: เนียนขึ้น + ขอบล่างโค้ง iOS */
+  .bg-gradient-to-br.from-cyan-800,
+  .bg-gradient-to-br.from-cyan-900 {
+    box-shadow: 0 2px 12px rgba(14,116,144,0.18);
+  }
+
+  /* modal: เด้งขึ้นแบบ iOS sheet */
+  @keyframes iosSheet {
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  .fixed.inset-0 > div:not([class*="bg-black"]),
+  [role="dialog"] {
+    animation: iosSheet 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* เส้นคั่นบางแบบ iOS (hairline) */
+  .border-t, .border-b { border-width: 0.5px; }
+
+  /* respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, button { transition: none !important; animation: none !important; }
+  }
+
   #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
-    background:#0e7490;color:rgba(255,255,255,0.85);font-family:sans-serif;font-size:14px;}
+    background:#0e7490;color:rgba(255,255,255,0.85);
+    font-family:-apple-system,BlinkMacSystemFont,'Thonburi','Sarabun',sans-serif;font-size:15px;}
 </style>
 </head>
 <body>
 <div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
 <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
 const { useState, useEffect, useRef, useCallback, useMemo } = React;
 function _Icon(paths) {
   return function I({ size = 24, className = '', strokeWidth = 2, ...rest }) {
@@ -3709,6 +3815,7 @@ function App() {
 if(typeof navigator!=='undefined'&&'serviceWorker' in navigator)
   window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
 </script>
 </body>
 </html>
