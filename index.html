@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>FinNote</title>
 <meta name="theme-color" content="#0e7490">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,6 +19,7 @@
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+
   /* ===== iOS-style design layer (เพิ่มความสวย ไม่แตะ logic) ===== */
   :root {
     --ios-bg: #f2f2f7;           /* systemGroupedBackground */
@@ -202,6 +204,72 @@
   .tl-row-amt.paid { color: #059669; }
   .tl-row-amt.miss { color: #dc2626; }
   .tl-row-meta { font-size: 13px; color: #8e8e93; margin-top: 1px; }
+
+  html, body {
+    font-family: 'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont,
+                 'Thonburi', 'Sarabun', sans-serif !important;
+  }
+  .tabular-nums { font-family: 'IBM Plex Sans', 'IBM Plex Sans Thai', sans-serif;
+    font-variant-numeric: tabular-nums; }
+  #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:#0e7490;color:rgba(255,255,255,0.85);
+    font-family:'IBM Plex Sans Thai',-apple-system,'Thonburi',sans-serif;font-size:15px;}
+
+  /* ===== Dark Mode (ตามระบบมือถือ) — CSS ล้วน ไม่แตะ logic ===== */
+  @media (prefers-color-scheme: dark) {
+    :root { --ios-bg: #000000; }
+    html, body { background: #000 !important; color: #f2f2f7 !important; }
+    #root { background: #000 !important; }
+
+    /* การ์ดขาว → เทาเข้ม iOS */
+    .bg-white { background: #1c1c1e !important; }
+    .bg-stone-50, .bg-slate-50, .bg-gray-50 { background: #2c2c2e !important; }
+    .bg-stone-100, .bg-slate-100 { background: #2c2c2e !important; }
+
+    /* ตัวหนังสือ */
+    .text-slate-800, .text-slate-900, .text-gray-800, .text-gray-900,
+    .text-stone-800, .text-stone-900 { color: #f2f2f7 !important; }
+    .text-slate-700, .text-gray-700, .text-stone-700 { color: #e5e5ea !important; }
+    .text-slate-600, .text-gray-600, .text-stone-600 { color: #c7c7cc !important; }
+    .text-slate-500, .text-slate-400, .text-gray-400, .text-stone-400 { color: #8e8e93 !important; }
+
+    /* ขอบ */
+    .border-stone-200, .border-slate-200, .border-gray-200,
+    .border-stone-100, .border-slate-100 { border-color: rgba(84,84,88,0.5) !important; }
+
+    /* การ์ด wallet tiles/panels */
+    .wallet-tile, .wallet-panel { background: #1c1c1e !important; }
+    .wallet-tile-v { color: #f2f2f7 !important; }
+    .wallet-tile-k, .wallet-sec { color: #8e8e93 !important; }
+    .wallet-row-name { color: #f2f2f7 !important; }
+    .tl-row-month { color: #f2f2f7 !important; }
+
+    /* segmented control */
+    .wallet-seg { background: #2c2c2e !important; }
+    .wallet-seg button { color: #8e8e93 !important; }
+    .wallet-seg button.on { background: #48484a !important; color: #fff !important; }
+
+    /* input */
+    input, select, textarea { background: #2c2c2e !important; color: #f2f2f7 !important;
+      border-color: rgba(84,84,88,0.5) !important; }
+    input::placeholder { color: #8e8e93 !important; }
+
+    /* bottom nav */
+    .fixed.bottom-0 { background: rgba(28,28,30,0.82) !important;
+      border-top-color: rgba(84,84,88,0.5) !important; }
+
+    /* modal */
+    .bg-white\\/95, [class*="bg-white/"] { background: rgba(28,28,30,0.95) !important; }
+    .bg-slate-900\\/50 { background: rgba(0,0,0,0.6) !important; }
+
+    /* pill / badge สีอ่อน ให้เข้มขึ้น */
+    .bg-cyan-50, .bg-cyan-100 { background: rgba(50,173,230,0.15) !important; }
+    .bg-red-50 { background: rgba(255,69,58,0.15) !important; }
+    .bg-amber-50 { background: rgba(255,159,10,0.15) !important; }
+    .bg-emerald-50, .bg-green-50 { background: rgba(48,209,88,0.15) !important; }
+
+    /* การ์ด navy hero ยังเด่นอยู่ (ไม่ต้องแก้) */
+  }
 
   html, body {
     font-family: 'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont,
@@ -692,6 +760,42 @@ function buildAmortSchedule(principal, rate, payment, startMonth) {
     totalInterest: round2(totalInterest),
     neverPayoff
   };
+}
+function computePaymentWithCut(loan, month, amount, date) {
+  const t = loanType(loan);
+  amount = round2(amount);
+  if (t !== 'interest') {
+    return { payment: { amount, date }, prinCut: 0 };
+  }
+  const principal = Number(loan.principal) || 0, rate = Number(loan.rate) || 0;
+  const prinCuts = loan.prinCuts || {};
+  const ms = monthRange(loan.startMonth, month);
+  const sm = {};
+  ms.forEach(mm => {
+    let eff = principal;
+    Object.keys(prinCuts).forEach(cm => { if (cm < mm) eff -= Number(prinCuts[cm]) || 0; });
+    sm[mm] = round2(Math.max(0, eff) * rate / 100);
+  });
+  const payments = loan.payments || {};
+  let cumBill = 0, cumPaid = 0;
+  ms.forEach(mm => {
+    if (mm < month) {
+      cumBill = round2(cumBill + (sm[mm] || 0));
+      cumPaid = round2(cumPaid + (payments[mm] ? Number(payments[mm].amount) || 0 : 0));
+    }
+  });
+  const carryIn = round2(cumBill - cumPaid);
+  const thisBill = sm[month] || 0;
+  const interestOwed = round2(Math.max(0, carryIn) + thisBill);
+  if (amount <= interestOwed + 0.005) {
+    return { payment: { amount, date }, prinCut: 0 };
+  }
+  const excess = round2(amount - interestOwed);
+  const alreadyCut = Object.values(prinCuts).reduce((a, v) => a + (Number(v) || 0), 0);
+  const canCut = Math.max(0, round2(principal - alreadyCut));
+  const cut = Math.min(excess, canCut);
+  const leftover = round2(excess - cut);
+  return { payment: { amount: round2(interestOwed + leftover), date }, prinCut: cut };
 }
 function buildLedger(months, scheduleMap, payments) {
   const rows = [];
@@ -1656,9 +1760,105 @@ function overdueDebtors(debtors, cur) {
   out.sort((a, b) => b.months - a.months || b.amount - a.amount);
   return out;
 }
+function ReportsView({ data, onBack }) {
+  const cur = curYM();
+  const [range, setRange] = useState('month');
+  const pf = useMemo(() => portfolioStats(data.debtors || [], cur), [data, cur]);
+  const mi = pf.monthlyInterest || {};
+
+  // สรุปรายเดือน 12 เดือนล่าสุด
+  const monthRows = useMemo(() => {
+    const arr = []; let [y, m] = cur.split('-').map(Number);
+    for (let i = 0; i < 12; i++) {
+      const key = `${y}-${String(m).padStart(2, '0')}`;
+      arr.push({ key, label: `${THAI_MON[m - 1]} ${(y + 543) % 100}`, value: mi[key] || 0 });
+      m -= 1; if (m < 1) { m = 12; y -= 1; }
+    }
+    return arr;
+  }, [mi, cur]);
+
+  // สรุปรายปี
+  const yearRows = useMemo(() => {
+    const byYear = {};
+    Object.keys(mi).forEach(k => { const yr = k.split('-')[0]; byYear[yr] = round2((byYear[yr] || 0) + mi[k]); });
+    return Object.keys(byYear).sort().reverse().map(yr => ({ key: yr, label: 'ปี ' + (+yr + 543), value: byYear[yr] }));
+  }, [mi]);
+
+  const rows = range === 'month' ? monthRows : yearRows;
+  const maxV = Math.max(1, ...rows.map(r => r.value));
+  const total = round2(rows.reduce((s, r) => s + r.value, 0));
+  const avg = rows.filter(r => r.value > 0).length > 0
+    ? round2(total / rows.filter(r => r.value > 0).length) : 0;
+  const best = rows.reduce((b, r) => (r.value > (b ? b.value : -1) ? r : b), null);
+
+  // เดือนนี้ vs เดือนก่อน
+  const curVal = monthRows[0] ? monthRows[0].value : 0;
+  const prevVal = monthRows[1] ? monthRows[1].value : 0;
+  const diff = round2(curVal - prevVal);
+  const diffPct = prevVal > 0 ? round2(diff / prevVal * 100) : 0;
+
+  return React.createElement("div", { className: "px-4 pt-3 pb-28" },
+    /* header */
+    React.createElement("div", { className: "flex items-center gap-2 mb-4 mt-1" },
+      React.createElement("button", {
+        onClick: onBack,
+        className: "p-2 -ml-2 rounded-lg text-slate-500"
+      }, React.createElement(ChevronLeft, { size: 22 })),
+      React.createElement("div", null,
+        React.createElement("h1", { className: "text-2xl font-bold text-slate-900 tracking-tight" }, "รายงาน"),
+        React.createElement("div", { className: "text-slate-400 text-sm" }, "ดอกเบี้ยที่เก็บได้"))),
+
+    /* เดือนนี้ vs เดือนก่อน */
+    React.createElement("div", { className: "wallet-hero", style: { marginBottom: '14px' } },
+      React.createElement("div", { className: "wallet-hero-label" }, "เดือนนี้ (", ymLabelFull(cur), ")"),
+      React.createElement("div", { className: "wallet-hero-amount tabular-nums" }, "฿", fmtMoney(curVal)),
+      React.createElement("div", { className: "wallet-hero-pill" },
+        diff >= 0 ? "↑ +" : "↓ ", "฿", fmtMoney(Math.abs(diff)),
+        prevVal > 0 ? ` (${diff >= 0 ? '+' : ''}${diffPct}%)` : '', " จากเดือนก่อน"),
+      React.createElement("div", { className: "wallet-hero-row" },
+        React.createElement("div", null,
+          React.createElement("div", { className: "wallet-hero-k" }, "กำไรสะสมทั้งหมด"),
+          React.createElement("div", { className: "wallet-hero-v tabular-nums" }, "฿", fmtMoney(pf.interestCumulative))),
+        React.createElement("div", null,
+          React.createElement("div", { className: "wallet-hero-k" }, "ผลตอบแทน/เดือน"),
+          React.createElement("div", { className: "wallet-hero-v tabular-nums" }, pf.yieldPct, "%")))),
+
+    /* สถิติย่อ */
+    React.createElement("div", { className: "grid grid-cols-3 gap-2 mb-4" },
+      React.createElement("div", { className: "wallet-tile", style: { padding: '12px' } },
+        React.createElement("div", { className: "wallet-tile-k", style: { fontSize: '11px' } }, range === 'month' ? "รวม 12 เดือน" : "รวมทุกปี"),
+        React.createElement("div", { className: "wallet-tile-v tabular-nums", style: { fontSize: '16px' } }, "฿", fmtMoney(total))),
+      React.createElement("div", { className: "wallet-tile", style: { padding: '12px' } },
+        React.createElement("div", { className: "wallet-tile-k", style: { fontSize: '11px' } }, "เฉลี่ย/", range === 'month' ? "เดือน" : "ปี"),
+        React.createElement("div", { className: "wallet-tile-v tabular-nums", style: { fontSize: '16px' } }, "฿", fmtMoney(avg))),
+      React.createElement("div", { className: "wallet-tile", style: { padding: '12px' } },
+        React.createElement("div", { className: "wallet-tile-k", style: { fontSize: '11px' } }, "สูงสุด"),
+        React.createElement("div", { className: "wallet-tile-v tabular-nums", style: { fontSize: '16px', color: '#059669' } }, best && best.value > 0 ? '฿' + fmtMoney(best.value) : '-'))),
+
+    /* ตารางรายละเอียด */
+    React.createElement("div", { className: "wallet-panel" },
+      React.createElement("div", { className: "wallet-seg" },
+        React.createElement("button", { className: range === 'month' ? 'on' : '', onClick: () => setRange('month') }, "รายเดือน"),
+        React.createElement("button", { className: range === 'year' ? 'on' : '', onClick: () => setRange('year') }, "รายปี")),
+      rows.map((r, i) => React.createElement("div", {
+        key: r.key,
+        className: "flex items-center gap-3",
+        style: { padding: '10px 0', borderBottom: i < rows.length - 1 ? '0.5px solid rgba(60,60,67,0.1)' : 'none' }
+      },
+        React.createElement("div", { className: "text-sm font-medium text-slate-700", style: { width: '76px', flexShrink: 0 } }, r.label),
+        React.createElement("div", { className: "flex-1", style: { height: '8px', background: 'rgba(60,60,67,0.06)', borderRadius: '4px', overflow: 'hidden' } },
+          React.createElement("div", { style: {
+            width: `${Math.round(r.value / maxV * 100)}%`, height: '100%',
+            background: i === 0 && range === 'month' ? 'linear-gradient(90deg,#d97706,#fbbf24)' : 'linear-gradient(90deg,#2c5282,#4299e1)',
+            borderRadius: '4px', transition: 'width 0.3s'
+          } })),
+        React.createElement("div", { className: "text-sm font-bold text-slate-800 tabular-nums text-right", style: { width: '86px', flexShrink: 0 } },
+          r.value > 0 ? '฿' + fmtMoney(r.value) : '—')))));
+}
 function DashboardView({
   data,
-  onOpenDebtor
+  onOpenDebtor,
+  onOpenReports
 }) {
   const cur = curYM();
   const [range, setRange] = useState('month');
@@ -1797,8 +1997,14 @@ function DashboardView({
       color: '#059669'
     }
   }, agg.collectRate, "%"))), React.createElement("div", {
-    className: "wallet-sec"
-  }, "รายงานดอกเบี้ยที่เก็บได้"), React.createElement("div", {
+    className: "wallet-sec flex items-center justify-between",
+    style: { display: 'flex' }
+  }, React.createElement("span", null, "รายงานดอกเบี้ยที่เก็บได้"),
+  React.createElement("button", {
+    onClick: onOpenReports,
+    className: "text-xs font-semibold",
+    style: { color: '#2c5282', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }
+  }, "ดูรายงานเต็ม ›")), React.createElement("div", {
     className: "wallet-panel mb-4"
   }, React.createElement("div", {
     className: "wallet-seg"
@@ -1888,11 +2094,47 @@ function DebtorsView({
   onAdd
 }) {
   const [q, setQ] = useState('');
+  const [filter, setFilter] = useState('all');     // all | overdue | ok | tag:xxx
+  const [sortBy, setSortBy] = useState('overdue'); // overdue | name | monthly
   const cur = curYM();
-  const list = (data.debtors || []).filter(d => d.name.toLowerCase().includes(q.toLowerCase()) || (d.phone || '').includes(q));
+
+  const enriched = useMemo(() => (data.debtors || []).map(d => ({ d, s: debtorStats(d, cur) })), [data, cur]);
+
+  const list = useMemo(() => {
+    let arr = enriched.filter(({ d }) =>
+      d.name.toLowerCase().includes(q.toLowerCase()) || (d.phone || '').includes(q));
+    if (filter === 'overdue') arr = arr.filter(({ s }) => s.outstanding > 0.005);
+    else if (filter === 'ok') arr = arr.filter(({ s }) => s.outstanding <= 0.005);
+    else if (filter.startsWith('tag:')) {
+      const tid = filter.slice(4);
+      arr = arr.filter(({ d }) => (d.tags || []).includes(tid));
+    }
+    const sorted = [...arr];
+    if (sortBy === 'overdue') sorted.sort((a, b) => b.s.outstanding - a.s.outstanding || b.s.dueNow - a.s.dueNow);
+    else if (sortBy === 'name') sorted.sort((a, b) => a.d.name.localeCompare(b.d.name, 'th'));
+    else if (sortBy === 'monthly') sorted.sort((a, b) => b.s.monthlyDue - a.s.monthlyDue);
+    return sorted;
+  }, [enriched, q, filter, sortBy]);
+
+  const overdueCount = enriched.filter(({ s }) => s.outstanding > 0.005).length;
+  const usedTags = DEBTOR_TAGS.filter(t => enriched.some(({ d }) => (d.tags || []).includes(t.id)));
+
+  const chip = (id, label, count) => React.createElement("button", {
+    key: id,
+    onClick: () => setFilter(id),
+    className: "shrink-0 rounded-full font-semibold transition",
+    style: {
+      fontSize: '13px', padding: '7px 14px', border: 'none', cursor: 'pointer',
+      background: filter === id ? '#1e3a5f' : 'rgba(60,60,67,0.08)',
+      color: filter === id ? '#fff' : '#6b7280'
+    }
+  }, label, count != null ? ` (${count})` : '');
+
   return React.createElement("div", {
     className: "px-4 pt-4 pb-28"
-  }, React.createElement("div", {
+  },
+  /* ค้นหา */
+  React.createElement("div", {
     className: "relative mb-3"
   }, React.createElement(Search, {
     size: 18,
@@ -1902,51 +2144,87 @@ function DebtorsView({
     placeholder: "ค้นหาชื่อหรือเบอร์โทร...",
     value: q,
     onChange: e => setQ(e.target.value)
-  })), list.length === 0 ? React.createElement("div", {
+  })),
+
+  /* แถบกรอง */
+  React.createElement("div", {
+    className: "flex gap-2 overflow-x-auto pb-1 mb-2",
+    style: { scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }
+  },
+    chip('all', 'ทั้งหมด', enriched.length),
+    chip('overdue', 'ค้างชำระ', overdueCount),
+    chip('ok', 'ปกติ', enriched.length - overdueCount),
+    usedTags.map(t => chip('tag:' + t.id, t.label))
+  ),
+
+  /* แถบเรียง */
+  React.createElement("div", {
+    className: "flex items-center justify-between mb-3 px-1"
+  }, React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, list.length, " รายการ"), React.createElement("div", {
+    className: "flex gap-1"
+  }, [['overdue', 'ค้างมากสุด'], ['monthly', 'ยอด/เดือน'], ['name', 'ชื่อ']].map(([id, lbl]) =>
+    React.createElement("button", {
+      key: id,
+      onClick: () => setSortBy(id),
+      className: "text-xs rounded-lg transition font-medium",
+      style: {
+        padding: '5px 10px', border: 'none', cursor: 'pointer',
+        background: sortBy === id ? 'rgba(30,58,95,0.1)' : 'transparent',
+        color: sortBy === id ? '#1e3a5f' : '#9ca3af'
+      }
+    }, lbl)
+  ))),
+
+  /* รายการ */
+  list.length === 0 ? React.createElement("div", {
     className: "bg-white rounded-2xl border border-stone-200 p-8 text-center mt-6"
   }, React.createElement(Users, {
     size: 32,
     className: "mx-auto mb-2 text-slate-300"
   }), React.createElement("div", {
     className: "text-slate-500 text-sm"
-  }, q ? 'ไม่พบลูกหนี้ที่ค้นหา' : 'ยังไม่มีลูกหนี้'), !q && React.createElement(PrimaryBtn, {
+  }, q || filter !== 'all' ? 'ไม่พบลูกหนี้ตามเงื่อนไข' : 'ยังไม่มีลูกหนี้'), !q && filter === 'all' && React.createElement(PrimaryBtn, {
     onClick: onAdd,
     className: "mt-4 mx-auto"
   }, React.createElement(Plus, {
     size: 18
   }), " เพิ่มลูกหนี้คนแรก")) : React.createElement("div", {
     className: "space-y-2"
-  }, list.map(d => {
-    const s = debtorStats(d, cur);
+  }, list.map(({ d, s }) => {
     return React.createElement("button", {
       key: d.id,
       onClick: () => onOpenDebtor(d.id),
-      className: "w-full bg-white rounded-2xl border border-stone-200 p-4 text-left hover:border-cyan-300 hover:shadow-sm transition"
+      className: "w-full bg-white rounded-2xl p-4 text-left transition",
+      style: { border: '0.5px solid rgba(60,60,67,0.1)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }
     }, React.createElement("div", {
       className: "flex items-center gap-3"
     }, React.createElement("div", {
       className: "h-11 w-11 rounded-full flex items-center justify-center font-semibold shrink-0 text-white",
       style: {
-        background: 'linear-gradient(135deg,#2c5282,#4299e1)'
+        background: s.outstanding > 0.005
+          ? 'linear-gradient(135deg,#9f1239,#e11d48)'
+          : 'linear-gradient(135deg,#2c5282,#4299e1)'
       }
     }, d.name.charAt(0)), React.createElement("div", {
       className: "min-w-0 flex-1"
     }, React.createElement("div", {
+      className: "flex items-center gap-1.5 flex-wrap"
+    }, React.createElement("span", {
       className: "font-semibold text-slate-800 truncate"
-    }, d.name), React.createElement("div", {
-      className: "text-xs text-slate-400"
-    }, d.loans?.length || 0, " ก้อน · เงินต้น ", fmtMoney(s.totalPrincipal))), React.createElement(ChevronLeft, {
-      size: 18,
-      className: "text-slate-300 rotate-180"
-    })), React.createElement("div", {
-      className: "flex gap-1.5 mt-2.5 flex-wrap"
-    }, React.createElement(Pill, {
-      tone: "slate"
-    }, "เก็บ/เดือน ", fmtMoney(s.monthlyDue)), s.outstanding > 0 ? React.createElement(Pill, {
-      tone: "red"
-    }, "ค้าง ", fmtMoney(s.outstanding)) : React.createElement(Pill, {
-      tone: "green"
-    }, "ไม่มียอดค้าง")));
+    }, d.name), (d.tags || []).map(tid => React.createElement(TagChip, { key: tid, tagId: tid, small: true }))),
+    React.createElement("div", {
+      className: "text-xs text-slate-400 mt-0.5 tabular-nums"
+    }, d.loans?.length || 0, " ก้อน · เงินต้น ฿", fmtMoney(s.totalPrincipal))), React.createElement("div", {
+      className: "text-right shrink-0"
+    }, s.outstanding > 0.005
+      ? React.createElement("div", null,
+          React.createElement("div", { className: "font-bold tabular-nums", style: { color: '#dc2626', fontSize: '16px' } }, "฿", fmtMoney(s.outstanding)),
+          React.createElement("div", { className: "text-xs", style: { color: '#dc2626' } }, "ค้างชำระ"))
+      : React.createElement("div", null,
+          React.createElement("div", { className: "font-bold tabular-nums text-slate-800", style: { fontSize: '16px' } }, "฿", fmtMoney(s.monthlyDue)),
+          React.createElement("div", { className: "text-xs text-slate-400" }, "เก็บ/เดือน")))));
   })));
 }
 function LoanLedger({
@@ -2950,6 +3228,22 @@ function UserForm({
     disabled: busy
   }, busy ? 'กำลังบันทึก...' : 'บันทึก'));
 }
+const DEBTOR_TAGS = [
+  { id: 'good', label: 'ลูกค้าดี', color: '#059669', bg: 'rgba(48,209,88,0.12)' },
+  { id: 'risk', label: 'กลุ่มเสี่ยง', color: '#dc2626', bg: 'rgba(255,69,58,0.12)' },
+  { id: 'vip', label: 'VIP', color: '#d97706', bg: 'rgba(255,159,10,0.12)' },
+  { id: 'new', label: 'ลูกค้าใหม่', color: '#2563eb', bg: 'rgba(10,132,255,0.12)' },
+];
+function TagChip({ tagId, small }) {
+  const t = DEBTOR_TAGS.find(x => x.id === tagId);
+  if (!t) return null;
+  return React.createElement("span", {
+    className: "inline-flex items-center rounded-full font-semibold",
+    style: { color: t.color, background: t.bg,
+      fontSize: small ? '11px' : '12px',
+      padding: small ? '2px 8px' : '3px 10px' }
+  }, t.label);
+}
 function DebtorForm({
   initial,
   onSave
@@ -2957,7 +3251,9 @@ function DebtorForm({
   const [name, setName] = useState(initial?.name || '');
   const [phone, setPhone] = useState(initial?.phone || '');
   const [note, setNote] = useState(initial?.note || '');
+  const [tags, setTags] = useState(initial?.tags || []);
   const [err, setErr] = useState('');
+  const toggleTag = (id) => setTags(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   return React.createElement("div", {
     className: "space-y-4"
   }, React.createElement("div", null, React.createElement("label", {
@@ -2982,7 +3278,22 @@ function DebtorForm({
     value: note,
     onChange: e => setNote(e.target.value),
     placeholder: "ข้อมูลเพิ่มเติม"
-  })), err && React.createElement("div", {
+  })), React.createElement("div", null, React.createElement("label", {
+    className: labelCls
+  }, "แท็ก"), React.createElement("div", {
+    className: "flex gap-2 flex-wrap"
+  }, DEBTOR_TAGS.map(t => React.createElement("button", {
+    key: t.id,
+    type: "button",
+    onClick: () => toggleTag(t.id),
+    className: "rounded-full font-semibold transition",
+    style: {
+      fontSize: '13px', padding: '7px 14px',
+      color: tags.includes(t.id) ? '#fff' : t.color,
+      background: tags.includes(t.id) ? t.color : t.bg,
+      border: 'none', cursor: 'pointer'
+    }
+  }, t.label)))), err && React.createElement("div", {
     className: "text-red-600 text-sm"
   }, err), React.createElement(PrimaryBtn, {
     className: "w-full py-3",
@@ -2994,7 +3305,8 @@ function DebtorForm({
       onSave({
         name: name.trim(),
         phone: phone.trim(),
-        note: note.trim()
+        note: note.trim(),
+        tags
       });
     }
   }, "บันทึก"));
@@ -4166,7 +4478,7 @@ function BottomNav({
   }, React.createElement("div", {
     className: "max-w-md mx-auto flex"
   }, items.map(it => {
-    const active = view === it.id || it.id === 'debtors' && view === 'debtor' || it.id === 'settings' && view === 'users' || it.id === 'calc' && view === 'calc';
+    const active = view === it.id || it.id === 'debtors' && view === 'debtor' || it.id === 'settings' && view === 'users' || it.id === 'calc' && view === 'calc' || it.id === 'dashboard' && view === 'reports';
     const Icon = it.icon;
     return React.createElement("button", {
       key: it.id,
@@ -4450,13 +4762,18 @@ function App() {
     } = paymentForm;
     updateDebtor(debtorId, d => ({
       ...d,
-      loans: d.loans.map(l => l.id === loanId ? {
-        ...l,
-        payments: {
-          ...(l.payments || {}),
-          [month]: vals
+      loans: d.loans.map(l => {
+        if (l.id !== loanId) return l;
+        // จ่ายเกินดอก → ตัดต้นอัตโนมัติ (เฉพาะก้อนดอกเบี้ย)
+        const res = computePaymentWithCut(l, month, Number(vals.amount) || 0, vals.date);
+        const newPayments = { ...(l.payments || {}), [month]: { ...vals, ...res.payment } };
+        const nl = { ...l, payments: newPayments };
+        if (res.prinCut > 0.005) {
+          nl.prinCuts = { ...(l.prinCuts || {}) };
+          nl.prinCuts[month] = round2((nl.prinCuts[month] || 0) + res.prinCut);
         }
-      } : l)
+        return nl;
+      })
     }));
     setPaymentForm(null);
   };
@@ -4703,7 +5020,7 @@ function App() {
     }));
   }
   const selectedDebtor = data.debtors.find(d => d.id === selectedId) || null;
-  const headerTitle = view === 'dashboard' ? 'หน้าหลัก' : view === 'debtors' ? 'รายชื่อลูกหนี้' : view === 'settings' ? 'ตั้งค่า' : view === 'users' ? 'จัดการผู้ใช้งาน' : '';
+  const headerTitle = view === 'dashboard' ? 'หน้าหลัก' : view === 'debtors' ? 'รายชื่อลูกหนี้' : view === 'settings' ? 'ตั้งค่า' : view === 'users' ? 'จัดการผู้ใช้งาน' : view === 'reports' ? 'รายงาน' : '';
   return React.createElement("div", {
     className: "lt-root min-h-screen bg-stone-100"
   }, React.createElement("style", null, fontCss), React.createElement("div", {
@@ -4731,7 +5048,8 @@ function App() {
     onOpenDebtor: id => {
       setSelectedId(id);
       setView('debtor');
-    }
+    },
+    onOpenReports: () => setView('reports')
   }), view === 'debtors' && React.createElement(DebtorsView, {
     data: data,
     onOpenDebtor: id => {
@@ -4773,6 +5091,9 @@ function App() {
     className: "p-8 text-center text-slate-400"
   }, "ไม่พบข้อมูลลูกหนี้"), view === 'calc' && React.createElement(CalcView, {
     initName: calcInitName
+  }), view === 'reports' && React.createElement(ReportsView, {
+    data: data,
+    onBack: () => setView('dashboard')
   }), view === 'settings' && React.createElement(SettingsView, {
     data: data,
     currentUser: currentUser,
