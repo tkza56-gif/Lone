@@ -271,15 +271,6 @@
     /* การ์ด navy hero ยังเด่นอยู่ (ไม่ต้องแก้) */
   }
 
-  html, body {
-    font-family: 'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, BlinkMacSystemFont,
-                 'Thonburi', 'Sarabun', sans-serif !important;
-  }
-  .tabular-nums { font-family: 'IBM Plex Sans', 'IBM Plex Sans Thai', sans-serif;
-    font-variant-numeric: tabular-nums; }
-  #boot{min-height:100vh;display:flex;align-items:center;justify-content:center;
-    background:#0e7490;color:rgba(255,255,255,0.85);
-    font-family:'IBM Plex Sans Thai',-apple-system,'Thonburi',sans-serif;font-size:15px;}
 </style>
 </head>
 <body>
@@ -516,12 +507,63 @@ async function storageDel(k) {
     localStorage.removeItem(k);
   } catch (e) {}
 }
+/* ===== ชั้นสำรอง IndexedDB (แยกจาก localStorage — รอดแม้ localStorage โดนล้าง) ===== */
+const IDB_NAME = 'finnote_backup';
+const IDB_STORE = 'kv';
+function _idbOpen() {
+  return new Promise((resolve) => {
+    try {
+      if (typeof indexedDB === 'undefined') { resolve(null); return; }
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => { try { req.result.createObjectStore(IDB_STORE); } catch (e) {} };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+}
+function idbSet(key, val) {
+  return _idbOpen().then((db) => new Promise((resolve) => {
+    if (!db) { resolve(false); return; }
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = () => { db.close(); resolve(true); };
+      tx.onerror = () => { db.close(); resolve(false); };
+    } catch (e) { try { db.close(); } catch (x) {} resolve(false); }
+  }));
+}
+function idbGet(key) {
+  return _idbOpen().then((db) => new Promise((resolve) => {
+    if (!db) { resolve(null); return; }
+    try {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const rq = tx.objectStore(IDB_STORE).get(key);
+      rq.onsuccess = () => { const v = rq.result; db.close(); resolve(v == null ? null : v); };
+      rq.onerror = () => { db.close(); resolve(null); };
+    } catch (e) { try { db.close(); } catch (x) {} resolve(null); }
+  }));
+}
 async function saveData(data) {
-  await storageSet(DATA_KEY, await encryptObj(data));
+  const blob = await encryptObj(data);
+  await storageSet(DATA_KEY, blob);
   saveBackup(data);
+  // สำรองไป IndexedDB (best-effort ไม่บล็อกการทำงาน)
+  try {
+    idbSet('data_blob', JSON.stringify(blob));
+    idbSet('data_meta', JSON.stringify({ ts: Date.now(), debtors: (data.debtors || []).length }));
+  } catch (e) {}
 }
 async function loadData() {
   return decryptObj(await storageGet(DATA_KEY));
+}
+/* กู้จาก IndexedDB เมื่อ localStorage หาย — คืน object ข้อมูล หรือ null */
+async function loadDataFromIDB() {
+  try {
+    const raw = await idbGet('data_blob');
+    if (!raw) return null;
+    const blob = JSON.parse(raw);
+    return await decryptObj(blob);
+  } catch (e) { return null; }
 }
 async function saveSession(s) {
   try {
@@ -1265,6 +1307,93 @@ function GhostBtn({
     className: `inline-flex items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-stone-50 active:scale-95 transition ${className}`
   }, children);
 }
+function RecoveryModal({ onClose, onRestore }) {
+  const [backups, setBackups] = useState([]);
+  const [idbInfo, setIdbInfo] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    setBackups(listBackups());
+    (async () => {
+      try {
+        const meta = await idbGet('data_meta');
+        if (meta) setIdbInfo(JSON.parse(meta));
+      } catch (e) {}
+    })();
+  }, []);
+
+  const restoreBackup = (b) => {
+    if (!b.data || !Array.isArray(b.data.debtors)) { setMsg('ข้อมูลสำรองชุดนี้ไม่สมบูรณ์'); return; }
+    onRestore(b.data);
+  };
+
+  const restoreIDB = async () => {
+    setBusy(true);
+    const d = await loadDataFromIDB();
+    setBusy(false);
+    if (d && Array.isArray(d.debtors)) onRestore(d);
+    else setMsg('อ่านข้อมูลสำรองอัตโนมัติไม่สำเร็จ');
+  };
+
+  const importFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const obj = JSON.parse(e.target.result);
+        const d = obj.data && Array.isArray(obj.data.debtors) ? obj.data
+          : (Array.isArray(obj.debtors) ? obj : null);
+        if (!d) { setMsg('ไฟล์ไม่ใช่ข้อมูลสำรองของ FinNote'); return; }
+        onRestore(d);
+      } catch (err) { setMsg('อ่านไฟล์ไม่สำเร็จ'); }
+    };
+    reader.readAsText(file);
+  };
+
+  return React.createElement(Modal, { open: true, onClose, title: "กู้คืนข้อมูล" },
+    React.createElement("div", { className: "space-y-4" },
+      React.createElement("div", { className: "text-sm text-slate-500" },
+        "เลือกแหล่งข้อมูลสำรองเพื่อกู้คืน — ไม่ต้องเข้าสู่ระบบ ข้อมูลจะถูกเขียนกลับและเปิดแอปใหม่"),
+
+      /* IndexedDB (สำรองอัตโนมัติชั้นที่ 2) */
+      idbInfo && React.createElement("button", {
+        onClick: restoreIDB, disabled: busy,
+        className: "w-full text-left bg-white rounded-2xl p-4 transition",
+        style: { border: '1.5px solid #2c5282', cursor: 'pointer' }
+      },
+        React.createElement("div", { className: "font-semibold text-slate-800" }, "💾 สำรองอัตโนมัติ (ชั้นที่ 2)"),
+        React.createElement("div", { className: "text-xs text-slate-400 mt-1 tabular-nums" },
+          "ลูกหนี้ ", idbInfo.debtors, " คน · ", new Date(idbInfo.ts).toLocaleString('th-TH'))),
+
+      /* localStorage backups */
+      backups.length > 0 && React.createElement("div", null,
+        React.createElement("div", { className: "text-xs font-semibold text-slate-400 mb-2" }, "สำรองในเครื่อง (5 ชุดล่าสุด)"),
+        React.createElement("div", { className: "space-y-2" },
+          backups.map(b => React.createElement("button", {
+            key: b.key, onClick: () => restoreBackup(b),
+            className: "w-full text-left bg-stone-50 rounded-xl p-3 transition",
+            style: { border: '0.5px solid rgba(60,60,67,0.12)', cursor: 'pointer' }
+          },
+            React.createElement("div", { className: "text-sm font-medium text-slate-700" }, b.label || new Date(b.ts).toLocaleString('th-TH')),
+            React.createElement("div", { className: "text-xs text-slate-400 tabular-nums" },
+              "ลูกหนี้ ", (b.data && b.data.debtors || []).length, " คน"))))),
+
+      /* นำเข้าไฟล์ */
+      React.createElement("button", {
+        onClick: () => fileRef.current && fileRef.current.click(),
+        className: "w-full rounded-2xl py-3.5 font-semibold transition",
+        style: { border: '1.5px dashed rgba(60,60,67,0.25)', background: 'transparent', color: '#2c5282', cursor: 'pointer' }
+      }, "📂 นำเข้าไฟล์สำรอง (.json)"),
+      React.createElement("input", { ref: fileRef, type: "file", accept: ".json,application/json",
+        className: "hidden", onChange: (e) => e.target.files[0] && importFile(e.target.files[0]) }),
+
+      backups.length === 0 && !idbInfo && React.createElement("div", {
+        className: "text-center text-sm text-slate-400 py-2"
+      }, "ไม่พบข้อมูลสำรองในเครื่องนี้ — ใช้การนำเข้าไฟล์ .json ที่เคย Export ไว้"),
+
+      msg && React.createElement("div", { className: "text-sm text-red-600" }, msg)));
+}
 function LoginScreen({
   users,
   onLogin,
@@ -1936,9 +2065,17 @@ function DashboardView({
   const maxVal = Math.max(1, ...chartData.map(d => d.value));
   const curUser = (data.users || [])[0];
   const avatarChar = (curUser && curUser.name ? curUser.name : 'F').charAt(0);
+  const lastExport = (() => { try { return Number(localStorage.getItem('lt_last_export')) || 0; } catch (e) { return 0; } })();
+  const exportOverdue = Date.now() - lastExport > 7 * 86400000;
   return React.createElement("div", {
     className: "dash-wallet px-4 pt-3 pb-28"
-  }, React.createElement("div", {
+  },
+  exportOverdue && React.createElement("div", {
+    className: "rounded-2xl px-4 py-3 mb-3 text-sm",
+    style: { background: 'rgba(255,159,10,0.12)', color: '#b45309' }
+  }, React.createElement("span", { className: "font-semibold" }, "🛡️ อย่าลืมสำรองข้อมูล — "),
+    lastExport ? "Export ล่าสุดเกิน 7 วันแล้ว" : "ยังไม่เคย Export เลย",
+    " ไปที่ ตั้งค่า › สำรองข้อมูล เพื่อดาวน์โหลดไฟล์เก็บไว้"), React.createElement("div", {
     className: "flex items-center justify-between mb-4 mt-1"
   }, React.createElement("div", null, React.createElement("h1", {
     className: "text-3xl font-bold text-slate-900 tracking-tight"
@@ -2648,6 +2785,7 @@ function saveBackup(data) {
 }
 function exportJSON(data) {
   try {
+    try { localStorage.setItem('lt_last_export', String(Date.now())); } catch (e) {}
     const ts = new Date().toISOString().slice(0, 10);
     const blob = new Blob([JSON.stringify({
       exportedAt: new Date().toISOString(),
@@ -4505,6 +4643,8 @@ function App() {
   const [calcInitName, setCalcInitName] = useState('');
   const [bulkPayDebtor, setBulkPayDebtor] = useState(null);
   const [dataLoadError, setDataLoadError] = useState(false);
+  const [autoRestored, setAutoRestored] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const [secLeft, setSecLeft] = useState(60);
   const [encOK, setEncOK] = useState(true);
   const [debtorForm, setDebtorForm] = useState(null);
@@ -4544,8 +4684,16 @@ function App() {
           setPhase('login');
           return;
         }
-        d = await makeSeed();
-        await saveData(d);
+        // localStorage ว่าง — ลองกู้จาก IndexedDB ก่อน (กันข้อมูลหายจากการล้าง localStorage)
+        const idbData = await loadDataFromIDB();
+        if (idbData && Array.isArray(idbData.debtors) && idbData.debtors.length > 0) {
+          d = idbData;
+          await saveData(d);           // เขียนกลับ localStorage
+          setAutoRestored(true);       // แจ้งผู้ใช้ว่ากู้คืนให้แล้ว
+        } else {
+          d = await makeSeed();
+          await saveData(d);
+        }
       } else if (!Array.isArray(d.users) || d.users.length === 0) {
         const cred = await makeCredential('admin1234');
         d = {
@@ -5007,7 +5155,19 @@ function App() {
     }, "ข้อมูลเดิมถูกสำรองไว้แล้ว ไม่ได้ถูกลบ — ลองรีเฟรชหน้าใหม่อีกครั้ง หากเปิดผ่านลิงก์ที่ขึ้นต้นด้วย https จะอ่านข้อมูลได้ตามปกติ"), React.createElement("button", {
       onClick: () => window.location.reload(),
       className: "mt-2 text-xs font-semibold text-amber-900 underline"
-    }, "รีเฟรชหน้าใหม่")), React.createElement(LoginScreen, {
+    }, "รีเฟรชหน้าใหม่")), showRecovery && React.createElement(RecoveryModal, {
+      onClose: () => setShowRecovery(false),
+      onRestore: async (d) => {
+        await saveData(d);
+        window.location.reload();
+      }
+    }), React.createElement("div", {
+      className: "text-center pt-3"
+    }, React.createElement("button", {
+      onClick: () => setShowRecovery(true),
+      className: "text-xs font-semibold underline",
+      style: { color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }
+    }, "ข้อมูลหาย? กู้คืนข้อมูลที่นี่")), React.createElement(LoginScreen, {
       users: data.users || [],
       onReset: resetPassword,
       onLogin: user => {
