@@ -14,11 +14,12 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
 <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+
 
 
 
@@ -277,15 +278,154 @@
 
 
 
+
+/* ===== โมดูลสัญญา/เอกสาร CSS ===== */
+
+  .radio-group{display:flex;flex-direction:column;gap:8px;}
+
+  .radio-opt{display:flex;align-items:flex-start;gap:10px;border:1.5px solid #cbd5e1;border-radius:10px;padding:12px;cursor:pointer;}
+
+  .radio-opt.on{border-color:#1e3a5f;background:#f0f5fb;}
+
+  .radio-opt input{width:auto;margin-top:3px;}
+
+  .err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;padding:10px 12px;font-size:14px;margin:8px 0;}
+
+  .warn{background:#fffbeb;border-left:4px solid #d97706;color:#92400e;border-radius:8px;padding:10px 12px;font-size:13px;margin:8px 0;line-height:1.5;}
+
+  .ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:10px;padding:10px 12px;font-size:14px;margin:8px 0;}
+
+  /* A4 preview */
+  .a4{background:#fff;width:210mm;min-height:297mm;margin:0 auto 14px;padding:20mm 18mm;box-shadow:0 2px 16px rgba(0,0,0,0.15);font-size:14px;line-height:1.7;position:relative;}
+
+  .a4 .draft-wm{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:90px;color:rgba(220,38,38,0.12);font-weight:700;pointer-events:none;}
+
+  .a4 h1{text-align:center;font-size:20px;font-weight:700;margin-bottom:2px;}
+
+  .a4 .sub{text-align:center;font-size:12px;color:#666;margin-bottom:18px;}
+
+  .a4 .cl-h{font-weight:700;color:#1e3a5f;margin:12px 0 3px;}
+
+  .a4 p{margin-bottom:6px;text-align:justify;}
+
+  .a4 .fill{border-bottom:1px dotted #333;padding:0 4px;font-weight:600;}
+
+  .a4 table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px;}
+
+  .a4 th,.a4 td{border:1px solid #cbd5e1;padding:6px 8px;text-align:center;}
+
+  .a4 th{background:#f1f5f9;}
+
+  .sign-row{display:flex;justify-content:space-between;gap:30px;margin-top:36px;}
+
+  .sign-box{flex:1;text-align:center;}
+
+  .sign-img{height:60px;margin-bottom:4px;object-fit:contain;}
+
+  .sign-ln{border-bottom:1px solid #333;margin:0 10px 6px;height:60px;display:flex;align-items:flex-end;justify-content:center;}
+
+  .sign-cap{font-size:12px;color:#444;}
+
+  /* signature pad */
+  .pad-wrap{border:2px dashed #94a3b8;border-radius:12px;background:#fafafa;touch-action:none;}
+
+  canvas.pad{width:100%;height:200px;display:block;touch-action:none;}
+
+  .hash{font-family:monospace;font-size:11px;color:#64748b;word-break:break-all;background:#f8fafc;padding:8px;border-radius:8px;}
+
+  .step-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;}
+
+  .step-tabs button{flex-shrink:0;padding:8px 14px;border:none;border-radius:100px;font-family:inherit;font-size:13px;font-weight:600;background:#e2e8f0;color:#64748b;cursor:pointer;}
+
+  .step-tabs button.on{background:#1e3a5f;color:#fff;}
+.a4{box-shadow:none;margin:0;width:auto;}
+
+  .warn{background:#fffbeb;border-left:4px solid #d97706;color:#92400e;border-radius:8px;padding:10px 12px;font-size:13px;margin:8px 0;line-height:1.5;}
+
+  .seg{display:flex;gap:6px;background:#e9e9ec;padding:3px;border-radius:11px;margin-bottom:14px;}
+
+  .seg button{flex:1;padding:8px;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;background:transparent;color:#64748b;cursor:pointer;}
+
+  .seg button.on{background:#fff;color:#1e3a5f;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+
+  /* status pills */
+  .badge{font-size:12px;font-weight:700;padding:3px 10px;border-radius:100px;white-space:nowrap;}
+
+  .b-none{background:#f1f5f9;color:#64748b;}
+ .b-wait{background:#dbeafe;color:#1d4ed8;}
+
+  .b-fix{background:#fef3c7;color:#b45309;}
+ .b-ok{background:#dcfce7;color:#166534;}
+
+  .b-exp{background:#fee2e2;color:#b91c1c;}
+ .b-na{background:#f1f5f9;color:#94a3b8;}
+
+  .req-req{color:#dc2626;font-weight:600;}
+ .req-cond{color:#d97706;}
+ .req-opt{color:#94a3b8;}
+
+  /* doc grid — desktop 2 col */
+  .owner-group{margin-bottom:18px;}
+
+  .owner-h{font-size:14px;font-weight:700;color:#334155;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e2e8f0;}
+
+  .doc-grid{display:grid;grid-template-columns:1fr;gap:10px;}
+
+  .doc-item{border:1px solid #e2e8f0;border-radius:12px;padding:12px;}
+
+  .doc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+
+  .doc-label{font-weight:600;font-size:14px;flex:1;}
+
+  .doc-meta{font-size:11px;color:#94a3b8;margin-top:2px;}
+
+  .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;}
+
+  .thumb{position:relative;width:56px;height:56px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;}
+
+  .thumb img{width:100%;height:100%;object-fit:cover;}
+
+  .thumb .del{position:absolute;top:-4px;right:-4px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:1;}
+
+  .drop{border:2px dashed #cbd5e1;border-radius:10px;padding:14px;text-align:center;color:#64748b;font-size:13px;cursor:pointer;background:#fafafa;}
+
+  .drop.over{border-color:#1e3a5f;background:#f0f5fb;}
+
+  .sum-box{flex:1;min-width:130px;background:#f8fafc;border-radius:10px;padding:10px 12px;text-align:center;}
+
+  .sum-box .n{font-size:22px;font-weight:800;}
+
+  .sum-box .l{font-size:11px;color:#64748b;}
+
+  .status-track{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px;}
+
+  .st-item{background:#f8fafc;border-radius:8px;padding:8px;text-align:center;font-size:11px;}
+
+  .st-item .st-l{color:#94a3b8;margin-bottom:2px;}
+
+  .st-item .st-v{font-weight:700;font-size:12px;}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+
+  .modal img{max-width:100%;max-height:80vh;border-radius:8px;}
+
+  .modal-inner{background:#fff;border-radius:14px;padding:16px;max-width:600px;width:100%;}
+
+  .pad-wrap{border:2px dashed #94a3b8;border-radius:12px;background:#fafafa;touch-action:none;}
+
+  canvas.pad{width:100%;height:160px;display:block;touch-action:none;}
+
+  .tabbar{display:flex;gap:6px;margin-bottom:14px;}
+
+  .tabbar button{flex:1;padding:10px;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;background:#e2e8f0;color:#64748b;cursor:pointer;}
+
+  .tabbar button.on{background:#1e3a5f;color:#fff;}
 </style>
 </head>
 <body>
 <div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
 <script>
-(function() {
-  function start() {
-    if (!window.React || !window.ReactDOM) { setTimeout(start, 50); return; }
-    try {
+(function(){function start(){if(!window.React||!window.ReactDOM){setTimeout(start,50);return;}try{
 const {
   useState,
   useEffect,
@@ -350,6 +490,7 @@ const Banknote = _Icon('<rect width="20" height="12" x="2" y="6" rx="2"/><circle
 const BadgePercent = _Icon('<path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m15 9-6 6"/><path d="M9 9h.01"/><path d="M15 15h.01"/>');
 const RefreshCw = _Icon('<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>');
 const KeyRound = _Icon('<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>');
+const FileText = _Icon('<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>');
 const QrCode = _Icon('<rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>');
 const Calculator = _Icon('<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>');
 const AUTO_LOGOUT_MS = 5 * 60 * 1000;
@@ -4905,7 +5046,9 @@ function DebtorDetailView({
   onShare,
   onBulkPay,
   onAddNote,
-  onDeleteNote
+  onDeleteNote,
+  onLegal,
+  isAdmin
 }) {
   const cur = curYM();
   const s = debtorStats(debtor, cur);
@@ -5073,7 +5216,12 @@ function DebtorDetailView({
     className: "w-full py-3"
   }, React.createElement(Share2, {
     size: 18
-  }), " แชร์สรุปยอดผ่านไลน์")), s.outstanding > 0 && React.createElement("div", {
+  }), " แชร์สรุปยอดผ่านไลน์"), isAdmin && React.createElement(GhostBtn, {
+    onClick: () => onLegal(debtor),
+    className: "w-full py-3"
+  }, React.createElement(FileText, {
+    size: 18
+  }), " สร้างสัญญา / เอกสาร")), s.outstanding > 0 && React.createElement("div", {
     className: "px-4 mt-3"
   }, React.createElement("div", {
     className: "bg-red-50 border border-red-200 rounded-2xl p-3.5 flex items-center gap-3"
@@ -5596,7 +5744,7 @@ function SettingsView({
     className: "w-full mt-3"
   }, React.createElement(Lock, {
     size: 15
-  }), " เปลี่ยนรหัสผ่านของฉัน")), React.createElement("button", {
+  }), " เปลี่ยนรหัสผ่านของฉัน")), isAdmin && React.createElement("button", {
     onClick: onManageUsers,
     className: "w-full bg-white rounded-2xl border border-stone-200 p-4 shadow-sm flex items-center gap-3 text-left hover:border-cyan-300 transition"
   }, React.createElement("div", {
@@ -5687,7 +5835,7 @@ function SettingsView({
   }, React.createElement(RefreshCw, {
     size: 15,
     className: "text-cyan-600 mt-0.5 shrink-0"
-  }), React.createElement("span", null, "บันทึกอัตโนมัติทุกการเปลี่ยนแปลง — รีเฟรชหน้าจอแล้วข้อมูลและหน้าเดิมยังอยู่"))), React.createElement(ShareAppCard, null), React.createElement("div", {
+  }), React.createElement("span", null, "บันทึกอัตโนมัติทุกการเปลี่ยนแปลง — รีเฟรชหน้าจอแล้วข้อมูลและหน้าเดิมยังอยู่"))), React.createElement(ShareAppCard, null), isAdmin && React.createElement("div", {
     className: "bg-white rounded-2xl border border-stone-200 p-4 shadow-sm"
   }, React.createElement("h3", {
     className: "font-semibold text-slate-700 mb-2"
@@ -5706,7 +5854,7 @@ function SettingsView({
     size: 16
   }), " สำรองข้อมูลลูกหนี้ (.json)")), React.createElement("div", {
     className: "text-xs text-slate-400 mt-1.5"
-  }, "ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน")), React.createElement(BackupCard, {
+  }, "ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน")), isAdmin && React.createElement(BackupCard, {
     data: data,
     onRestore: onRestore
   }), React.createElement(PromptPayCard, null), React.createElement(CollectDayPicker, null), React.createElement(AuthToggle, null), React.createElement("div", {
@@ -7222,6 +7370,1590 @@ function BottomNav({
     }, it.label));
   })));
 }
+/* ===== โมดูลสัญญา+เอกสาร (นิติกรรม) ===== */
+const toSatang = b => Math.round(Number(b || 0) * 100);
+const fromSatang = s => s / 100;
+const fmt = n => Number(n).toLocaleString('th-TH', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+function principalSchedule(principal, n) {
+  const total = toSatang(principal),
+    per = Math.floor(total / n),
+    rows = [];
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    let a = per;
+    if (i === n - 1) a = total - sum;
+    rows.push(fromSatang(a));
+    sum += a;
+  }
+  return rows;
+}
+function bahtText(num) {
+  num = Number(num);
+  if (isNaN(num)) return '';
+  const txt = ['ศูนย์', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+  const pos = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+  let baht = Math.floor(num),
+    satang = Math.round((num - baht) * 100),
+    s = '';
+  if (baht === 0) s = 'ศูนย์';else {
+    const d = String(baht).split('').reverse();
+    for (let i = d.length - 1; i >= 0; i--) {
+      const n = +d[i];
+      if (n === 0) continue;
+      if (i === 1 && n === 1) s += '';else if (i === 1 && n === 2) s += 'ยี่';else if (i === 0 && n === 1 && d.length > 1) s += 'เอ็ด';else s += txt[n];
+      s += pos[i % 6] + (i >= 6 ? 'ล้าน' : '');
+    }
+  }
+  s += 'บาท';
+  if (satang === 0) s += 'ถ้วน';else {
+    const d = String(satang).padStart(2, '0').split('');
+    if (+d[0] > 0) s += (+d[0] === 1 ? '' : +d[0] === 2 ? 'ยี่' : txt[+d[0]]) + 'สิบ';
+    if (+d[1] > 0) s += +d[1] === 1 ? 'เอ็ด' : txt[+d[1]];
+    s += 'สตางค์';
+  }
+  return s;
+}
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+function interestCapOk(r) {
+  return !r || r <= 15;
+}
+function SigPadC({
+  onChange
+}) {
+  const cRef = useRef(null),
+    drawing = useRef(false),
+    dirty = useRef(false),
+    last = useRef(null);
+  useEffect(() => {
+    const cv = cRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    cv.width = rect.width * dpr;
+    cv.height = rect.height * dpr;
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f172a';
+    cv._ctx = ctx;
+    cv._rect = rect;
+  }, []);
+  const pos = e => {
+    const cv = cRef.current;
+    const r = cv.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {
+      x: t.clientX - r.left,
+      y: t.clientY - r.top
+    };
+  };
+  const start = e => {
+    e.preventDefault();
+    drawing.current = true;
+    last.current = pos(e);
+  };
+  const move = e => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const ctx = cRef.current._ctx;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.current.x, last.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+    dirty.current = true;
+  };
+  const end = e => {
+    if (e) e.preventDefault();
+    drawing.current = false;
+    if (dirty.current && onChange) onChange(cRef.current.toDataURL('image/png'));
+  };
+  const clear = () => {
+    const cv = cRef.current;
+    cv._ctx.clearRect(0, 0, cv.width, cv.height);
+    dirty.current = false;
+    if (onChange) onChange('');
+  };
+  return React.createElement("div", null, React.createElement("div", {
+    className: "pad-wrap"
+  }, React.createElement("canvas", {
+    ref: cRef,
+    className: "pad",
+    onMouseDown: start,
+    onMouseMove: move,
+    onMouseUp: end,
+    onMouseLeave: end,
+    onTouchStart: start,
+    onTouchMove: move,
+    onTouchEnd: end
+  })), React.createElement("button", {
+    className: "btn btn-ghost no-print",
+    style: {
+      marginTop: 8
+    },
+    onClick: clear
+  }, "ล้างลายเซ็น"));
+}
+function ContractView({
+  debtor
+}) {
+  const [step, setStep] = useState('form');
+  const _loan = debtor && debtor.loans && debtor.loans[0] || {};
+  const [c, setC] = useState({
+    contractNo: 'LN' + Date.now().toString().slice(-6),
+    borrowerName: debtor && debtor.name || '',
+    borrowerPhone: debtor && debtor.phone || '',
+    principal: _loan.principal || '',
+    hasInterest: !!_loan.rate,
+    ratePerYear: _loan.rate ? _loan.rate * 12 : '',
+    place: '',
+    date: new Date().toISOString().slice(0, 10),
+    lenderName: '',
+    lenderId: '',
+    lenderAddr: '',
+    lenderPhone: '',
+    borrowerId: '',
+    borrowerAddr: '',
+    purpose: '',
+    payMode: 'single',
+    installments: 2,
+    dueDate: '',
+    guaranteeType: 'none',
+    guarantorName: '',
+    guarantorId: '',
+    guaranteeAmount: '',
+    mortgageOwner: '',
+    mortgageDeed: '',
+    mortgageLocation: '',
+    mortgageAmount: '',
+    received: false
+  });
+  const [errs, setErrs] = useState([]);
+  const [frozen, setFrozen] = useState(null);
+  const [sigs, setSigs] = useState({});
+  const [events, setEvents] = useState([]);
+  const set = (k, v) => setC(p => ({
+    ...p,
+    [k]: v
+  }));
+  const validate = () => {
+    const e = [];
+    if (!c.lenderName) e.push('ต้องระบุชื่อผู้ให้กู้');
+    if (!c.borrowerName) e.push('ต้องระบุชื่อผู้กู้');
+    if (!(Number(c.principal) > 0)) e.push('เงินต้นต้องมากกว่า 0');
+    if (c.hasInterest && !interestCapOk(Number(c.ratePerYear))) e.push('ดอกเบี้ยเกินเพดานกฎหมาย 15% ต่อปี (ป.พ.พ. ม.654)');
+    if (c.payMode === 'installment') {
+      const s = principalSchedule(Number(c.principal), Number(c.installments));
+      const sum = s.reduce((a, b) => a + toSatang(b), 0);
+      if (sum !== toSatang(Number(c.principal))) e.push('ยอดเงินต้นรวมทุกงวดไม่ตรงกับเงินกู้');
+    }
+    if (c.guaranteeType === 'guarantor' && !c.guarantorName) e.push('เลือกค้ำประกันแล้วต้องระบุชื่อผู้ค้ำ');
+    if (c.guaranteeType === 'mortgage' && !c.mortgageOwner) e.push('เลือกจำนองแล้วต้องระบุเจ้าของทรัพย์');
+    return e;
+  };
+  const toPreview = () => {
+    const e = validate();
+    setErrs(e);
+    if (e.length === 0) setStep('preview');
+  };
+  const freeze = async () => {
+    const snapshot = JSON.stringify(c);
+    const h = await sha256(snapshot);
+    setFrozen({
+      snapshot,
+      hash: h,
+      at: new Date().toISOString()
+    });
+    setEvents([{
+      t: new Date().toISOString(),
+      ev: 'ตรึงเอกสารเป็นฉบับลงนาม (SHA-256)'
+    }]);
+    setStep('sign');
+  };
+  const signers = [{
+    k: 'borrower',
+    label: 'ผู้กู้',
+    name: c.borrowerName
+  }, {
+    k: 'lender',
+    label: 'ผู้ให้กู้',
+    name: c.lenderName
+  }];
+  if (c.guaranteeType === 'guarantor') signers.push({
+    k: 'guarantor',
+    label: 'ผู้ค้ำประกัน',
+    name: c.guarantorName
+  });
+  signers.push({
+    k: 'witness1',
+    label: 'พยานคนที่ 1',
+    name: ''
+  });
+  const allSigned = signers.every(s => sigs[s.k]);
+  const confirmSign = async () => {
+    if (!allSigned) return;
+    const evs = [...events];
+    signers.forEach(s => evs.push({
+      t: new Date().toISOString(),
+      ev: `ลงนาม: ${s.label} (${s.name || '-'})`
+    }));
+    const finalHash = await sha256(frozen.snapshot + JSON.stringify(sigs));
+    evs.push({
+      t: new Date().toISOString(),
+      ev: `ลงนามครบทุกฝ่าย · hash ฉบับสมบูรณ์ ${finalHash.slice(0, 16)}...`
+    });
+    setEvents(evs);
+    setFrozen(p => ({
+      ...p,
+      finalHash
+    }));
+    setStep('done');
+  };
+  const sched = c.payMode === 'installment' ? principalSchedule(Number(c.principal || 0), Number(c.installments || 2)) : null;
+  if (step === 'form') return React.createElement("div", null, React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "1. ข้อมูลสัญญาเงินกู้"), React.createElement("div", {
+    className: "warn"
+  }, "⚠️ ระบบนี้ทำงานในเครื่อง (ออฟไลน์) · SHA-256 ตรวจการแก้ไขไฟล์ ไม่ได้พิสูจน์ตัวผู้เซ็น · ยังไม่มี OTP/ยืนยันตัวตนจริง · ควรให้ทนายตรวจก่อนใช้จริง"), React.createElement("label", null, "เลขที่สัญญา"), React.createElement("input", {
+    value: c.contractNo,
+    onChange: e => set('contractNo', e.target.value)
+  }), React.createElement("div", {
+    className: "row"
+  }, React.createElement("div", null, React.createElement("label", null, "ทำที่"), React.createElement("input", {
+    value: c.place,
+    onChange: e => set('place', e.target.value),
+    placeholder: "สถานที่ทำสัญญา"
+  })), React.createElement("div", null, React.createElement("label", null, "วันที่"), React.createElement("input", {
+    type: "date",
+    value: c.date,
+    onChange: e => set('date', e.target.value)
+  })))), React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "ผู้ให้กู้"), React.createElement("label", null, "ชื่อ-นามสกุล"), React.createElement("input", {
+    value: c.lenderName,
+    onChange: e => set('lenderName', e.target.value)
+  }), React.createElement("div", {
+    className: "row"
+  }, React.createElement("div", null, React.createElement("label", null, "เลขบัตร ปชช."), React.createElement("input", {
+    value: c.lenderId,
+    onChange: e => set('lenderId', e.target.value)
+  })), React.createElement("div", null, React.createElement("label", null, "โทร"), React.createElement("input", {
+    value: c.lenderPhone,
+    onChange: e => set('lenderPhone', e.target.value)
+  }))), React.createElement("label", null, "ที่อยู่"), React.createElement("input", {
+    value: c.lenderAddr,
+    onChange: e => set('lenderAddr', e.target.value)
+  })), React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "ผู้กู้"), React.createElement("label", null, "ชื่อ-นามสกุล"), React.createElement("input", {
+    value: c.borrowerName,
+    onChange: e => set('borrowerName', e.target.value)
+  }), React.createElement("div", {
+    className: "row"
+  }, React.createElement("div", null, React.createElement("label", null, "เลขบัตร ปชช."), React.createElement("input", {
+    value: c.borrowerId,
+    onChange: e => set('borrowerId', e.target.value)
+  })), React.createElement("div", null, React.createElement("label", null, "โทร"), React.createElement("input", {
+    value: c.borrowerPhone,
+    onChange: e => set('borrowerPhone', e.target.value)
+  }))), React.createElement("label", null, "ที่อยู่"), React.createElement("input", {
+    value: c.borrowerAddr,
+    onChange: e => set('borrowerAddr', e.target.value)
+  })), React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "เงินกู้และดอกเบี้ย"), React.createElement("label", null, "เงินต้น (บาท)"), React.createElement("input", {
+    type: "number",
+    value: c.principal,
+    onChange: e => set('principal', e.target.value)
+  }), c.principal > 0 && React.createElement("div", {
+    className: "ok",
+    style: {
+      fontSize: 13
+    }
+  }, "(", bahtText(Number(c.principal)), ")"), React.createElement("label", null, "วัตถุประสงค์การกู้"), React.createElement("input", {
+    value: c.purpose,
+    onChange: e => set('purpose', e.target.value)
+  }), React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    style: {
+      width: 'auto'
+    },
+    checked: c.hasInterest,
+    onChange: e => set('hasInterest', e.target.checked)
+  }), " คิดดอกเบี้ย"), c.hasInterest && React.createElement("div", null, React.createElement("label", null, "อัตราดอกเบี้ย (% ต่อปี, ไม่เกิน 15)"), React.createElement("input", {
+    type: "number",
+    value: c.ratePerYear,
+    onChange: e => set('ratePerYear', e.target.value)
+  })), React.createElement("label", null, "การชำระคืน"), React.createElement("select", {
+    value: c.payMode,
+    onChange: e => set('payMode', e.target.value)
+  }, React.createElement("option", {
+    value: "single"
+  }, "ชำระครั้งเดียว"), React.createElement("option", {
+    value: "installment"
+  }, "ผ่อนเงินต้นเป็นงวด")), c.payMode === 'installment' && React.createElement("div", null, React.createElement("label", null, "จำนวนงวด"), React.createElement("input", {
+    type: "number",
+    min: "2",
+    value: c.installments,
+    onChange: e => set('installments', e.target.value)
+  })), c.payMode === 'single' && React.createElement("div", null, React.createElement("label", null, "วันครบกำหนด"), React.createElement("input", {
+    type: "date",
+    value: c.dueDate,
+    onChange: e => set('dueDate', e.target.value)
+  }))), React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "การประกันหนี้ (เลือกได้อย่างเดียว)"), React.createElement("div", {
+    className: "radio-group"
+  }, [['none', 'ไม่มีประกัน'], ['guarantor', 'แบบ ก · ผู้ค้ำประกันบุคคล'], ['mortgage', 'แบบ ข · จำนองที่ดิน/บ้าน']].map(([v, l]) => React.createElement("label", {
+    key: v,
+    className: 'radio-opt' + (c.guaranteeType === v ? ' on' : '')
+  }, React.createElement("input", {
+    type: "radio",
+    name: "g",
+    checked: c.guaranteeType === v,
+    onChange: () => set('guaranteeType', v)
+  }), React.createElement("span", null, l)))), c.guaranteeType === 'guarantor' && React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, React.createElement("label", null, "ชื่อผู้ค้ำประกัน"), React.createElement("input", {
+    value: c.guarantorName,
+    onChange: e => set('guarantorName', e.target.value)
+  }), React.createElement("label", null, "วงเงินที่ค้ำ (บาท)"), React.createElement("input", {
+    type: "number",
+    value: c.guaranteeAmount,
+    onChange: e => set('guaranteeAmount', e.target.value)
+  }), React.createElement("div", {
+    className: "warn"
+  }, "ผู้ค้ำเป็นบุคคลธรรมดา ไม่ใช่ลูกหนี้ร่วม (ม.681/1) · การแจ้งเตือนในแอปไม่ถือเป็นการบอกกล่าวตามกฎหมาย (ม.686)")), c.guaranteeType === 'mortgage' && React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, React.createElement("label", null, "เจ้าของทรัพย์"), React.createElement("input", {
+    value: c.mortgageOwner,
+    onChange: e => set('mortgageOwner', e.target.value)
+  }), React.createElement("label", null, "เลขโฉนด/เอกสารสิทธิ"), React.createElement("input", {
+    value: c.mortgageDeed,
+    onChange: e => set('mortgageDeed', e.target.value)
+  }), React.createElement("label", null, "ที่ตั้ง"), React.createElement("input", {
+    value: c.mortgageLocation,
+    onChange: e => set('mortgageLocation', e.target.value)
+  }), React.createElement("label", null, "วงเงินจำนอง (บาท)"), React.createElement("input", {
+    type: "number",
+    value: c.mortgageAmount,
+    onChange: e => set('mortgageAmount', e.target.value)
+  }), React.createElement("div", {
+    className: "warn"
+  }, "ข้อตกลงในแอปยังไม่ทำให้เกิดจำนองสมบูรณ์ ต้องจดทะเบียนที่สำนักงานที่ดิน · ที่ดินไม่ตกเป็นของเจ้าหนี้อัตโนมัติเมื่อผิดนัด (ม.727/1)"))), errs.length > 0 && React.createElement("div", {
+    className: "card"
+  }, errs.map((e, i) => React.createElement("div", {
+    key: i,
+    className: "err"
+  }, e))), React.createElement("button", {
+    className: "btn",
+    onClick: toPreview
+  }, "ตรวจสัญญาฉบับเต็ม →"));
+  const A4 = ({
+    draft
+  }) => React.createElement("div", {
+    className: "a4"
+  }, draft && React.createElement("div", {
+    className: "draft-wm"
+  }, "ร่าง"), React.createElement("h1", null, "สัญญากู้ยืมเงิน"), React.createElement("div", {
+    className: "sub"
+  }, "เลขที่ ", c.contractNo), React.createElement("p", {
+    style: {
+      textAlign: 'right'
+    }
+  }, "ทำที่ ", React.createElement("span", {
+    className: "fill"
+  }, c.place || '____________'), " วันที่ ", React.createElement("span", {
+    className: "fill"
+  }, c.date)), React.createElement("p", null, "สัญญาฉบับนี้ทำขึ้นระหว่าง ", React.createElement("span", {
+    className: "fill"
+  }, c.lenderName), " (\"ผู้ให้กู้\") กับ ", React.createElement("span", {
+    className: "fill"
+  }, c.borrowerName), " (\"ผู้กู้\") โดยตกลงกันดังนี้"), React.createElement("div", {
+    className: "cl-h"
+  }, "ข้อ 1 จำนวนเงินและการรับเงิน"), React.createElement("p", null, "ผู้กู้กู้ยืมเงินจากผู้ให้กู้จำนวน ", React.createElement("span", {
+    className: "fill"
+  }, fmt(c.principal || 0)), " บาท (", React.createElement("span", {
+    className: "fill"
+  }, bahtText(Number(c.principal || 0))), ")", c.purpose ? React.createElement("span", null, " เพื่อ ", c.purpose) : null), React.createElement("p", null, c.received ? 'ผู้กู้ได้รับเงินครบถ้วนแล้วในวันทำสัญญา' : '⚠️ ยังไม่มีการยืนยันรับเงิน — การลงนามนี้ไม่ใช่คำรับรองว่าได้รับเงินแล้ว จะบันทึกการรับเงินเมื่อส่งมอบจริง'), React.createElement("div", {
+    className: "cl-h"
+  }, "ข้อ 2 ดอกเบี้ย"), React.createElement("p", null, c.hasInterest ? `คิดดอกเบี้ยอัตรา ${c.ratePerYear}% ต่อปี จากเงินต้นคงเหลือจริง` : 'ไม่คิดดอกเบี้ยระหว่างสัญญา'), React.createElement("div", {
+    className: "cl-h"
+  }, "ข้อ 3 กำหนดชำระคืน"), c.payMode === 'single' ? React.createElement("p", null, "ชำระเงินต้นทั้งหมดพร้อมดอกเบี้ยที่ถึงกำหนด ในวันที่ ", React.createElement("span", {
+    className: "fill"
+  }, c.dueDate || '____________')) : React.createElement("p", null, "ผ่อนชำระเงินต้นเป็น ", c.installments, " งวด ตามตารางแนบท้าย"), sched && React.createElement("table", null, React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "งวด"), React.createElement("th", null, "เงินต้น (บาท)"))), React.createElement("tbody", null, sched.map((a, i) => React.createElement("tr", {
+    key: i
+  }, React.createElement("td", null, i + 1), React.createElement("td", null, fmt(a)))), React.createElement("tr", null, React.createElement("th", null, "รวม"), React.createElement("th", null, fmt(sched.reduce((x, y) => x + y, 0)))))), React.createElement("div", {
+    className: "cl-h"
+  }, "ข้อ 4 การผิดนัด"), React.createElement("p", null, "หากผิดนัด คิดดอกเบี้ยผิดนัดตาม ป.พ.พ. ม.224 กรณีผ่อนงวด คิดเฉพาะเงินต้นงวดที่ผิดนัด (ม.224/1) ไม่เร่งรัดหนี้ทั้งหมด"), React.createElement("div", {
+    className: "cl-h"
+  }, "ข้อ 5 การประกันหนี้"), React.createElement("p", null, c.guaranteeType === 'guarantor' ? `ค้ำประกันโดย ${c.guarantorName} วงเงิน ${fmt(c.guaranteeAmount || 0)} บาท (เอกสารแนบ ก)` : c.guaranteeType === 'mortgage' ? `จำนอง ${c.mortgageLocation} โฉนด ${c.mortgageDeed} วงเงิน ${fmt(c.mortgageAmount || 0)} บาท (เอกสารแนบ ข · ต้องจดทะเบียน)` : 'ไม่มีการประกันหนี้'), React.createElement("div", {
+    className: "sign-row"
+  }, React.createElement("div", {
+    className: "sign-box"
+  }, React.createElement("div", {
+    className: "sign-ln"
+  }, sigs.borrower && React.createElement("img", {
+    className: "sign-img",
+    src: sigs.borrower
+  })), React.createElement("div", {
+    className: "sign-cap"
+  }, "(", c.borrowerName || '____________', ")", React.createElement("br", null), "ผู้กู้")), React.createElement("div", {
+    className: "sign-box"
+  }, React.createElement("div", {
+    className: "sign-ln"
+  }, sigs.lender && React.createElement("img", {
+    className: "sign-img",
+    src: sigs.lender
+  })), React.createElement("div", {
+    className: "sign-cap"
+  }, "(", c.lenderName || '____________', ")", React.createElement("br", null), "ผู้ให้กู้"))), c.guaranteeType === 'guarantor' && React.createElement("div", {
+    className: "sign-row"
+  }, React.createElement("div", {
+    className: "sign-box"
+  }, React.createElement("div", {
+    className: "sign-ln"
+  }, sigs.guarantor && React.createElement("img", {
+    className: "sign-img",
+    src: sigs.guarantor
+  })), React.createElement("div", {
+    className: "sign-cap"
+  }, "(", c.guarantorName || '____________', ")", React.createElement("br", null), "ผู้ค้ำประกัน")), React.createElement("div", {
+    className: "sign-box"
+  })), React.createElement("div", {
+    className: "sign-row"
+  }, React.createElement("div", {
+    className: "sign-box"
+  }, React.createElement("div", {
+    className: "sign-ln"
+  }, sigs.witness1 && React.createElement("img", {
+    className: "sign-img",
+    src: sigs.witness1
+  })), React.createElement("div", {
+    className: "sign-cap"
+  }, "(____________)", React.createElement("br", null), "พยาน")), React.createElement("div", {
+    className: "sign-box"
+  })), frozen && React.createElement("p", {
+    style: {
+      marginTop: 20,
+      fontSize: 11,
+      color: '#64748b'
+    }
+  }, "รหัสตรวจสอบเอกสาร (SHA-256): ", frozen.finalHash || frozen.hash));
+  if (step === 'preview') return React.createElement("div", null, React.createElement("div", {
+    className: "step-tabs no-print"
+  }, React.createElement("button", {
+    onClick: () => setStep('form')
+  }, "← แก้ไข"), React.createElement("button", {
+    className: "on"
+  }, "ตรวจสัญญา")), React.createElement(A4, {
+    draft: true
+  }), React.createElement("div", {
+    className: "no-print"
+  }, React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    style: {
+      width: 'auto'
+    },
+    checked: c.received,
+    onChange: e => set('received', e.target.checked)
+  }), " ผู้กู้ได้รับเงินครบแล้วจริง (ติ๊กเฉพาะเมื่อส่งมอบเงินแล้ว)"), React.createElement("div", {
+    className: "warn"
+  }, "เมื่อกดถัดไป ระบบจะ \"ตรึงเนื้อหาเป็นฉบับลงนาม\" — หลังจากนี้แก้ไม่ได้ ถ้าจะแก้ต้องสร้างฉบับใหม่"), React.createElement("button", {
+    className: "btn",
+    onClick: freeze
+  }, "ตรึงเอกสาร → ไปลงนาม")));
+  if (step === 'sign') return React.createElement("div", null, React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "ลงนามอิเล็กทรอนิกส์"), React.createElement("div", {
+    className: "ok"
+  }, "เอกสารถูกตรึงแล้ว · SHA-256: ", React.createElement("span", {
+    style: {
+      fontFamily: 'monospace',
+      fontSize: 11
+    }
+  }, frozen.hash.slice(0, 32), "...")), React.createElement("div", {
+    className: "warn"
+  }, "เซ็นด้วยนิ้วบนกรอบด้านล่าง · แต่ละฝ่ายเซ็นแยกกัน · ลายเซ็นนี้เป็นหลักฐานเจตนา ไม่ใช่การยืนยันตัวตนตามกฎหมายอิเล็กทรอนิกส์เต็มรูปแบบ")), signers.map(s => React.createElement("div", {
+    className: "card",
+    key: s.k
+  }, React.createElement("h2", null, s.label, s.name ? ` — ${s.name}` : ''), React.createElement(SigPadC, {
+    onChange: d => setSigs(p => ({
+      ...p,
+      [s.k]: d
+    }))
+  }), sigs[s.k] ? React.createElement("div", {
+    className: "ok",
+    style: {
+      marginTop: 8
+    }
+  }, "✓ เซ็นแล้ว") : React.createElement("div", {
+    style: {
+      color: '#94a3b8',
+      fontSize: 13,
+      marginTop: 8
+    }
+  }, "ยังไม่ได้เซ็น"))), !allSigned && React.createElement("div", {
+    className: "warn"
+  }, "ต้องเซ็นครบทุกฝ่ายก่อนยืนยัน"), React.createElement("button", {
+    className: "btn",
+    disabled: !allSigned,
+    style: {
+      opacity: allSigned ? 1 : .5
+    },
+    onClick: confirmSign
+  }, "ยืนยันลงนามครบทุกฝ่าย"));
+  return React.createElement("div", null, React.createElement("div", {
+    className: "card no-print"
+  }, React.createElement("h2", null, "✅ ลงนามสำเร็จ"), React.createElement("div", {
+    className: "ok"
+  }, "สัญญาลงนามครบทุกฝ่ายแล้ว"), React.createElement("div", {
+    className: "hash",
+    style: {
+      marginTop: 8
+    }
+  }, "รหัสตรวจสอบฉบับสมบูรณ์ (SHA-256):", React.createElement("br", null), frozen.finalHash), React.createElement("h2", {
+    style: {
+      marginTop: 16
+    }
+  }, "ประวัติการลงนาม"), events.map((e, i) => React.createElement("div", {
+    key: i,
+    style: {
+      fontSize: 13,
+      color: '#475569',
+      padding: '4px 0',
+      borderBottom: '1px solid #f1f5f9'
+    }
+  }, new Date(e.t).toLocaleString('th-TH'), " · ", e.ev)), React.createElement("div", {
+    className: "warn",
+    style: {
+      marginTop: 12
+    }
+  }, "ยังไม่ได้เสียอากรแสตมป์ · ยื่นที่ efiling.rd.go.th แล้วนำหลักฐานกลับมาบันทึก · ", c.guaranteeType === 'mortgage' ? 'ยังไม่จดทะเบียนจำนอง' : ''), React.createElement("button", {
+    className: "btn",
+    style: {
+      marginTop: 12
+    },
+    onClick: () => window.print()
+  }, "📄 บันทึกเป็น PDF (พิมพ์)"), React.createElement("button", {
+    className: "btn btn-ghost",
+    style: {
+      marginTop: 8
+    },
+    onClick: () => {
+      setStep('form');
+      setSigs({});
+      setFrozen(null);
+      setEvents([]);
+    }
+  }, "สร้างสัญญาใหม่")), React.createElement(A4, {
+    draft: false
+  }));
+}
+const DOC_TYPES = {
+  borrower_id: {
+    owner: 'borrower',
+    label: 'บัตรประชาชนผู้กู้',
+    req: 'required',
+    law: false
+  },
+  borrower_addr: {
+    owner: 'borrower',
+    label: 'หลักฐานที่อยู่ผู้กู้',
+    req: 'required',
+    law: false
+  },
+  borrower_bank: {
+    owner: 'borrower',
+    label: 'ชื่อบัญชีรับเงิน',
+    req: 'conditional',
+    law: false
+  },
+  borrower_namechg: {
+    owner: 'borrower',
+    label: 'เอกสารเปลี่ยนชื่อ-สกุล',
+    req: 'conditional',
+    law: false
+  },
+  lender_id: {
+    owner: 'lender',
+    label: 'บัตรประชาชนผู้ให้กู้',
+    req: 'required',
+    law: false
+  },
+  lender_bank: {
+    owner: 'lender',
+    label: 'ชื่อบัญชีรับชำระ',
+    req: 'optional',
+    law: false
+  },
+  lender_poa: {
+    owner: 'lender',
+    label: 'หนังสือมอบอำนาจ (ถ้ามีตัวแทน)',
+    req: 'conditional',
+    law: false
+  },
+  guarantor_id: {
+    owner: 'guarantor',
+    label: 'บัตรประชาชนผู้ค้ำ',
+    req: 'required',
+    law: false,
+    only: 'guarantor'
+  },
+  guarantor_addr: {
+    owner: 'guarantor',
+    label: 'ที่อยู่รับหนังสือบอกกล่าว',
+    req: 'required',
+    law: false,
+    only: 'guarantor'
+  },
+  guarantor_sign: {
+    owner: 'guarantor',
+    label: 'สัญญาค้ำที่ผู้ค้ำลงนาม',
+    req: 'required',
+    law: true,
+    only: 'guarantor'
+  },
+  guarantor_ack: {
+    owner: 'guarantor',
+    label: 'หลักฐานผู้ค้ำรับสัญญากู้+ตารางชำระ',
+    req: 'required',
+    law: true,
+    only: 'guarantor'
+  },
+  mort_deed: {
+    owner: 'property',
+    label: 'เอกสารสิทธิที่ดิน (โฉนด ทุกหน้า)',
+    req: 'required',
+    law: true,
+    only: 'mortgage'
+  },
+  mort_house: {
+    owner: 'property',
+    label: 'หลักฐานสิทธิในบ้าน/สิ่งปลูกสร้าง',
+    req: 'conditional',
+    law: true,
+    only: 'mortgage'
+  },
+  mort_house_reg: {
+    owner: 'property',
+    label: 'ทะเบียนบ้าน (ประกอบที่อยู่)',
+    req: 'conditional',
+    law: false,
+    only: 'mortgage'
+  },
+  mort_owner_id: {
+    owner: 'property',
+    label: 'บัตร+ที่อยู่เจ้าของทรัพย์',
+    req: 'required',
+    law: true,
+    only: 'mortgage'
+  },
+  mort_spouse: {
+    owner: 'property',
+    label: 'ยินยอมคู่สมรส/เจ้าของร่วม',
+    req: 'conditional',
+    law: true,
+    only: 'mortgage'
+  },
+  mort_burden: {
+    owner: 'property',
+    label: 'ภาระผูกพันเดิม (จำนองเดิม/อายัด)',
+    req: 'conditional',
+    law: false,
+    only: 'mortgage'
+  },
+  mort_agreement: {
+    owner: 'property',
+    label: 'ข้อตกลงนำทรัพย์ไปจดทะเบียนจำนอง',
+    req: 'required',
+    law: true,
+    only: 'mortgage'
+  },
+  mort_registered: {
+    owner: 'property',
+    label: 'เอกสารจำนองที่จดทะเบียนจริง',
+    req: 'conditional',
+    law: true,
+    only: 'mortgage'
+  }
+};
+const OWNER_LABEL = {
+  borrower: 'ผู้กู้',
+  lender: 'ผู้ให้กู้',
+  guarantor: 'ผู้ค้ำประกัน',
+  property: 'ทรัพย์จำนอง / เจ้าของทรัพย์'
+};
+const REQ_LABEL = {
+  required: 'จำเป็น',
+  conditional: 'เฉพาะกรณี',
+  optional: 'เสริม'
+};
+const STATUS = {
+  none: {
+    l: 'ยังไม่มี',
+    c: 'b-none'
+  },
+  wait: {
+    l: 'รอตรวจ',
+    c: 'b-wait'
+  },
+  fix: {
+    l: 'ต้องแก้',
+    c: 'b-fix'
+  },
+  verified: {
+    l: 'ตรวจครบ',
+    c: 'b-ok'
+  },
+  expired: {
+    l: 'หมดอายุ',
+    c: 'b-exp'
+  },
+  na: {
+    l: 'ไม่เกี่ยว',
+    c: 'b-na'
+  }
+};
+function checklistFor(g) {
+  if (g === 'skip') return [];
+  return Object.entries(DOC_TYPES).filter(([k, v]) => !v.only || v.only === g);
+}
+const IDB = 'finnote_docs';
+function idbOpenDoc() {
+  return new Promise(res => {
+    const r = indexedDB.open(IDB, 1);
+    r.onupgradeneeded = () => {
+      try {
+        r.result.createObjectStore('files');
+      } catch (e) {}
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => res(null);
+  });
+}
+function idbPutDoc(k, v) {
+  return idbOpenDoc().then(db => new Promise(res => {
+    if (!db) return res(false);
+    const tx = db.transaction('files', 'readwrite');
+    tx.objectStore('files').put(v, k);
+    tx.oncomplete = () => {
+      db.close();
+      res(true);
+    };
+    tx.onerror = () => {
+      db.close();
+      res(false);
+    };
+  }));
+}
+function idbGetDoc(k) {
+  return idbOpenDoc().then(db => new Promise(res => {
+    if (!db) return res(null);
+    const tx = db.transaction('files', 'readonly');
+    const rq = tx.objectStore('files').get(k);
+    rq.onsuccess = () => {
+      db.close();
+      res(rq.result || null);
+    };
+    rq.onerror = () => {
+      db.close();
+      res(null);
+    };
+  }));
+}
+function compressImg(file) {
+  return new Promise(res => {
+    let done = false;
+    const fin = v => {
+      if (!done) {
+        done = true;
+        res(v);
+      }
+    };
+    setTimeout(() => fin(null), 15000);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const max = 1400;
+        let {
+          width: w,
+          height: h
+        } = img;
+        const ls = Math.max(w, h);
+        if (ls > max) {
+          const r = max / ls;
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        const cv = document.createElement('canvas');
+        cv.width = w;
+        cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.fillStyle = '#fff';
+        cx.fillRect(0, 0, w, h);
+        cx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        fin(cv.toDataURL('image/jpeg', 0.7));
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        fin(null);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      fin(null);
+    };
+    img.src = url;
+  });
+}
+function SigPadD({
+  onChange
+}) {
+  const cRef = React.useRef(null),
+    drawing = React.useRef(false),
+    dirty = React.useRef(false),
+    last = React.useRef(null);
+  React.useEffect(() => {
+    const cv = cRef.current;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    cv.width = rect.width * dpr;
+    cv.height = rect.height * dpr;
+    const ctx = cv.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0f172a';
+    cv._ctx = ctx;
+  }, []);
+  const pos = e => {
+    const r = cRef.current.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return {
+      x: t.clientX - r.left,
+      y: t.clientY - r.top
+    };
+  };
+  const start = e => {
+    e.preventDefault();
+    drawing.current = true;
+    last.current = pos(e);
+  };
+  const move = e => {
+    if (!drawing.current) return;
+    e.preventDefault();
+    const ctx = cRef.current._ctx;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.current.x, last.current.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+    dirty.current = true;
+  };
+  const end = e => {
+    if (e) e.preventDefault();
+    drawing.current = false;
+    if (dirty.current && onChange) onChange(cRef.current.toDataURL('image/png'));
+  };
+  const clear = () => {
+    const cv = cRef.current;
+    cv._ctx.clearRect(0, 0, cv.width, cv.height);
+    dirty.current = false;
+    if (onChange) onChange('');
+  };
+  return React.createElement("div", null, React.createElement("div", {
+    className: "pad-wrap"
+  }, React.createElement("canvas", {
+    ref: cRef,
+    className: "pad",
+    onMouseDown: start,
+    onMouseMove: move,
+    onMouseUp: end,
+    onMouseLeave: end,
+    onTouchStart: start,
+    onTouchMove: move,
+    onTouchEnd: end
+  })), React.createElement("button", {
+    className: "btn btn-sm btn-ghost",
+    style: {
+      marginTop: 6
+    },
+    onClick: clear
+  }, "ล้างลายเซ็น"));
+}
+const SENSITIVE_DOCS = ['borrower_id', 'lender_id', 'guarantor_id', 'mort_owner_id', 'borrower_bank', 'lender_bank'];
+function noticeDeadline(dateStr) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + 60);
+  return d;
+}
+function noticeStatus(defaultDate, sentDate) {
+  if (!defaultDate) return null;
+  const dl = noticeDeadline(defaultDate);
+  if (sentDate) {
+    const s = new Date(sentDate);
+    return {
+      sent: true,
+      onTime: s <= dl,
+      deadline: dl
+    };
+  }
+  const left = Math.ceil((dl - new Date()) / 86400000);
+  return {
+    sent: false,
+    overdue: left < 0,
+    daysLeft: left,
+    deadline: dl
+  };
+}
+function DocumentsView({
+  debtor
+}) {
+  const [gtype, setGtype] = useState('guarantor');
+  const [docs, setDocs] = useState({});
+  const [viewImg, setViewImg] = useState(null);
+  const [busy, setBusy] = useState('');
+  const [signState, setSignState] = useState('none');
+  const [signers, setSigners] = useState({});
+  const [received, setReceived] = useState(false);
+  const [receivedInfo, setReceivedInfo] = useState({
+    date: '',
+    ref: ''
+  });
+  const [stamp, setStamp] = useState('none');
+  const [mortgageRegistered, setMortgageRegistered] = useState(false);
+  const [tab, setTab] = useState('docs');
+  const [txEvidence, setTxEvidence] = useState({});
+  const [guarantorNotice, setGuarantorNotice] = useState({
+    defaultDate: '',
+    sentDate: '',
+    receivedDate: ''
+  });
+  const [exportSel, setExportSel] = useState({});
+  const signRoles = [{
+    k: 'borrower',
+    l: 'ผู้กู้'
+  }, {
+    k: 'lender',
+    l: 'ผู้ให้กู้'
+  }];
+  if (gtype === 'guarantor') signRoles.push({
+    k: 'guarantor',
+    l: 'ผู้ค้ำประกัน'
+  });
+  if (gtype === 'mortgage') signRoles.push({
+    k: 'owner',
+    l: 'เจ้าของทรัพย์'
+  });
+  signRoles.push({
+    k: 'witness',
+    l: 'พยาน'
+  });
+  const signedCount = signRoles.filter(r => signers[r.k]).length;
+  const allSigned = signedCount === signRoles.length;
+  const signStatus = allSigned ? 'ครบทุกฝ่าย' : signedCount > 0 ? `เซ็นแล้ว ${signedCount}/${signRoles.length}` : 'ยังไม่เซ็น';
+  const stampStatus = {
+    none: 'ยังไม่ยื่น',
+    prepare: 'เตรียมยื่น',
+    uploaded: 'อัปหลักฐาน รอตรวจ',
+    verified: 'ตรวจแล้ว',
+    failed: 'ล้มเหลว'
+  }[stamp];
+  const list = checklistFor(gtype);
+  const groups = {};
+  list.forEach(([k, v]) => {
+    (groups[v.owner] = groups[v.owner] || []).push([k, v]);
+  });
+  const addFiles = async (key, fileList) => {
+    const arr = Array.from(fileList || []).filter(f => /image\/|application\/pdf/.test(f.type));
+    if (!arr.length) return;
+    setBusy(key);
+    for (const f of arr) {
+      let data;
+      if (f.type === 'application/pdf') {
+        data = {
+          pdf: true,
+          name: f.name
+        };
+      } else {
+        data = await compressImg(f);
+        if (!data) continue;
+      }
+      const id = 'doc_' + key + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      await idbPutDoc(id, typeof data === 'string' ? data : JSON.stringify(data));
+      setDocs(p => {
+        const d = {
+          ...(p[key] || {
+            files: [],
+            status: 'wait'
+          })
+        };
+        d.files = [...d.files, {
+          id,
+          pdf: f.type === 'application/pdf',
+          name: f.name
+        }];
+        d.status = 'wait';
+        return {
+          ...p,
+          [key]: d
+        };
+      });
+      await new Promise(r => setTimeout(r, 30));
+    }
+    setBusy('');
+  };
+  const delFile = (key, id) => setDocs(p => {
+    const d = {
+      ...p[key]
+    };
+    d.files = d.files.filter(f => f.id !== id);
+    if (!d.files.length) d.status = 'none';
+    return {
+      ...p,
+      [key]: d
+    };
+  });
+  const setStatus = (key, status) => setDocs(p => ({
+    ...p,
+    [key]: {
+      ...(p[key] || {
+        files: []
+      }),
+      status,
+      checker: status === 'verified' ? 'ผู้ตรวจ (เครื่องนี้)' : p[key] && p[key].checker,
+      checkedAt: status === 'verified' ? Date.now() : p[key] && p[key].checkedAt
+    }
+  }));
+  const showImg = async id => {
+    const d = await idbGetDoc(id);
+    if (d && d.startsWith('data:')) setViewImg(d);
+  };
+  const reqList = list.filter(([k, v]) => v.req === 'required');
+  const reqDone = reqList.filter(([k]) => docs[k] && docs[k].status === 'verified').length;
+  const uploaded = list.filter(([k]) => docs[k] && docs[k].files && docs[k].files.length).length;
+  const complete = reqDone === reqList.length;
+  return React.createElement("div", null, React.createElement("div", {
+    className: "card"
+  }, React.createElement("h1", null, "เอกสารประกอบสัญญา"), React.createElement("div", {
+    className: "sub"
+  }, "รวบรวม · ตรวจความครบถ้วน · บันทึกการตรวจ (ใช้งานคนเดียว เก็บในเครื่อง IndexedDB)"), React.createElement("div", {
+    className: "warn"
+  }, "อัปโหลดครบ ≠ เอกสารแท้ / ตัวตนผ่าน / จำนองสมบูรณ์ · การซ่อนตามฐานะเป็นระดับ UI (เครื่องเดียว) · ระบบบันทึก \"ตรวจความครบถ้วน\" ไม่ใช่ \"รับรองเอกสารแท้\""), React.createElement("h2", null, "เลือกการประกันหนี้ (อย่างเดียว)"), React.createElement("div", {
+    className: "seg"
+  }, [['none', 'ไม่มีประกัน'], ['guarantor', 'ก · ผู้ค้ำ'], ['mortgage', 'ข · จำนอง'], ['skip', 'ไม่เก็บเอกสาร']].map(([v, l]) => React.createElement("button", {
+    key: v,
+    className: gtype === v ? 'on' : '',
+    onClick: () => setGtype(v)
+  }, l))), React.createElement("div", {
+    className: "summary"
+  }, React.createElement("div", {
+    className: "sum-box"
+  }, React.createElement("div", {
+    className: "n"
+  }, uploaded, "/", list.length), React.createElement("div", {
+    className: "l"
+  }, "อัปโหลดแล้ว")), React.createElement("div", {
+    className: "sum-box"
+  }, React.createElement("div", {
+    className: "n",
+    style: {
+      color: complete ? '#059669' : '#d97706'
+    }
+  }, reqDone, "/", reqList.length), React.createElement("div", {
+    className: "l"
+  }, "จำเป็น ตรวจครบ")), React.createElement("div", {
+    className: "sum-box"
+  }, React.createElement("div", {
+    className: "n",
+    style: {
+      color: complete ? '#059669' : '#94a3b8'
+    }
+  }, complete ? '✓' : '—'), React.createElement("div", {
+    className: "l"
+  }, complete ? 'ครบตามนโยบาย' : 'ยังไม่ครบ'))), React.createElement("h2", null, "สถานะแยก 5 ด้าน (ไม่แทนกัน)"), React.createElement("div", {
+    className: "status-track"
+  }, [['เอกสาร', complete ? 'ครบ' : 'ไม่ครบ'], ['ลงนาม', signStatus], ['รับเงินจริง', received ? 'บันทึกแล้ว' : 'ยังไม่บันทึก'], ['อากรแสตมป์', stampStatus], ['จำนอง', gtype === 'mortgage' ? mortgageRegistered ? 'จดทะเบียนแล้ว' : 'ยังไม่จดทะเบียน' : 'ไม่เกี่ยว']].map(([l, v], i) => React.createElement("div", {
+    key: i,
+    className: "st-item"
+  }, React.createElement("div", {
+    className: "st-l"
+  }, l), React.createElement("div", {
+    className: "st-v"
+  }, v)))), React.createElement("div", {
+    className: "tabbar",
+    style: {
+      marginTop: 14
+    }
+  }, React.createElement("button", {
+    className: tab === 'docs' ? 'on' : '',
+    onClick: () => setTab('docs')
+  }, "เอกสาร"), React.createElement("button", {
+    className: tab === 'sign' ? 'on' : '',
+    onClick: () => setTab('sign')
+  }, "ลงนาม"), React.createElement("button", {
+    className: tab === 'status' ? 'on' : '',
+    onClick: () => setTab('status')
+  }, "สถานะ"), React.createElement("button", {
+    className: tab === 'evidence' ? 'on' : '',
+    onClick: () => setTab('evidence')
+  }, "หลักฐาน"), React.createElement("button", {
+    className: tab === 'export' ? 'on' : '',
+    onClick: () => setTab('export')
+  }, "ส่งออก"))), tab === 'docs' && gtype === 'skip' && React.createElement("div", {className:"card"}, React.createElement("div",{className:"warn",style:{margin:0}}, "\uD83D\uDCCB ไม่เก็บเอกสาร (กู้แบบไว้ใจกัน) \u2014 ข้ามการเก็บบัตร/ที่อยู่/หลักฐาน ใช้แค่สัญญา+เซ็นได้ที่แท็บสัญญา \u00b7 เปลี่ยนใจภายหลังเลือกแบบอื่นเพื่อเริ่มเก็บเอกสารได้")), tab === 'docs' && Object.entries(groups).map(([owner, items]) => React.createElement("div", {
+    className: "card owner-group",
+    key: owner
+  }, React.createElement("div", {
+    className: "owner-h"
+  }, OWNER_LABEL[owner]), React.createElement("div", {
+    className: "doc-grid"
+  }, items.map(([key, v]) => {
+    const d = docs[key] || {
+      files: [],
+      status: 'none'
+    };
+    const st = STATUS[d.status] || STATUS.none;
+    return React.createElement("div", {
+      className: "doc-item",
+      key: key
+    }, React.createElement("div", {
+      className: "doc-top"
+    }, React.createElement("div", null, React.createElement("span", {
+      className: "doc-label"
+    }, v.label), v.law && React.createElement("span", {
+      className: "law-tag"
+    }, "กฎหมาย"), React.createElement("div", {
+      className: "doc-meta"
+    }, React.createElement("span", {
+      className: 'req-' + (v.req === 'required' ? 'req' : v.req === 'conditional' ? 'cond' : 'opt')
+    }, REQ_LABEL[v.req]), d.checkedAt && React.createElement("span", null, " · ตรวจ ", new Date(d.checkedAt).toLocaleDateString('th-TH')))), React.createElement("span", {
+      className: 'badge ' + st.c
+    }, st.l)), d.files.length > 0 && React.createElement("div", {
+      className: "thumbs"
+    }, d.files.map(f => React.createElement("div", {
+      className: "thumb",
+      key: f.id
+    }, f.pdf ? React.createElement("div", {
+      style: {
+        fontSize: 10,
+        padding: 6,
+        textAlign: 'center',
+        color: '#64748b'
+      }
+    }, "PDF", React.createElement("br", null), f.name.slice(0, 8)) : React.createElement("img", {
+      onClick: () => showImg(f.id),
+      src: "",
+      ref: el => {
+        if (el && !el.src.startsWith('data')) idbGetDoc(f.id).then(dd => {
+          if (dd && dd.startsWith('data:')) el.src = dd;
+        });
+      }
+    }), React.createElement("button", {
+      className: "del",
+      onClick: () => delFile(key, f.id)
+    }, "×")))), React.createElement("label", {
+      className: "drop",
+      onDragOver: e => {
+        e.preventDefault();
+        e.currentTarget.classList.add('over');
+      },
+      onDragLeave: e => e.currentTarget.classList.remove('over'),
+      onDrop: e => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('over');
+        addFiles(key, e.dataTransfer.files);
+      }
+    }, busy === key ? 'กำลังบีบอัด...' : '📎 ลากไฟล์วาง หรือแตะเพื่อเลือก/ถ่ายรูป (หลายหน้าได้)', React.createElement("input", {
+      type: "file",
+      accept: "image/*,application/pdf",
+      multiple: true,
+      capture: "environment",
+      style: {
+        display: 'none'
+      },
+      onChange: e => addFiles(key, e.target.files)
+    })), d.files.length > 0 && React.createElement("div", {
+      style: {
+        display: 'flex',
+        gap: 6,
+        marginTop: 8,
+        flexWrap: 'wrap'
+      }
+    }, React.createElement("button", {
+      className: "btn btn-sm",
+      onClick: () => setStatus(key, 'verified')
+    }, "ตรวจครบ"), React.createElement("button", {
+      className: "btn btn-sm btn-ghost",
+      onClick: () => setStatus(key, 'fix')
+    }, "ต้องแก้"), React.createElement("button", {
+      className: "btn btn-sm btn-ghost",
+      onClick: () => setStatus(key, 'na')
+    }, "ไม่เกี่ยว")));
+  })))), tab === 'docs' && gtype === 'mortgage' && React.createElement("div", {
+    className: "card"
+  }, React.createElement("div", {
+    className: "warn",
+    style: {
+      margin: 0
+    }
+  }, "📌 ", React.createElement("b", null, "โฉนด / บ้าน / ทะเบียนบ้าน แยกกัน"), " — ทะเบียนบ้านใช้ประกอบที่อยู่ ไม่พิสูจน์กรรมสิทธิ์บ้าน · ภาพโฉนดที่อัปโหลดไม่รับรองสถานะทะเบียนล่าสุด ต้องตรวจที่สำนักงานที่ดิน · ถ้าเจ้าของทรัพย์ไม่ใช่ผู้กู้ = \"ผู้จำนองประกันหนี้ผู้อื่น\" ไม่ใช่ผู้ค้ำ (ม.727/1)")), tab === 'sign' && React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "ลงนามอิเล็กทรอนิกส์"), React.createElement("div", {
+    className: "warn"
+  }, "เซ็นด้วยนิ้ว/เมาส์ · แต่ละฝ่ายแยกกัน · ผู้ค้ำต้องเซ็นในฐานะผู้ค้ำ ไม่ใช่พยาน · ลายเซ็นเป็นหลักฐานเจตนา ไม่ใช่การยืนยันตัวตนตามกฎหมายเต็มรูปแบบ"), signRoles.map(r => React.createElement("div", {
+    key: r.k,
+    style: {
+      marginBottom: 16,
+      paddingBottom: 16,
+      borderBottom: '1px solid #f1f5f9'
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 6,
+      color: '#334155'
+    }
+  }, r.l, " ", signers[r.k] && React.createElement("span", {
+    style: {
+      color: '#059669',
+      fontSize: 13
+    }
+  }, "✓ เซ็นแล้ว")), React.createElement(SigPadD, {
+    onChange: d => setSigners(p => ({
+      ...p,
+      [r.k]: d
+    }))
+  }))), React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      color: allSigned ? '#059669' : '#d97706'
+    }
+  }, signStatus), !allSigned && React.createElement("div", {
+    className: "warn"
+  }, "ต้องเซ็นครบทุกฝ่ายจึงจะถือว่าลงนามครบ")), tab === 'status' && React.createElement("div", {
+    className: "card"
+  }, React.createElement("h2", null, "บันทึกสถานะ (แยกกัน ไม่แทนกัน)"), React.createElement("div", {
+    style: {
+      marginBottom: 16,
+      paddingBottom: 16,
+      borderBottom: '1px solid #f1f5f9'
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 6
+    }
+  }, "รับเงินจริง"), React.createElement("div", {
+    className: "warn"
+  }, "แยกจาก \"ลงนาม\" · ติ๊กเฉพาะเมื่อส่งมอบเงินจริงแล้ว"), React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      margin: '8px 0'
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    style: {
+      width: 'auto'
+    },
+    checked: received,
+    onChange: e => setReceived(e.target.checked)
+  }), " ผู้กู้ได้รับเงินครบแล้วจริง"), received && React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8
+    }
+  }, React.createElement("input", {
+    type: "date",
+    value: receivedInfo.date,
+    onChange: e => setReceivedInfo(p => ({
+      ...p,
+      date: e.target.value
+    })),
+    placeholder: "วันที่โอน"
+  }), React.createElement("input", {
+    value: receivedInfo.ref,
+    onChange: e => setReceivedInfo(p => ({
+      ...p,
+      ref: e.target.value
+    })),
+    placeholder: "เลขอ้างอิงโอน"
+  }))), React.createElement("div", {
+    style: {
+      marginBottom: 16,
+      paddingBottom: 16,
+      borderBottom: '1px solid #f1f5f9'
+    }
+  }, React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 6
+    }
+  }, "อากรแสตมป์"), React.createElement("div", {
+    className: "warn"
+  }, "ยื่นที่ efiling.rd.go.th แล้วนำหลักฐานกลับมาบันทึก · รูป/QR ที่ระบบสร้างเองไม่ใช่หลักฐานเสียอากร"), React.createElement("select", {
+    value: stamp,
+    onChange: e => setStamp(e.target.value)
+  }, React.createElement("option", {
+    value: "none"
+  }, "ยังไม่ยื่น"), React.createElement("option", {
+    value: "prepare"
+  }, "เตรียมยื่น/รอชำระ"), React.createElement("option", {
+    value: "uploaded"
+  }, "อัปโหลดหลักฐานแล้ว รอตรวจ"), React.createElement("option", {
+    value: "verified"
+  }, "ตรวจหลักฐานแล้ว"), React.createElement("option", {
+    value: "failed"
+  }, "ยื่น/ชำระล้มเหลว"))), gtype === 'mortgage' && React.createElement("div", null, React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      marginBottom: 6
+    }
+  }, "การจดทะเบียนจำนอง"), React.createElement("div", {
+    className: "warn"
+  }, "ต้องจดทะเบียนที่สำนักงานที่ดินจริง · อัปโหลดโฉนดครบ ≠ จำนองสมบูรณ์"), React.createElement("label", {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      margin: '8px 0'
+    }
+  }, React.createElement("input", {
+    type: "checkbox",
+    style: {
+      width: 'auto'
+    },
+    checked: mortgageRegistered,
+    onChange: e => setMortgageRegistered(e.target.checked)
+  }), " จดทะเบียนจำนองที่สำนักงานที่ดินแล้ว (มีหลักฐาน)"))), tab === 'evidence' && (() => {
+    const TX = [{
+      k: 'contract_signed',
+      l: 'สัญญาฉบับลงนาม + หลักฐานลงนาม'
+    }, {
+      k: 'schedule',
+      l: 'ตารางกำหนดชำระ'
+    }, {
+      k: 'disburse',
+      l: 'หลักฐานส่งมอบเงินกู้ + ยืนยันรับเงิน'
+    }, {
+      k: 'repayment',
+      l: 'หลักฐานรับชำระแต่ละครั้ง'
+    }, {
+      k: 'stamp_receipt',
+      l: 'ใบเสร็จ/รหัสรับรองอากร'
+    }, {
+      k: 'demand',
+      l: 'หนังสือทวงถาม'
+    }, {
+      k: 'closure',
+      l: 'หลักฐานปิดบัญชี/ไถ่ถอนจำนอง'
+    }];
+    const ns = noticeStatus(guarantorNotice.defaultDate, guarantorNotice.sentDate);
+    return React.createElement("div", null, React.createElement("div", {
+      className: "card"
+    }, React.createElement("h2", null, "หลักฐานธุรกรรม"), React.createElement("div", {
+      className: "warn"
+    }, "แยกหลักฐานโอนที่อัปโหลด ออกจาก \"รับเงินจริง\" ที่ยืนยัน (บันทึกในแท็บสถานะ) · กันนำหลักฐานเดียวบันทึกซ้ำ"), TX.map(t => {
+      const items = txEvidence[t.k] || [];
+      return React.createElement("div", {
+        key: t.k,
+        className: "doc-item",
+        style: {
+          marginBottom: 8
+        }
+      }, React.createElement("div", {
+        className: "doc-top"
+      }, React.createElement("span", {
+        className: "doc-label"
+      }, t.l), React.createElement("span", {
+        className: "badge b-none"
+      }, items.length, " รายการ")), items.map((it, i) => React.createElement("div", {
+        key: i,
+        style: {
+          fontSize: 13,
+          color: '#475569',
+          padding: '2px 0'
+        }
+      }, "• ", it.date, " ", it.note)), React.createElement("button", {
+        className: "btn btn-sm",
+        style: {
+          marginTop: 6
+        },
+        onClick: () => {
+          const note = prompt('รายละเอียดหลักฐาน ' + t.l);
+          if (note) setTxEvidence(p => ({
+            ...p,
+            [t.k]: [...(p[t.k] || []), {
+              date: new Date().toLocaleDateString('th-TH'),
+              note
+            }]
+          }));
+        }
+      }, "+ เพิ่มบันทึก"));
+    })), gtype === 'guarantor' && React.createElement("div", {
+      className: "card"
+    }, React.createElement("h2", null, "หนังสือบอกกล่าวผู้ค้ำ (ม.686)"), React.createElement("div", {
+      className: "warn"
+    }, "ต้องแจ้งผู้ค้ำภายใน 60 วันนับจากผิดนัด · การแจ้งในแอปไม่ถือเป็นการบอกกล่าวครบตามกฎหมายโดยอัตโนมัติ ต้องมีหลักฐานส่ง/รับจริง"), React.createElement("label", null, "วันที่ผู้กู้ผิดนัด"), React.createElement("input", {
+      type: "date",
+      value: guarantorNotice.defaultDate,
+      onChange: e => setGuarantorNotice(p => ({
+        ...p,
+        defaultDate: e.target.value
+      }))
+    }), guarantorNotice.defaultDate && ns && React.createElement("div", {
+      style: {
+        margin: '8px 0',
+        padding: '10px',
+        borderRadius: 8,
+        background: ns.overdue ? '#fee2e2' : '#f0fdf4',
+        color: ns.overdue ? '#b91c1c' : '#166534',
+        fontSize: 14,
+        fontWeight: 600
+      }
+    }, "กำหนดแจ้งภายใน: ", ns.deadline.toLocaleDateString('th-TH'), !ns.sent && (ns.overdue ? ` · ⚠️ เกินกำหนดแล้ว` : ` · เหลือ ${ns.daysLeft} วัน`), ns.sent && (ns.onTime ? ' · ✓ ส่งในกำหนด' : ' · ⚠️ ส่งเกินกำหนด')), React.createElement("label", null, "วันที่จัดทำ/ส่งหนังสือ"), React.createElement("input", {
+      type: "date",
+      value: guarantorNotice.sentDate,
+      onChange: e => setGuarantorNotice(p => ({
+        ...p,
+        sentDate: e.target.value
+      }))
+    }), React.createElement("label", null, "วันที่ผู้ค้ำได้รับ (หลักฐานตอบรับ)"), React.createElement("input", {
+      type: "date",
+      value: guarantorNotice.receivedDate,
+      onChange: e => setGuarantorNotice(p => ({
+        ...p,
+        receivedDate: e.target.value
+      }))
+    })));
+  })(), tab === 'export' && (() => {
+    const avail = list.filter(([k]) => docs[k] && docs[k].files && docs[k].files.length);
+    return React.createElement("div", {
+      className: "card"
+    }, React.createElement("h2", null, "ส่งออกชุดเอกสาร"), React.createElement("div", {
+      className: "warn"
+    }, "ติ๊กเฉพาะที่ต้องการส่ง · ไม่แนบบัตร ปชช./บัญชี อัตโนมัติ (ต้องติ๊กเอง) · เอกสารอ่อนไหวมีเครื่องหมาย 🔒"), avail.length === 0 && React.createElement("div", {
+      style: {
+        color: '#94a3b8',
+        padding: '12px 0'
+      }
+    }, "ยังไม่มีเอกสารที่อัปโหลด"), avail.map(([k, v]) => {
+      const sens = SENSITIVE_DOCS.includes(k);
+      return React.createElement("label", {
+        key: k,
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 0',
+          borderBottom: '1px solid #f1f5f9'
+        }
+      }, React.createElement("input", {
+        type: "checkbox",
+        style: {
+          width: 'auto'
+        },
+        checked: !!exportSel[k],
+        onChange: e => setExportSel(p => ({
+          ...p,
+          [k]: e.target.checked
+        }))
+      }), React.createElement("span", {
+        style: {
+          flex: 1
+        }
+      }, v.label, " ", sens && React.createElement("span", {
+        title: "อ่อนไหว"
+      }, "🔒")), React.createElement("span", {
+        style: {
+          fontSize: 12,
+          color: '#94a3b8'
+        }
+      }, docs[k].files.length, " หน้า · ", (STATUS[docs[k].status] || STATUS.none).l));
+    }), avail.length > 0 && React.createElement("div", {
+      style: {
+        marginTop: 12
+      }
+    }, React.createElement("div", {
+      style: {
+        fontSize: 14,
+        fontWeight: 600,
+        marginBottom: 8
+      }
+    }, "เลือกแล้ว ", Object.values(exportSel).filter(Boolean).length, " รายการ"), React.createElement("button", {
+      className: "btn",
+      onClick: () => {
+        const sel = avail.filter(([k]) => exportSel[k]);
+        if (!sel.length) {
+          alert('ยังไม่ได้เลือกเอกสาร');
+          return;
+        }
+        const lines = sel.map(([k, v]) => `- ${v.label} (${OWNER_LABEL[v.owner]}) · ${docs[k].files.length} หน้า · ${(STATUS[docs[k].status] || STATUS.none).l}`);
+        const rpt = 'รายการเอกสารส่งออก\nสร้างโดย FinNote · ' + new Date().toLocaleString('th-TH') + '\n\n' + lines.join('\n') + '\n\n(สำเนาอนุพันธ์ · ไม่ใช่การรับรองสำเนาถูกต้อง)';
+        const w = window.open('', '_blank');
+        w.document.write('<pre style="font-family:sans-serif;padding:20px;white-space:pre-wrap">' + rpt + '</pre>');
+      }
+    }, "📄 สร้างรายการเอกสารส่งออก"), React.createElement("div", {
+      className: "warn",
+      style: {
+        marginTop: 8
+      }
+    }, "รายการระบุประเภท/เจ้าของ/ฉบับ/สถานะ · หากใส่ลายน้ำสำเนา ต้องระบุ \"สำเนาอนุพันธ์\" ไม่รับรองสำเนาถูกต้องหากยังไม่ยืนยัน")));
+  })(), viewImg && React.createElement("div", {
+    className: "modal",
+    onClick: () => setViewImg(null)
+  }, React.createElement("div", {
+    className: "modal-inner",
+    onClick: e => e.stopPropagation()
+  }, React.createElement("img", {
+    src: viewImg
+  }), React.createElement("button", {
+    className: "btn",
+    style: {
+      marginTop: 10,
+      width: '100%'
+    },
+    onClick: () => setViewImg(null)
+  }, "ปิด"))));
+}
+
+function LegalView({ debtor, onBack }) {
+  const [t, setT] = React.useState('contract');
+  if (!debtor) return React.createElement("div", { className: "p-8 text-center text-slate-400" }, "เลือกลูกหนี้ก่อน");
+  return React.createElement("div", { className: "px-3 pt-3 pb-28", style: { maxWidth: 900, margin: '0 auto' } },
+    React.createElement("button", { onClick: onBack, className: "mb-3", style: { background: 'none', border: 'none', color: '#1e3a5f', fontSize: 15, fontWeight: 600, cursor: 'pointer' } }, "← กลับ"),
+    React.createElement("div", { style: { display: 'flex', gap: 8, background: '#e2e8f0', padding: 4, borderRadius: 12, marginBottom: 14 } },
+      React.createElement("button", { onClick: () => setT('contract'), style: { flex: 1, padding: 12, border: 'none', borderRadius: 9, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer', background: t === 'contract' ? '#1e3a5f' : 'transparent', color: t === 'contract' ? '#fff' : '#64748b' } }, "สัญญา + เซ็น"),
+      React.createElement("button", { onClick: () => setT('docs'), style: { flex: 1, padding: 12, border: 'none', borderRadius: 9, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer', background: t === 'docs' ? '#1e3a5f' : 'transparent', color: t === 'docs' ? '#fff' : '#64748b' } }, "เอกสารประกอบ")),
+    t === 'contract' ? React.createElement(ContractView, { debtor: debtor }) : React.createElement(DocumentsView, { debtor: debtor }));
+}
 function App() {
   const [phase, setPhase] = useState('loading');
   const [data, setData] = useState({
@@ -7458,6 +9190,7 @@ function App() {
           id: uid(),
           ...vals,
           createdAt: Date.now(),
+          createdBy: currentUser?.id || null,
           loans: []
         }]
       }));
@@ -7771,8 +9504,19 @@ function App() {
       }
     }));
   }
-  const selectedDebtor = data.debtors.find(d => d.id === selectedId) || null;
-  const headerTitle = view === 'dashboard' ? 'หน้าหลัก' : view === 'debtors' ? 'รายชื่อลูกหนี้' : view === 'settings' ? 'ตั้งค่า' : view === 'users' ? 'จัดการผู้ใช้งาน' : view === 'reports' ? 'รายงาน' : view === 'calendar' ? 'ปฏิทิน' : '';
+  // ===== กรองข้อมูลตามผู้ใช้ (ระดับ A: แยกการมองเห็น) =====
+  const _uid = currentUser?.id || null;
+  const _isAdmin = currentUser?.role === 'admin';
+  const visibleData = React.useMemo(() => {
+    const all = data.debtors || [];
+    const mine = all.filter(d => {
+      if (d.createdBy == null) return _isAdmin;   // ข้อมูลเก่าไม่มีเจ้าของ → admin เห็น
+      return d.createdBy === _uid;
+    });
+    return { ...data, debtors: mine };
+  }, [data, _uid, _isAdmin]);
+  const selectedDebtor = visibleData.debtors.find(d => d.id === selectedId) || null;
+  const headerTitle = view === 'dashboard' ? 'หน้าหลัก' : view === 'debtors' ? 'รายชื่อลูกหนี้' : view === 'settings' ? 'ตั้งค่า' : view === 'users' ? 'จัดการผู้ใช้งาน' : view === 'reports' ? 'รายงาน' : view === 'calendar' ? 'ปฏิทิน' : view === 'legal' ? 'สัญญา/เอกสาร' : '';
   return React.createElement("div", {
     className: "lt-root min-h-screen bg-stone-100"
   }, React.createElement("style", null, fontCss), React.createElement("div", {
@@ -7796,7 +9540,7 @@ function App() {
     className: "lt-fade",
     key: view + (selectedId || '')
   }, view === 'dashboard' && React.createElement(DashboardView, {
-    data: data,
+    data: visibleData,
     onOpenDebtor: id => {
       setSelectedId(id);
       setView('debtor');
@@ -7804,7 +9548,7 @@ function App() {
     onOpenReports: () => setView('reports'),
     onOpenCalendar: () => setView('calendar')
   }), view === 'debtors' && React.createElement(DebtorsView, {
-    data: data,
+    data: visibleData,
     onOpenDebtor: id => {
       setSelectedId(id);
       setView('debtor');
@@ -7841,19 +9585,26 @@ function App() {
     onShare: d => setShareDebtor(d),
     onBulkPay: d => setBulkPayDebtor(d),
     onAddNote: (id, note) => updateDebtor(id, d => ({ ...d, notes: [...(d.notes || []), note] })),
-    onDeleteNote: (id, noteId) => updateDebtor(id, d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== noteId) }))
+    onDeleteNote: (id, noteId) => updateDebtor(id, d => ({ ...d, notes: (d.notes || []).filter(n => n.id !== noteId) })),
+    onLegal: () => setView('legal'),
+    isAdmin: currentUser?.role === 'admin' 
   }), view === 'debtor' && !selectedDebtor && React.createElement("div", {
     className: "p-8 text-center text-slate-400"
   }, "ไม่พบข้อมูลลูกหนี้"), view === 'calc' && React.createElement(CalcView, {
     initName: calcInitName
   }), view === 'reports' && React.createElement(ReportsView, {
-    data: data,
+    data: visibleData,
     onBack: () => setView('dashboard')
   }), view === 'calendar' && React.createElement(CalendarView, {
-    data: data,
+    data: visibleData,
     onBack: () => setView('dashboard'),
     onOpenDebtor: id => { setSelectedId(id); setView('debtor'); }
-  }), view === 'settings' && React.createElement(SettingsView, {
+  }), view === 'legal' && (currentUser?.role === 'admin' ? React.createElement(LegalView, {
+    debtor: selectedDebtor,
+    onBack: () => setView('debtor')
+  }) : React.createElement("div", {
+    className: "p-8 text-center text-slate-400"
+  }, "เฉพาะผู้ดูแลระบบเท่านั้น")), view === 'settings' && React.createElement(SettingsView, {
     data: data,
     currentUser: currentUser,
     onLogout: doLogout,
@@ -8000,21 +9751,7 @@ function App() {
 }
 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
-    } catch (err) {
-      var rootEl = document.getElementById('root');
-      if (rootEl) rootEl.innerHTML =
-        '<div style="padding:24px;font-family:-apple-system,sans-serif;color:#b91c1c">' +
-        '<h3>เกิดข้อผิดพลาดในการโหลด</h3>' +
-        '<p style="color:#475569;font-size:14px">ข้อมูลของคุณยังปลอดภัย ลองรีเฟรชหน้าใหม่อีกครั้ง</p>' +
-        '<pre style="white-space:pre-wrap;font-size:11px;color:#94a3b8">' +
-        (err && err.message ? err.message : err) + '</pre>' +
-        '<button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:15px">รีเฟรชหน้าใหม่</button>' +
-        '</div>';
-      console.error(err);
-    }
-  }
-  start();
-})();
+}catch(err){var r=document.getElementById("root");if(r)r.innerHTML='<div style="padding:24px;font-family:-apple-system,sans-serif;color:#b91c1c"><h3>เกิดข้อผิดพลาดในการโหลด</h3><p style="color:#475569;font-size:14px">ข้อมูลของคุณยังปลอดภัย ลองรีเฟรชหน้าใหม่</p><pre style="white-space:pre-wrap;font-size:11px;color:#94a3b8">'+(err&&err.message?err.message:err)+'</pre><button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:15px">รีเฟรชหน้าใหม่</button></div>';console.error(err);}}start();})();
 </script>
 </body>
 </html>
