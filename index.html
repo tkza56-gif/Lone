@@ -15,45 +15,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<script>
-/* ===== Boot Diagnostic (ตาม runbook: บอกสาเหตุแทนจอขาว) ===== */
-window.__BOOT = ['HTML โหลดแล้ว ' + new Date().toLocaleTimeString('th-TH')];
-window.__bl = function(m){ window.__BOOT.push(m); };
-window.addEventListener('error', function(e){
-  window.__bl('ERROR: ' + (e.message || (e.filename+' โหลดไม่ได้') || '?'));
-}, true);
-window.addEventListener('unhandledrejection', function(e){
-  window.__bl('PROMISE ERROR: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
-});
-function __showBoot(extra){
-  var el = document.getElementById('root');
-  if(!el) return;
-  el.innerHTML = '<div style="padding:24px;font-family:sans-serif;color:#1a1a1a;max-width:600px;margin:0 auto">'
-    + '<h3 style="color:#b91c1c">แอปโหลดไม่สำเร็จ — ข้อมูลของคุณยังปลอดภัย</h3>'
-    + '<p style="color:#475569;font-size:14px">ลำดับการโหลด (ส่งภาพนี้ให้ผู้พัฒนาเพื่อแก้ตรงจุด):</p>'
-    + '<pre style="white-space:pre-wrap;font-size:12px;background:#f1f5f9;padding:12px;border-radius:8px;color:#334155">'
-    + window.__BOOT.join('\n') + (extra?('\n\n'+extra):'') + '</pre>'
-    + '<button onclick="location.reload()" style="margin-top:12px;padding:12px 20px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:15px;width:100%">โหลดใหม่</button>'
-    + '<button onclick="(async()=>{try{if(\'serviceWorker\' in navigator){var rs=await navigator.serviceWorker.getRegistrations();for(var r of rs)await r.unregister();}if(window.caches){var ks=await caches.keys();for(var k of ks)await caches.delete(k);}location.reload(true);}catch(e){alert(e.message)}})()" style="margin-top:8px;padding:12px 20px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:15px;width:100%">ล้างแคช + โหลดใหม่ (แก้จอขาว)</button>'
-    + '</div>';
-}
-// ตรวจ CDN โหลดครบไหม
-window.addEventListener('load', function(){
-  setTimeout(function(){
-    if(!window.React) window.__bl('React CDN โหลดไม่ได้ (เน็ต/CDN ถูกบล็อก)');
-    if(!window.ReactDOM) window.__bl('ReactDOM CDN โหลดไม่ได้');
-    var root = document.getElementById('root');
-    var stillLoading = root && (root.innerHTML.indexOf('กำลังโหลด') >= 0 || root.children.length === 0);
-    if(stillLoading){ __showBoot(); }  // 6 วิแล้วยังไม่ render → แสดง log
-  }, 6000);
-});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin onload="__bl('React โหลดแล้ว')" onerror="__bl('React CDN 404/บล็อก')"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin onload="__bl('ReactDOM โหลดแล้ว')" onerror="__bl('ReactDOM CDN 404/บล็อก')"></script>
-<script src="https://cdn.tailwindcss.com" onload="__bl('Tailwind โหลดแล้ว')" onerror="__bl('Tailwind CDN บล็อก (ดีไซน์ไม่ขึ้น แต่แอปทำงานได้)')"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+<script defer src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script defer src="https://cdn.tailwindcss.com"></script>
 <style>
-
 
 
 
@@ -455,14 +420,38 @@ window.addEventListener('load', function(){
   .tabbar button{flex:1;padding:10px;border:none;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;background:#e2e8f0;color:#64748b;cursor:pointer;}
 
   .tabbar button.on{background:#1e3a5f;color:#fff;}
-
 </style>
 </head>
 <body>
-<div id="root"><div id="boot">FinNote — กำลังโหลด...</div></div>
+<div id="root"><div id="boot" style="padding:32px;font-family:sans-serif;color:#334155">FinNote — กำลังโหลด...</div></div>
 <script>
-(function(){function start(){if(!window.React||!window.ReactDOM){setTimeout(start,50);return;}try{
-window.__bl('เริ่มรันแอป');
+// Independent of React: keep startup failures visible even when a dependency fails.
+window.finnoteBootError = function (error) {
+  var root = document.getElementById('root');
+  if (!root) return;
+  root.replaceChildren();
+  var box = document.createElement('div');
+  box.style.cssText = 'padding:28px;max-width:520px;margin:40px auto;font-family:sans-serif;color:#334155;background:#fff;border:1px solid #cbd5e1;border-radius:16px';
+  var title = document.createElement('h2');
+  title.textContent = 'เปิด FinNote ไม่สำเร็จ';
+  var message = document.createElement('p');
+  message.textContent = 'ลองตรวจสอบอินเทอร์เน็ตแล้วเปิดใหม่ โดยไม่ต้องล้างข้อมูลเว็บไซต์';
+  var detail = document.createElement('pre');
+  detail.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px';
+  detail.textContent = String(error && error.message || error);
+  var retry = document.createElement('button');
+  retry.textContent = 'ลองเปิดใหม่';
+  retry.style.cssText = 'padding:12px 20px;background:#0e7490;color:white;border:0;border-radius:10px;font-size:16px';
+  retry.onclick = function () { location.reload(); };
+  box.append(title, message, detail, retry);
+  root.appendChild(box);
+};
+</script>
+
+<script>
+(function(){var startedAt=Date.now();function start(){if(!window.React||!window.ReactDOM){
+if(Date.now()-startedAt>=15000){window.finnoteBootError(new Error('โหลดส่วนประกอบ React ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อ'));return;}
+setTimeout(start,50);return;}try{
 const {
   useState,
   useEffect,
@@ -865,7 +854,8 @@ async function registerServiceWorker() {
     };
   }
   try {
-    const reg = await navigator.serviceWorker.register('./sw.js');
+    const reg = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+    reg.update().catch(() => {});
     try {
       if ('periodicSync' in reg) {
         const status = await navigator.permissions.query({
@@ -8993,6 +8983,7 @@ function LegalView({ debtor, onBack }) {
 }
 function App() {
   const [phase, setPhase] = useState('loading');
+  const [startupError, setStartupError] = useState(null);
   const [data, setData] = useState({
     debtors: [],
     users: []
@@ -9090,7 +9081,10 @@ function App() {
         }
       }
       hydrated.current = true;
-    })();
+    })().catch(error => {
+      console.error('FinNote data startup failed:', error);
+      setStartupError(error);
+    });
   }, []);
   useEffect(() => {
     if (!hydrated.current) return;
@@ -9491,6 +9485,18 @@ function App() {
   @keyframes ltpop{from{opacity:0;transform:translateY(8px) scale(.98);}to{opacity:1;transform:none;}}
   .lt-fade{animation:ltfade .25s ease-out;}
   @keyframes ltfade{from{opacity:0;}to{opacity:1;}}`;
+  // ===== กรองข้อมูลตามผู้ใช้ (ระดับ A: แยกการมองเห็น) =====
+  const _uid = currentUser?.id || null;
+  const _isAdmin = currentUser?.role === 'admin';
+  const visibleData = React.useMemo(() => {
+    const all = data.debtors || [];
+    const mine = all.filter(d => {
+      if (d.createdBy == null) return _isAdmin;   // ข้อมูลเก่าไม่มีเจ้าของ → admin เห็น
+      return d.createdBy === _uid;
+    });
+    return { ...data, debtors: mine };
+  }, [data, _uid, _isAdmin]);
+  if (startupError) throw startupError;
   if (phase === 'loading') {
     return React.createElement("div", {
       className: "lt-root min-h-screen flex items-center justify-center bg-cyan-900"
@@ -9541,17 +9547,6 @@ function App() {
       }
     }));
   }
-  // ===== กรองข้อมูลตามผู้ใช้ (ระดับ A: แยกการมองเห็น) =====
-  const _uid = currentUser?.id || null;
-  const _isAdmin = currentUser?.role === 'admin';
-  const visibleData = React.useMemo(() => {
-    const all = data.debtors || [];
-    const mine = all.filter(d => {
-      if (d.createdBy == null) return _isAdmin;   // ข้อมูลเก่าไม่มีเจ้าของ → admin เห็น
-      return d.createdBy === _uid;
-    });
-    return { ...data, debtors: mine };
-  }, [data, _uid, _isAdmin]);
   const selectedDebtor = visibleData.debtors.find(d => d.id === selectedId) || null;
   const headerTitle = view === 'dashboard' ? 'หน้าหลัก' : view === 'debtors' ? 'รายชื่อลูกหนี้' : view === 'settings' ? 'ตั้งค่า' : view === 'users' ? 'จัดการผู้ใช้งาน' : view === 'reports' ? 'รายงาน' : view === 'calendar' ? 'ปฏิทิน' : view === 'legal' ? 'สัญญา/เอกสาร' : '';
   return React.createElement("div", {
@@ -9786,32 +9781,25 @@ function App() {
     onLeave: doLogout
   }));
 }
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then((reg) => {
-      // ตรวจเวอร์ชันใหม่ทุกครั้งที่เปิด
-      reg.update().catch(() => {});
-      reg.addEventListener('updatefound', () => {
-        const nw = reg.installing;
-        if (!nw) return;
-        nw.addEventListener('statechange', () => {
-          // มีเวอร์ชันใหม่พร้อม + มี SW เดิมคุมอยู่ → รีโหลดเอาของใหม่ (กันหน้าเก่าค้าง)
-          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-            location.reload();
-          }
-        });
-      });
-    }).catch(() => {});
-    // ถ้า controller เปลี่ยน (SW ใหม่ take over) → รีโหลดครั้งเดียว
-    let _reloaded = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (_reloaded) return; _reloaded = true; location.reload();
-    });
-  });
+// Error boundaries catch render/effect errors that an outer try/catch cannot catch.
+class AppErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error) { console.error('FinNote render failed:', error); }
+  render() {
+    if (this.state.error) return React.createElement('div', {
+      style: { padding: 28, margin: '40px auto', maxWidth: 520, background: '#fff', color: '#334155', fontFamily: 'sans-serif' }
+    }, React.createElement('h2', null, 'เปิด FinNote ไม่สำเร็จ'),
+    React.createElement('p', null, 'ลองเปิดใหม่ โดยไม่ต้องล้างข้อมูลเว็บไซต์'),
+    React.createElement('pre', { style: { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, String(this.state.error.message || this.state.error)),
+    React.createElement('button', { onClick: () => location.reload(), style: { padding: '12px 20px', background: '#0e7490', color: '#fff', border: 0, borderRadius: 10 } }, 'ลองเปิดใหม่'));
+    return this.props.children;
+  }
 }
-ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
-window.__bl('render สำเร็จ');
-}catch(err){window.__bl('CRASH: '+(err&&err.message?err.message:err));if(window.__showBoot)window.__showBoot((err&&err.stack)?err.stack.split(String.fromCharCode(10)).slice(0,3).join(String.fromCharCode(10)):'');console.error(err);}}start();})();
+ReactDOM.createRoot(document.getElementById('root')).render(
+  React.createElement(AppErrorBoundary, null, React.createElement(App, null))
+);
+}catch(err){window.finnoteBootError(err);console.error(err);}}start();})();
 </script>
 </body>
 </html>
