@@ -9749,7 +9749,29 @@ function App() {
     onLeave: doLogout
   }));
 }
-if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      // ตรวจเวอร์ชันใหม่ทุกครั้งที่เปิด
+      reg.update().catch(() => {});
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', () => {
+          // มีเวอร์ชันใหม่พร้อม + มี SW เดิมคุมอยู่ → รีโหลดเอาของใหม่ (กันหน้าเก่าค้าง)
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
+    // ถ้า controller เปลี่ยน (SW ใหม่ take over) → รีโหลดครั้งเดียว
+    let _reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_reloaded) return; _reloaded = true; location.reload();
+    });
+  });
+}
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
 }catch(err){var r=document.getElementById("root");if(r)r.innerHTML='<div style="padding:24px;font-family:-apple-system,sans-serif;color:#b91c1c"><h3>เกิดข้อผิดพลาดในการโหลด</h3><p style="color:#475569;font-size:14px">ข้อมูลของคุณยังปลอดภัย ลองรีเฟรชหน้าใหม่</p><pre style="white-space:pre-wrap;font-size:11px;color:#94a3b8">'+(err&&err.message?err.message:err)+'</pre><button onclick="location.reload()" style="margin-top:12px;padding:10px 20px;background:#0e7490;color:#fff;border:none;border-radius:10px;font-size:15px">รีเฟรชหน้าใหม่</button></div>';console.error(err);}}start();})();
 </script>
