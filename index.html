@@ -78,10 +78,19 @@
   .tabular-nums { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
   /* input แบบ iOS: ช่องใหญ่ขึ้น แตะง่าย โฟกัสชัด */
-  input, select, textarea {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
     font-size: 16px !important;          /* กัน iOS zoom ตอนแตะ */
     -webkit-appearance: none;
     appearance: none;
+  }
+  /* ช่องติ๊ก/ปุ่มวงกลม ต้องเห็นเป็นกล่องจริง ไม่ถูก appearance:none ลบทิ้ง */
+  input[type="checkbox"], input[type="radio"] {
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+    width: 20px !important; height: 20px !important;
+    min-width: 20px !important; flex: none;
+    accent-color: #1e3a5f;
+    margin: 0;
   }
   input:focus, select:focus, textarea:focus {
     outline: none;
@@ -547,6 +556,32 @@
     .chit-bidbar-h { color: #7ab8f5; }
     .chit-bidbar-l, .chit-bidbar-n, .chit-bidbar-u { color: #a1a1a6; }
     input.chit-bidbar-f:disabled { background: #2c2c2e !important; color: #6b7280 !important; }
+  }
+
+  /* ===== ช่องลองคำนวณดอกล่วงหน้า (ควรเปียมือไหน) ===== */
+  .chit-whatif {
+    background: #f8fafc; border: 1.5px solid #dbe3ec; border-radius: 14px;
+    padding: 11px 12px 9px; margin-bottom: 12px;
+  }
+  .chit-whatif-l { flex: none; width: 82px; font-size: 13px; font-weight: 600; color: #475569; }
+  .chit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .chit-chip {
+    border: 1.5px solid #cbd5e1; background: #fff; color: #475569;
+    border-radius: 100px; padding: 6px 12px; font-size: 13px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  .chit-chip.on { background: #1e3a5f; border-color: #1e3a5f; color: #fff; }
+  .chit-whatif-chk {
+    display: flex; align-items: center; gap: 7px; margin-top: 9px;
+    font-size: 12px; color: #475569;
+  }
+  .chit-whatif-chk input { width: auto !important; flex: none; }
+
+  @media (prefers-color-scheme: dark) {
+    .chit-whatif { background: #1c1c1e; border-color: #3a3a3c; }
+    .chit-whatif-l, .chit-whatif-chk { color: #a1a1a6; }
+    .chit-chip { background: #2c2c2e; border-color: #48484a; color: #d1d1d6; }
+    .chit-chip.on { background: #4299e1; border-color: #4299e1; color: #fff; }
   }
 
   /* ===== การ์ดสมาชิกวงแชร์: 2 บรรทัด ช่องใหญ่ แตะง่าย ===== */
@@ -9213,14 +9248,29 @@ function chitMemberNet(g, m) {
     net: round2(got - paid)
   };
 }
-function chitProject(g) {
-  const N = (g.members || []).length,
-    minBid = g.minBid || 0,
-    rows = [];
+function chitProject(g, opts) {
+  opts = opts || {};
+  const members = g.members || [];
+  const N = members.length;
+  const assume = opts.assumeBid != null ? (Number(opts.assumeBid) || 0) : (g.minBid || 0);
+  const useActual = opts.useActual !== false;
+  // ดอกจริงที่บันทึกไว้แล้ว: งวด -> { bid, dealer }
+  const won = {};
+  members.forEach(m => {
+    if (m.wonPeriod != null) won[m.wonPeriod] = { bid: m.dealer ? 0 : (m.bid || 0), dealer: !!m.dealer };
+  });
+  const isDealerAt = k => useActual && won[k] ? won[k].dealer : k === 1;
+  const bidAt = k => {
+    if (useActual && won[k]) return won[k].bid;
+    if (k === N) return 0;
+    if (k === 1) return 0;
+    return assume;
+  };
+  const rows = [];
   for (let k = 1; k <= N; k++) {
-    const isDealer = k === 1,
-      isLast = k === N;
-    const myBid = isDealer || isLast ? 0 : minBid;
+    const isDealer = isDealerAt(k);
+    const isLast = k === N;
+    const myBid = bidAt(k);
     let paid = 0;
     for (let p = 1; p <= N; p++) {
       let a = g.perHead;
@@ -9228,7 +9278,9 @@ function chitProject(g) {
       paid += a;
     }
     let got = g.perHead * N;
-    for (let j = 2; j < k; j++) got += minBid;
+    for (let j = 1; j < k; j++) {
+      if (!isDealerAt(j)) got += bidAt(j);
+    }
     rows.push({
       period: k,
       bid: myBid,
@@ -9236,7 +9288,8 @@ function chitProject(g) {
       got: round2(got),
       net: round2(got - paid),
       isDealer,
-      isLast
+      isLast,
+      actual: !!(useActual && won[k])
     });
   }
   return rows;
@@ -10056,32 +10109,52 @@ function ChitAdviceModal({
   onClose
 }) {
   const g = group;
-  const rows = chitProject(g);
+  const [bid, setBid] = useState(g.minBid || 0);
+  const [useActual, setUseActual] = useState(true);
+  const nActual = (g.members || []).filter(m => m.wonPeriod != null).length;
+  const hasActual = nActual > 0;
+  const rows = chitProject(g, { assumeBid: bid, useActual });
   const breakEven = rows.find(r => r.net >= 0 && !r.isDealer);
   const best = rows.reduce((a, b) => b.net > a.net ? b : a, rows[0] || {
     net: 0,
     period: 0
   });
-  if (!g.minBid) {
-    return React.createElement(Modal, {
-      open: true,
-      onClose,
-      title: "ประเมินล่วงหน้า"
-    }, React.createElement("div", {
-      className: "text-center py-4"
-    }, React.createElement("div", {
-      className: "text-slate-500 mb-3"
-    }, "ยังไม่ได้ตั้งดอกขั้นต่ำของวงนี้"), React.createElement("div", {
-      className: "text-xs text-slate-400"
-    }, "กดแก้ไขวง แล้วใส่ดอกขั้นต่ำ เพื่อให้ระบบประเมินได้")));
-  }
   return React.createElement(Modal, {
     open: true,
     onClose,
     title: "💡 ควรเปียมือไหน"
   }, React.createElement("div", {
-    className: "text-xs text-slate-400 mb-3"
-  }, "สมมติทุกคนประมูลที่ขั้นต่ำ ฿" + fmtMoney(g.minBid) + " · งวดละ ฿" + fmtMoney(g.perHead) + " · " + rows.length + " มือ"), React.createElement("div", {
+    className: "text-xs text-slate-400 mb-2"
+  }, "งวดละ ฿" + fmtMoney(g.perHead) + " · " + rows.length + " มือ · ใส่ตัวเลขดอกเพื่อลองคำนวณล่วงหน้าได้"), React.createElement("div", { className: "chit-whatif" },
+    React.createElement("div", { className: "chit-bidbar-r" },
+      React.createElement("label", { className: "chit-whatif-l" }, "ถ้าประมูลที่"),
+      React.createElement("input", {
+        className: inputCls + ' chit-bidbar-f',
+        inputMode: "numeric",
+        placeholder: "เช่น 1000",
+        value: numShow(bid),
+        onChange: e => setBid(+numClean(e.target.value, false) || 0)
+      }),
+      React.createElement("span", { className: "chit-bidbar-u" }, "฿")
+    ),
+    React.createElement("div", { className: "chit-chips" },
+      [g.minBid || 0, 500, 1000, 1500, 2000, 3000].filter((v, i, a) => v > 0 && a.indexOf(v) === i).map(v =>
+        React.createElement("button", {
+          key: v,
+          onClick: () => setBid(v),
+          className: "chit-chip" + (bid === v ? ' on' : '')
+        }, fmtMoney(v) + (v === g.minBid ? ' (ขั้นต่ำ)' : ''))
+      )
+    ),
+    hasActual && React.createElement("label", { className: "chit-whatif-chk" },
+      React.createElement("input", {
+        type: "checkbox",
+        checked: useActual,
+        onChange: e => setUseActual(e.target.checked)
+      }),
+      React.createElement("span", null, "ใช้ดอกจริงที่บันทึกไว้แล้ว " + nActual + " มือ")
+    )
+  ), React.createElement("div", {
     className: "grid grid-cols-2 gap-2 mb-3"
   }, React.createElement("div", {
     className: "wallet-tile",
@@ -10142,7 +10215,7 @@ function ChitAdviceModal({
     className: "flex-1 min-w-0"
   }, React.createElement("div", {
     className: "font-semibold text-sm"
-  }, "มือ " + r.period, r.isDealer ? " 👑" : "", r.isLast ? " 🏁" : ""), React.createElement("div", {
+  }, "มือ " + r.period, r.isDealer ? " 👑" : "", r.isLast ? " 🏁" : "", r.actual ? " ●" : ""), React.createElement("div", {
     className: "text-xs text-slate-400 tabular-nums"
   }, "จ่าย ฿" + fmtMoney(r.paid) + " · ได้ ฿" + fmtMoney(r.got) + (r.bid ? " · ดอก " + fmtMoney(r.bid) : " · ไม่ให้ดอก"))), React.createElement("div", {
     className: "font-bold tabular-nums shrink-0",
@@ -10151,7 +10224,7 @@ function ChitAdviceModal({
     }
   }, (r.net > 0 ? '+' : '') + fmtMoney(r.net))))), React.createElement("div", {
     className: "text-xs text-slate-400 mt-2"
-  }, "👑 เจ้ามือ · 🏁 มือสุดท้าย · เปียมือต้น = ได้เงินใช้ก่อนแต่จ่ายดอกทุกงวด · เปียมือท้าย = รอนานแต่ได้ดอกคืน"));
+  }, "👑 เจ้ามือ · 🏁 มือสุดท้าย · ● ดอกจริงที่บันทึกแล้ว · เปียมือต้น = ได้เงินใช้ก่อนแต่จ่ายดอกทุกงวด · เปียมือท้าย = รอนานแต่ได้ดอกคืน · ตัวเลขนี้เป็นการประเมิน ไม่ใช่ยอดที่บันทึก"));
 }
 
 function App() {
