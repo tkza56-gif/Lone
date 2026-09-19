@@ -447,6 +447,118 @@
   }
   input::placeholder, textarea::placeholder { color: #94a3b8 !important; }
 
+
+  /* ===== การ์ด/ปุ่ม/แถว ของหน้าสัญญา-เอกสาร-ติดตามหนี้ (เดิมไม่มี CSS เลย) ===== */
+  .card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px;
+    padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .card > h2 { font-size: 16px; font-weight: 700; color: #1e3a5f; margin: 0 0 10px; }
+  .card > h3 { font-size: 15px; font-weight: 700; color: #1e3a5f; margin: 10px 0 6px; }
+  /* ทุกช่องกรอกในการ์ดต้องเต็มความกว้าง ไม่ใช่ความกว้างมาตรฐานของเบราว์เซอร์ */
+  .card input:not([type="checkbox"]):not([type="radio"]),
+  .card select, .card textarea { width: 100% !important; display: block; }
+  .card label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  .card label:first-of-type { margin-top: 0; }
+  .card .radio-opt label, .card label.radio-opt { display: flex; }
+  /* แถว 2 คอลัมน์ — จอแคบให้ตกลงมาเป็นคอลัมน์เดียว ไม่บีบจนตัวหนังสือโดนตัด */
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row > div { min-width: 0; }
+  @media (max-width: 380px) { .row { grid-template-columns: 1fr; } }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    background: #1e3a5f; color: #fff; border: none; border-radius: 12px;
+    padding: 11px 16px; font-size: 15px; font-weight: 600; cursor: pointer;
+    min-height: 44px; max-width: 100%;
+  }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-ghost { background: #eef2f7; color: #1e3a5f; border: 1px solid #cbd5e1; }
+  .btn-sm { padding: 7px 12px; font-size: 13px; min-height: 36px; border-radius: 10px; }
+  .summary { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 10px 12px; font-size: 14px; line-height: 1.6; }
+  .law-tag { display: inline-block; background: #eef2ff; color: #3730a3; border-radius: 6px;
+    padding: 1px 7px; font-size: 11px; font-weight: 700; margin-left: 4px; }
+  @media print { .no-print { display: none !important; } }
+
+  @media (prefers-color-scheme: dark) {
+    .card { background: #1c1c1e; border-color: #3a3a3c; }
+    .card > h2, .card > h3 { color: #7ab8f5; }
+    .btn-ghost { background: #2c2c2e; color: #7ab8f5; border-color: #48484a; }
+    .summary { background: #2c2c2e; border-color: #3a3a3c; color: #f2f2f7; }
+  }
+
+  /* จอแคบ (<=360px): บีบขอบการ์ดเพื่อให้ช่องกรอกกว้างขึ้น */
+  /* กราฟ 12 เดือนบนจอแคบ: ลดช่องไฟ+ตัวอักษร ให้ชื่อเดือนอ่านครบ */
+  @media (max-width: 420px) {
+    .wallet-chart { gap: 3px; }
+    .wallet-bl { font-size: 9px; letter-spacing: -0.3px; }
+    .wallet-bv { font-size: 8px; }
+  }
+  @media (max-width: 360px) {
+    .wallet-chart { gap: 2px; }
+    .wallet-bl { font-size: 8px; letter-spacing: -0.4px; }
+    .card { padding: 10px; }
+    .chit-mem-card { padding: 8px; }
+    .chit-mem-sel { padding: 9px 8px !important; font-size: 14px !important; }
+  }
+
+  /* ===== กันช่องกรอก/ชื่อยาวล้นแถว (มีผลทั้งแอป) ===== */
+  /* ช่องกรอกในแถวแนวนอนต้องหดได้ ไม่ดันจนตัวหนังสือโดนตัด */
+  input, select, textarea { min-width: 0 !important; }
+  /* ลูกของ flex ต้องหดได้ ไม่งั้นข้อความยาวจะดันแถวล้น (ตัวที่มี shrink-0 ไม่ได้รับผล) */
+  .flex > *, .wallet-row > *, .tl-row > *, .chit-mem-top > *, .chit-mem-bot > *,
+  .wallet-chart > *, .sign-row > * { min-width: 0; }
+  /* ป้ายใต้กราฟบนจอแคบ: ไม่ให้ดันกราฟล้นจอ */
+  .wallet-bl, .wallet-bv { overflow: hidden; white-space: nowrap; max-width: 100%; }
+  /* บรรทัดรายละเอียดใต้ชื่อ ก็ต้องตัดด้วย … เหมือนกัน */
+  .wallet-row-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* select เห็นลูกศรชัด และเว้นที่ให้ลูกศรไม่ทับตัวหนังสือ */
+  select {
+    padding-right: 32px !important;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 11px center !important;
+  }
+  /* ชื่อยาว = ตัดด้วย … ไม่ดันแถวพัง */
+  .wallet-row-name, .truncate-1 {
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .name-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .name-wrap > .truncate-1 { flex: 1 1 auto; }
+  .name-wrap > span { flex: none; }
+
+  /* ===== การ์ดสมาชิกวงแชร์: 2 บรรทัด ช่องใหญ่ แตะง่าย ===== */
+  .chit-mem-card {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px;
+    padding: 10px; margin-bottom: 8px;
+  }
+  .chit-mem-top { display: flex; align-items: center; gap: 8px; }
+  .chit-mem-bot { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+  .chit-mem-no {
+    flex: none; width: 22px; height: 22px; border-radius: 50%;
+    background: #1e3a5f; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chit-mem-name { flex: 1 1 auto; min-width: 0; }
+  .chit-mem-del {
+    flex: none; width: 38px; height: 38px; border: none; border-radius: 10px;
+    background: #fee2e2; color: #b91c1c; font-size: 20px; line-height: 1;
+    cursor: pointer;
+  }
+  /* ช่องบรรทัดล่างบีบให้พอดี 3 ช่อง แต่ยังอ่านออก */
+  .chit-mem-sel {
+    padding: 9px 10px !important; font-size: 15px !important;
+    border-radius: 10px !important;
+  }
+  select.chit-mem-sel { padding-right: 26px !important; background-position: right 7px center !important; }
+  input.chit-mem-sel:disabled { background: #f1f5f9 !important; color: #94a3b8 !important; border-style: dashed !important; }
+
+  @media (prefers-color-scheme: dark) {
+    .chit-mem-card { background: #1c1c1e; border-color: #3a3a3c; }
+    input.chit-mem-sel:disabled { background: #2c2c2e !important; color: #6b7280 !important; }
+    select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") !important; }
+  }
+
   /* label ให้แยกจากช่องกรอกชัด */
   label { color: #334155; }
 
@@ -6206,8 +6318,12 @@ function DebtorForm({
     inputMode: "tel"
   })), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, "หมายเหตุ"), React.createElement("input", {
+  }, "หมายเหตุ"), React.createElement("textarea", {
     className: inputCls,
+    rows: 2,
+    style: {
+      resize: 'vertical'
+    },
     value: note,
     onChange: e => setNote(e.target.value),
     placeholder: "ข้อมูลเพิ่มเติม"
@@ -6327,8 +6443,12 @@ function LoanForm({
     onChange: e => setStartMonth(e.target.value)
   })), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, "หมายเหตุ"), React.createElement("input", {
+  }, "หมายเหตุ"), React.createElement("textarea", {
     className: inputCls,
+    rows: 2,
+    style: {
+      resize: 'vertical'
+    },
     value: note,
     onChange: e => setNote(e.target.value),
     placeholder: "เช่น ก้อนที่ 2"
@@ -9778,21 +9898,27 @@ function ChitEditModal({
     className: labelCls
   }, "สมาชิก (ลำดับ = ลำดับเปีย)"), g.members.map((m, i) => React.createElement("div", {
     key: m.id,
-    className: "flex gap-1.5 items-center mb-1.5"
+    className: "chit-mem-card"
+  }, React.createElement("div", {
+    className: "chit-mem-top"
   }, React.createElement("span", {
-    className: "text-xs text-slate-400 tabular-nums",
-    style: {
-      width: '16px'
-    }
+    className: "chit-mem-no tabular-nums"
   }, i + 1), React.createElement("input", {
-    className: inputCls,
-    style: {
-      flex: 2
-    },
+    className: inputCls + ' chit-mem-name',
+    placeholder: "\u0e0a\u0e37\u0e48\u0e2d\u0e2a\u0e21\u0e32\u0e0a\u0e34\u0e01",
     value: m.name,
     onChange: e => setMem(i, 'name', e.target.value)
-  }), React.createElement("select", {
-    className: inputCls,
+  }), React.createElement("button", {
+    onClick: () => setG(p => ({
+      ...p,
+      members: p.members.filter((_, j) => j !== i)
+    })),
+    className: "chit-mem-del",
+    title: "\u0e25\u0e1a\u0e2a\u0e21\u0e32\u0e0a\u0e34\u0e01"
+  }, "\u00d7")), React.createElement("div", {
+    className: "chit-mem-bot"
+  }, React.createElement("select", {
+    className: inputCls + ' chit-mem-sel',
     style: {
       flex: 1
     },
@@ -9800,48 +9926,33 @@ function ChitEditModal({
     onChange: e => setMem(i, 'dealer', e.target.value === '1')
   }, React.createElement("option", {
     value: "0"
-  }, "ลูก"), React.createElement("option", {
+  }, "\u0e25\u0e39\u0e01\u0e27\u0e07"), React.createElement("option", {
     value: "1"
-  }, "เจ้ามือ")), React.createElement("input", {
-    className: inputCls,
+  }, "\u0e40\u0e08\u0e49\u0e32\u0e21\u0e37\u0e2d")), React.createElement("input", {
+    className: inputCls + ' chit-mem-sel',
     style: {
       flex: 1
     },
     inputMode: "numeric",
-    placeholder: "ดอก",
+    placeholder: "\u0e14\u0e2d\u0e01",
     value: numShow(m.bid),
     disabled: m.dealer,
     onChange: e => setMem(i, 'bid', +numClean(e.target.value, false) || 0)
   }), React.createElement("select", {
-    className: inputCls,
+    className: inputCls + ' chit-mem-sel',
     style: {
-      flex: 1.2
+      flex: 1.5
     },
     value: m.wonPeriod || '',
     onChange: e => setMem(i, 'wonPeriod', e.target.value ? +e.target.value : null)
   }, React.createElement("option", {
     value: ""
-  }, "ยังไม่เปีย"), Array.from({
+  }, "\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e40\u0e1b\u0e35\u0e22"), Array.from({
     length: N
   }, (_, k) => React.createElement("option", {
     key: k,
     value: k + 1
-  }, "มือ " + (k + 1)))), React.createElement("button", {
-    onClick: () => setG(p => ({
-      ...p,
-      members: p.members.filter((_, j) => j !== i)
-    })),
-    style: {
-      background: '#fecaca',
-      color: '#b91c1c',
-      border: 'none',
-      borderRadius: '8px',
-      width: '34px',
-      height: '40px',
-      cursor: 'pointer',
-      flex: 'none'
-    }
-  }, "×"))), React.createElement(GhostBtn, {
+  }, "\u0e40\u0e1b\u0e35\u0e22\u0e21\u0e37\u0e2d " + (k + 1))))))), React.createElement(GhostBtn, {
     className: "w-full",
     onClick: () => setG(p => ({
       ...p,
