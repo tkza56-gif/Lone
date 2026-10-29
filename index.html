@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v20-20261027a';</script>
+<script>window.__BUILD__='finnote-v21-20261029a';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -8413,6 +8413,19 @@ function CalcView({
     const d = new Date();
     return addMonths(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, 1);
   };
+  /* วันครบกำหนดงวดแรก (วัน/เดือน/ปี) — งวดถัดไปตรงวันเดิมทุกเดือน ถ้าเดือนนั้นไม่มีวันที่นั้น (เช่น 31) ใช้วันสุดท้ายของเดือน */
+  const nextMonthDate = () => {
+    const d = new Date();
+    const ym = nextMonth();
+    const [y, m] = ym.split('-').map(Number);
+    const last = new Date(y, m, 0).getDate();
+    return `${ym}-${String(Math.min(d.getDate(), last)).padStart(2, '0')}`;
+  };
+  const dayIn = (ym, day) => {
+    const [y, m] = ym.split('-').map(Number);
+    return Math.min(day, new Date(y, m, 0).getDate());
+  };
+  const dueLabel = r => (r.day ? r.day + ' ' : '') + ymLabel(r.ym);
   const [borrower, setBorrower] = useState(initName);
   const [principal, setPrincipal] = useState('');
   const [rate, setRate] = useState('');
@@ -8420,7 +8433,9 @@ function CalcView({
   const [calcMode, setCalcMode] = useState('months');
   const [months, setMonths] = useState('');
   const [fixedPmt, setFixedPmt] = useState('');
-  const [startYM, setStartYM] = useState(nextMonth);
+  const [startDate, setStartDate] = useState(nextMonthDate);
+  const startYM = /^\d{4}-\d{2}/.test(startDate || '') ? startDate.slice(0, 7) : nextMonth();
+  const startDay = Number((startDate || '').slice(8, 10)) || 1;
   const [schedule, setSchedule] = useState(null);
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState('');
@@ -8476,6 +8491,7 @@ function CalcView({
       rows.push({
         no: i,
         ym: addMonths(startYM, i - 1),
+        day: dayIn(addMonths(startYM, i - 1), startDay),
         pmt: actualPmt,
         int,
         prin,
@@ -8506,7 +8522,7 @@ function CalcView({
     t += `💳 รวมทั้งหมด   : ${fmtMoney(schedule.total)} บาท\n`;
     t += `─────────────────────────────────\n`;
     schedule.rows.forEach(r => {
-      t += `${String(r.no).padStart(2)} ${ymLabel(r.ym).padEnd(10)} ผ่อน ${fmtMoney(r.pmt)}  ดอก ${fmtMoney(r.int)}  เหลือ ${fmtMoney(r.bal)}\n`;
+      t += `${String(r.no).padStart(2)} ${dueLabel(r).padEnd(13)} ผ่อน ${fmtMoney(r.pmt)}  ดอก ${fmtMoney(r.int)}  เหลือ ${fmtMoney(r.bal)}\n`;
     });
     t += `─────────────────────────────────\nสร้างโดย FinNote`;
     return t;
@@ -8618,7 +8634,7 @@ function CalcView({
       txt(s.value, sx + SW / 2, sy + 60, 'center', s.color, 12 * F, '700');
     });
     let ty = HEADER_H + SUMMARY_H + 6;
-    const headers = ['งวด', 'เดือน', 'ผ่อน', 'ดอกเบี้ย', 'ตัดต้น', 'คงเหลือ'];
+    const headers = ['งวด', 'ครบกำหนด', 'ผ่อน', 'ดอกเบี้ย', 'ตัดต้น', 'คงเหลือ'];
     const aligns = ['center', 'left', 'right', 'right', 'right', 'right'];
     const grd2 = ctx.createLinearGradient(0, ty, 0, ty + TBL_HDR_H);
     grd2.addColorStop(0, '#155e75');
@@ -8642,7 +8658,7 @@ function CalcView({
       ctx.stroke();
       const mid = ry + ROW_H / 2 + 7;
       txt(String(row.no), colX(0) + COLS[0] / 2, mid, 'center', '#64748b', 12 * F, '600');
-      txt(ymLabel(row.ym), colX(1) + 6, mid, 'left', '#64748b', 12 * F);
+      txt(dueLabel(row), colX(1) + 6, mid, 'left', '#64748b', 12 * F);
       txt(fmtMoney(row.pmt), colX(2) + COLS[2] - 6, mid, 'right', '#0f172a', 12 * F, '600');
       txt(fmtMoney(row.int), colX(3) + COLS[3] - 6, mid, 'right', '#dc2626', 12 * F);
       txt(fmtMoney(row.prin), colX(4) + COLS[4] - 6, mid, 'right', '#046a4e', 12 * F);
@@ -8771,14 +8787,18 @@ function CalcView({
     inputMode: "decimal",
     onChange: e => setFixedPmt(numClean(e.target.value, true)),
     placeholder: "5,000"
-  })), React.createElement("div", null, React.createElement("label", {
+  })), React.createElement("div", {
+    className: "col-span-2"
+  }, React.createElement("label", {
     className: labelCls
-  }, "เริ่มงวดแรก"), React.createElement("input", {
-    type: "month",
+  }, "วันครบกำหนดงวดแรก"), React.createElement("input", {
+    type: "date",
     className: inputCls,
-    value: startYM,
-    onChange: e => setStartYM(e.target.value)
-  }))), err && React.createElement("div", {
+    value: startDate,
+    onChange: e => { setStartDate(e.target.value); setSchedule(null); }
+  }), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-1"
+  }, "งวดถัดไปครบกำหนดวันเดียวกันทุกเดือน"))), err && React.createElement("div", {
     className: "text-red-600 text-sm bg-red-50 rounded-xl px-3 py-2 flex items-center gap-2"
   }, React.createElement(AlertTriangle, {
     size: 14
@@ -8826,7 +8846,7 @@ function CalcView({
     className: "w-full text-xs"
   }, React.createElement("thead", null, React.createElement("tr", {
     className: "bg-gradient-to-r from-cyan-800 to-cyan-700 text-white"
-  }, ['งวด', 'เดือน', 'ผ่อน', 'ดอกเบี้ย', 'ตัดต้น', 'คงเหลือ'].map(h => React.createElement("th", {
+  }, ['งวด', 'ครบกำหนด', 'ผ่อน', 'ดอกเบี้ย', 'ตัดต้น', 'คงเหลือ'].map(h => React.createElement("th", {
     key: h,
     className: "px-2 py-2.5 text-right first:text-center font-semibold whitespace-nowrap"
   }, h)))), React.createElement("tbody", null, schedule.rows.map((r, idx) => React.createElement("tr", {
@@ -8836,7 +8856,7 @@ function CalcView({
     className: "px-2 py-2 text-center text-slate-500 font-medium"
   }, r.no), React.createElement("td", {
     className: "px-2 py-2 text-right text-slate-600 whitespace-nowrap"
-  }, ymLabel(r.ym)), React.createElement("td", {
+  }, dueLabel(r)), React.createElement("td", {
     className: "px-2 py-2 text-right font-medium text-slate-800 tabular-nums"
   }, fmtMoney(r.pmt)), React.createElement("td", {
     className: "px-2 py-2 text-right text-red-600 tabular-nums"
