@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v21-20261029a';</script>
+<script>window.__BUILD__='finnote-v22-20261029b';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -2175,6 +2175,21 @@ function getCollectDay() {
     if (v >= 1 && v <= 28) return v;
   } catch (e) {}
   return 25;
+}
+/* วันครบกำหนดของลูกหนี้: วันที่ของก้อนกู้ที่ยังไม่ปิด → วันเก็บของลูกหนี้ → ค่าเริ่มต้น */
+function debtorDueDay(d) {
+  try {
+    const ln = (d && d.loans || []).find(l => Number(l.dueDay) >= 1 && Number(l.dueDay) <= 31 && !(loanStats(l, curYM()).complete));
+    if (ln) return Number(ln.dueDay);
+    if (d && d.collectDay >= 1 && d.collectDay <= 31) return Number(d.collectDay);
+  } catch (e) {}
+  return getCollectDay();
+}
+/* วันที่ day ในเดือนนั้น ถ้าเดือนสั้นกว่า (เช่น 31 ใน ก.พ.) ใช้วันสุดท้าย */
+function clampDay(y, m1, day) { return Math.min(Number(day) || 1, new Date(y, m1, 0).getDate()); }
+function dueDateLabel(ym, day) {
+  const [y, m] = ym.split('-').map(Number);
+  return clampDay(y, m, day) + ' ' + THAI_MON[m - 1] + ' ' + (y + 543);
 }
 function getNotifyDay(year, month1) {
   const baseDay = getCollectDay();
@@ -5920,8 +5935,7 @@ function CalendarView({ data, onBack, onOpenDebtor }) {
       const s = debtorStats(d, cur);
       if (s.dueNow <= 0.005 && s.thisMonthDue <= 0.005) return;
       // วันครบกำหนด = วันเก็บของลูกหนี้ (หรือ default)
-      let day = collectDay;
-      try { if (d.collectDay >= 1 && d.collectDay <= 28) day = d.collectDay; } catch (e) {}
+      const day = clampDay(ym.y, ym.m, debtorDueDay(d));
       if (!map[day]) map[day] = [];
       map[day].push({ d, s });
     });
@@ -6791,7 +6805,7 @@ function DebtorDetailView({
       size: 12
     }), " ผ่อนครบแล้ว")), React.createElement("div", {
       className: "text-xs text-slate-400 mt-0.5"
-    }, "เริ่ม ", ymLabel(loan.startMonth), " ", loan.note && `· ${loan.note}`)), React.createElement("div", {
+    }, "เริ่ม ", loan.dueDay ? dueDateLabel(loan.startMonth, loan.dueDay) + " · ครบกำหนดทุกวันที่ " + loan.dueDay : ymLabel(loan.startMonth), " ", loan.note && `· ${loan.note}`)), React.createElement("div", {
       className: "flex gap-1"
     }, React.createElement("button", {
       onClick: () => onEditLoan(debtor, loan),
@@ -7735,7 +7749,14 @@ function LoanForm({
   const [rate, setRate] = useState(initial && Number(initial.rate) > 0 ? Number(initial.rate) : 5);
   const [installment, setInstallment] = useState(initial && initial.installment ? String(initial.installment) : '1000');
   const [payment, setPayment] = useState(initial && initial.payment ? String(initial.payment) : '');
-  const [startMonth, setStartMonth] = useState(initial?.startMonth || curYM());
+  const [startDate, setStartDate] = useState(() => {
+    const ym = initial?.startMonth || curYM();
+    const [yy, mm] = ym.split('-').map(Number);
+    const dd = initial ? (Number(initial.dueDay) || getCollectDay()) : new Date().getDate();
+    return ym + '-' + String(clampDay(yy, mm, dd)).padStart(2, '0');
+  });
+  const startMonth = /^\d{4}-\d{2}/.test(startDate || '') ? startDate.slice(0, 7) : '';
+  const dueDay = Number((startDate || '').slice(8, 10)) || 0;
   const [note, setNote] = useState(initial?.note || '');
   const [err, setErr] = useState('');
   const p = Number(principal) || 0;
@@ -7802,12 +7823,14 @@ function LoanForm({
     className: "text-xs text-slate-400 mt-1"
   }, "ยอดนี้รวมดอกเบี้ย + เงินต้นในแต่ละเดือน")), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, type === 'interest' ? 'เดือนที่เริ่มคิดดอกเบี้ย *' : 'เดือนที่เริ่มผ่อน *'), React.createElement("input", {
-    type: "month",
+  }, type === 'interest' ? 'วันครบกำหนดดอกเบี้ยงวดแรก *' : 'วันครบกำหนดงวดแรก *'), React.createElement("input", {
+    type: "date",
     className: inputCls,
-    value: startMonth,
-    onChange: e => setStartMonth(e.target.value)
-  })), React.createElement("div", null, React.createElement("label", {
+    value: startDate,
+    onChange: e => setStartDate(e.target.value)
+  }), dueDay ? React.createElement("div", {
+    className: "text-xs text-slate-400 mt-1"
+  }, "ครบกำหนดทุกวันที่ " + dueDay + " ของเดือน (เดือนที่ไม่มีวันนี้ใช้วันสุดท้ายของเดือน)") : null), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "หมายเหตุ"), React.createElement("textarea", {
     className: inputCls,
@@ -7853,13 +7876,14 @@ function LoanForm({
         }
       }
       if (!startMonth) {
-        setErr('กรุณาเลือกเดือนเริ่ม');
+        setErr('กรุณาเลือกวันครบกำหนดงวดแรก');
         return;
       }
       const base = {
         type,
         principal: p,
         startMonth,
+        dueDay: dueDay || null,
         note: note.trim()
       };
       if (type === 'interest') onSave({
@@ -8055,8 +8079,7 @@ async function generateDebtorImage(debtor) {
   txt(thaiInitial(debtor.name), ax, ay + 13, 'center', 'white', 22 * F, '700');
   txt(debtor.name, PAD + 20, PAD + 120, 'left', 'white', 15 * F, '600');
   txt(`รอบเดือน ${monthLabel}`, PAD + 20, PAD + 150, 'left', 'rgba(255,255,255,0.75)', 12 * F);
-  let _cd = getCollectDay();
-  try { if (debtor.collectDay >= 1 && debtor.collectDay <= 28) _cd = debtor.collectDay; } catch (e) {}
+  let _cd = debtorDueDay(debtor);
   txt('📅 กำหนดชำระ: ' + _cd + ' ' + monthLabel, PAD + 20, PAD + 176, 'left', '#fde68a', 12 * F, '600');
   let sy = HEADER_H + 12;
   const statItems = [{
@@ -10698,6 +10721,12 @@ function LegalView({ debtor, onBack, contracts, onSaveContract, docState, onSave
 }
 /* ===== วงแชร์ ===== */
 const CHIT_COLORS = ['#2c5282', '#05825c', '#7c3aed', '#ac5e05', '#077c98', '#db2777', '#4338ca', '#4f7f0b'];
+/* วันครบกำหนดงวดวงแชร์: ตั้งวันได้ (startD) ไม่ตั้ง = วันสิ้นเดือนเหมือนเดิม */
+function chitDayOf(g, y, m) {
+  const last = new Date(y, m, 0).getDate();
+  const d = Number(g && g.startD) || 0;
+  return d >= 1 ? Math.min(d, last) : last;
+}
 function chitDate(g, period) {
   let y = g.startY,
     m = g.startM + (period - 1);
@@ -10705,7 +10734,7 @@ function chitDate(g, period) {
     m -= 12;
     y++;
   }
-  const day = new Date(y, m, 0).getDate();
+  const day = chitDayOf(g, y, m);
   return day + ' ' + THAI_MON[m - 1] + ' ' + (y + 543);
 }
 function chitDue(g, period, m) {
@@ -11085,7 +11114,8 @@ function chitHasStarted(g) {
 const CHIT_LOCKED = [
   ['perHead', 'ยอดต่องวด', v => '฿' + fmtMoney(v)],
   ['startY', 'ปีที่เริ่ม', v => String((Number(v) || 0) + 543)],
-  ['startM', 'เดือนที่เริ่ม', v => THAI_MON[(Number(v) || 1) - 1] || String(v)]
+  ['startM', 'เดือนที่เริ่ม', v => THAI_MON[(Number(v) || 1) - 1] || String(v)],
+  ['startD', 'วันครบกำหนด', v => Number(v) ? 'วันที่ ' + v : 'สิ้นเดือน']
 ];
 function chitCriticalChanges(before, after) {
   const out = [];
@@ -11650,29 +11680,21 @@ function ChitEditModal({
         onClick: () => set('remindDays', dd)
       }, dd + " วัน"))),
     React.createElement("div", { className: "text-xs text-slate-400" }, "ใช้กับการแจ้งเตือนในหน้าหลัก")
-  ), React.createElement("div", {
-    className: "flex gap-2"
-  }, React.createElement("div", {
-    className: "flex-1"
-  }, React.createElement("label", {
+  ), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, "เดือนเริ่ม"), React.createElement("select", {
+  }, "วันครบกำหนดงวดแรก"), React.createElement("input", {
+    type: "date",
     className: inputCls,
-    value: g.startM,
-    onChange: e => set('startM', +e.target.value)
-  }, THAI_MON.map((mm, i) => React.createElement("option", {
-    key: i,
-    value: i + 1
-  }, mm)))), React.createElement("div", {
-    className: "flex-1"
-  }, React.createElement("label", {
-    className: labelCls
-  }, "พ.ศ."), React.createElement("input", {
-    className: inputCls,
-    inputMode: "numeric",
-    value: numShow(g.startY + 543),
-    onChange: e => set('startY', (+numClean(e.target.value, false) || 0) - 543)
-  }))), React.createElement("label", {
+    value: (g.startY > 0 && g.startM >= 1) ? g.startY + '-' + String(g.startM).padStart(2, '0') + '-' + String(chitDayOf(g, g.startY, g.startM)).padStart(2, '0') : '',
+    onChange: e => {
+      const v = e.target.value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+      const [yy, mm, dd] = v.split('-').map(Number);
+      setG(p => ({ ...p, startY: yy, startM: mm, startD: dd }));
+    }
+  }), React.createElement("div", {
+    className: "text-xs text-slate-400 mt-1"
+  }, Number(g.startD) ? "งวดถัดไปครบกำหนดทุกวันที่ " + g.startD + " (เดือนที่ไม่มีวันนี้ใช้วันสุดท้ายของเดือน)" : "ยังไม่ได้ตั้งวัน — ใช้วันสิ้นเดือน")), React.createElement("label", {
     className: labelCls
   }, "สมาชิก (ลำดับ = ลำดับเปีย)"), g.members.map((m, i) => React.createElement("div", {
     key: m.id,
@@ -12219,6 +12241,7 @@ function buildCollectList(data) {
       sub: (d.loans || []).length + ' ก้อน · เงินต้น ฿' + fmtMoney(loans.reduce((a, x) => a + x.s.principal, 0)),
       due, bill: Math.max(billThis, due), paid: paidThis, status,
       overdueSince: ov[0] || null,
+      dueLabel: 'ครบกำหนด ' + dueDateLabel(cur, debtorDueDay(d)),
       target: { kind: 'loan', debtorId: d.id }
     });
   });
@@ -12231,6 +12254,7 @@ function buildCollectList(data) {
         key: 'C' + g.id + r.member.id, kind: 'chit', id: r.member.id, name: r.member.name, phone: r.member.phone,
         sub: g.name + ' · งวด ' + period, due: r.paid ? 0 : round2(r.due), bill: round2(r.due), paid: r.paid ? round2(r.due) : 0,
         status: r.paid ? 'paid' : pending ? 'pending' : 'wait',
+        dueLabel: g.name + ' · ครบกำหนด ' + chitDate(g, period),
         target: { kind: 'chit', groupId: g.id, memberId: r.member.id, period }
       });
     });
@@ -12247,7 +12271,7 @@ const COLLECT_ST = {
 
 function CollectRow({ it, onPay }) {
   const st = COLLECT_ST[it.status];
-  const sub = it.status === 'overdue' && it.overdueSince ? 'ค้างตั้งแต่ ' + ymLabel(it.overdueSince) : it.sub;
+  const sub = it.status === 'overdue' && it.overdueSince ? 'ค้างตั้งแต่ ' + ymLabel(it.overdueSince) : it.status === 'paid' ? it.sub : (it.dueLabel || it.sub);
   return React.createElement("div", { className: "col-row " + st.cls },
     React.createElement("div", { className: "col-av av-th" }, thaiInitial(it.name)),
     React.createElement("div", { className: "col-mid" },
@@ -12699,7 +12723,7 @@ function memberPayStatus(g, m, txs) {
 function chitDueISO(g, period) {
   let y = g.startY, m = g.startM + (period - 1);
   while (m > 12) { m -= 12; y++; }
-  const last = new Date(y, m, 0).getDate();
+  const last = chitDayOf(g, y, m);
   return y + '-' + String(m).padStart(2, '0') + '-' + String(last).padStart(2, '0');
 }
 
