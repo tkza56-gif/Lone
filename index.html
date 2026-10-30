@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v22-20261029b';</script>
+<script>window.__BUILD__='finnote-v23-20261030a';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1826,6 +1826,8 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
     .col-btn { padding: 0 12px; font-size: 14px; }
     .qp-amt input.qp-amt-in:not([type="checkbox"]):not([type="radio"]):not([type="file"]) { font-size: 32px !important; }
   }
+  .chit-pdate { background: none; border: none; padding: 0 2px; margin: 0; font: inherit; color: var(--c-primary-tx);
+    cursor: pointer; text-decoration: underline dotted; display: inline-flex; align-items: center; gap: 2px; min-height: 28px; }
 </style>
 </head>
 <body>
@@ -2694,7 +2696,7 @@ function applyBulkPayment(debtor, cur, totalPaid, payDate) {
   });
   const bulkRecord = {
     id: bulkId,
-    date: payDate || new Date().toISOString().slice(0, 10),
+    date: payDate || localISO(),
     total: round2(totalPaid),
     cur,
     allocations: result.allocations.map(a => ({
@@ -5238,6 +5240,15 @@ function askText(title, opts) {
     okLabel: opts.okLabel || 'บันทึก'
   });
 }
+function askDate(title, opts) {
+  opts = opts || {};
+  return _openDialog({
+    kind: 'date', title,
+    text: opts.help || '',
+    value: opts.value || localISO(),
+    okLabel: opts.okLabel || 'บันทึก'
+  });
+}
 function DialogHost() {
   const [dlg, setDlg] = useState(null);
   const [val, setVal] = useState('');
@@ -5254,7 +5265,7 @@ function DialogHost() {
   const close = v => { if (dlg) dlg.resolve(v); setDlg(null); };
   if (!dlg) return null;
   return React.createElement("div", { className: "dlg-wrap", role: "dialog", "aria-modal": "true" },
-    React.createElement("div", { className: "dlg-back", onClick: () => close(dlg.kind === 'text' ? null : false) }),
+    React.createElement("div", { className: "dlg-back", onClick: () => close(dlg.kind === 'confirm' ? false : null) }),
     React.createElement("div", { className: "dlg-card" },
       React.createElement("div", { className: "dlg-title" }, dlg.title),
       dlg.text ? React.createElement("div", { className: "dlg-text" }, dlg.text) : null,
@@ -5265,11 +5276,19 @@ function DialogHost() {
             onChange: e => setVal(e.target.value)
           })
         : null,
+      dlg.kind === 'date'
+        ? React.createElement("div", null,
+            React.createElement("div", { className: "qp-chips", style: { marginTop: 0, marginBottom: 10 } },
+              React.createElement("button", { className: "qp-chip" + (val === localISO() ? " on" : ""), onClick: () => setVal(localISO()) }, "วันนี้"),
+              React.createElement("button", { className: "qp-chip" + (val === (() => { const d = new Date(); d.setDate(d.getDate() - 1); return localISO(d); })() ? " on" : ""), onClick: () => { const d = new Date(); d.setDate(d.getDate() - 1); setVal(localISO(d)); } }, "เมื่อวาน")),
+            React.createElement("input", { type: "date", className: "dlg-input", value: val, onChange: e => setVal(e.target.value) }),
+            val ? React.createElement("div", { className: "dlg-text", style: { marginTop: 6 } }, fmtThaiDate(val)) : null)
+        : null,
       React.createElement("div", { className: "dlg-btns" },
-        React.createElement("button", { className: "dlg-b dlg-cancel", onClick: () => close(dlg.kind === 'text' ? null : false) }, "ยกเลิก"),
+        React.createElement("button", { className: "dlg-b dlg-cancel", onClick: () => close(dlg.kind === 'confirm' ? false : null) }, "ยกเลิก"),
         React.createElement("button", {
           className: "dlg-b " + (dlg.danger ? "dlg-danger" : "dlg-ok"),
-          onClick: () => close(dlg.kind === 'text' ? val : true)
+          onClick: () => close(dlg.kind === 'confirm' ? true : dlg.kind === 'date' ? (val || null) : val)
         }, dlg.okLabel)
       )
     )
@@ -6577,11 +6596,20 @@ function DebtorDetailView({
   const s = debtorStats(debtor, cur);
   const [noteText, setNoteText] = useState('');
   const [noteStatus, setNoteStatus] = useState('called');
+  const [noteDate, setNoteDate] = useState(localISO());
   const submitNote = () => {
     const txt = noteText.trim();
     if (!txt && noteStatus === 'note') return;
-    onAddNote(debtor.id, { id: uid(), ts: Date.now(), text: txt, status: noteStatus });
+    const now = new Date();
+    let ts = Date.now(), due = null;
+    if (noteStatus === 'promised') due = noteDate;
+    else if (noteDate && noteDate !== localISO()) {
+      const [yy, mm, dd] = noteDate.split('-').map(Number);
+      ts = new Date(yy, mm - 1, dd, now.getHours(), now.getMinutes()).getTime();
+    }
+    onAddNote(debtor.id, { id: uid(), ts, text: txt, status: noteStatus, due });
     setNoteText('');
+    setNoteDate(localISO());
   };
   const notes = (debtor.notes || []).slice().sort((a, b) => b.ts - a.ts);
   return React.createElement("div", {
@@ -6687,6 +6715,9 @@ function DebtorDetailView({
           background: noteStatus === st.id ? st.color : st.bg
         }
       }, React.createElement(st.Ic, { size: 15 }), ' ' + st.label))),
+    React.createElement("div", { className: "flex items-center gap-2 mb-2" },
+      React.createElement("label", { className: "text-sm font-semibold text-slate-600 shrink-0", style: { minWidth: 76 } }, noteStatus === 'promised' ? "นัดจ่ายวันที่" : "วันที่"),
+      React.createElement("input", { type: "date", className: inputCls, value: noteDate, onChange: e => setNoteDate(e.target.value) })),
     React.createElement("div", { className: "flex gap-2" },
       React.createElement("input", {
         className: inputCls, value: noteText,
@@ -6716,6 +6747,7 @@ function DebtorDetailView({
             style: { fontSize: '11px', padding: '3px 9px', color: si.color, background: si.bg }
           }, React.createElement(si.Ic, { size: 14 }), ' ' + si.label),
           React.createElement("div", { className: "flex-1 min-w-0" },
+            n.due && React.createElement("div", { className: "text-sm font-semibold", style: { color: 'var(--c-success-tx)' } }, "นัดจ่าย " + fmtThaiDate(n.due)),
             n.text && React.createElement("div", { className: "text-sm text-slate-700", style: { wordBreak: 'break-word' } }, n.text),
             React.createElement("div", { className: "text-xs text-slate-400 mt-0.5" }, dateStr)),
           React.createElement("button", {
@@ -7012,7 +7044,7 @@ function stripSecrets(data) {
 function exportJSON(data) {
   try {
     try { localStorage.setItem('lt_last_export', String(Date.now())); } catch (e) {}
-    const ts = new Date().toISOString().slice(0, 10);
+    const ts = localISO();
     const blob = new Blob([JSON.stringify({
       exportedAt: new Date().toISOString(),
       note: 'ไฟล์นี้ไม่มีรหัสผ่านหรือกุญแจกู้คืน — บัญชีผู้ใช้ของเครื่องเดิมจะไม่ถูกแทนที่ตอนนำเข้า',
@@ -7919,7 +7951,7 @@ function PaymentForm({
   const bd = s.breakdownMap[month];
   const suggested = round2(Math.max(0, required - alreadyPaid));
   const [amount, setAmount] = useState(numShow(suggested > 0 ? suggested : required));
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = localISO();
   const [date, setDate] = useState(todayISO);
   const billLabel = s.kind === 'interest' ? 'ดอกเบี้ยรอบนี้' : 'ค่างวดรอบนี้';
   const amt = Number(amount) || 0;
@@ -8181,7 +8213,7 @@ function BulkPaymentModal({
   const cur = curYM();
   const ds = debtorStats(debtor, cur);
   const [amount, setAmount] = useState(String(ds.dueNow || ''));
-  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(localISO());
   const [preview, setPreview] = useState(null);
   useEffect(() => {
     const amt = parseFloat(amount);
@@ -9129,7 +9161,7 @@ function ContractView({
     hasInterest: !!_loan.rate,
     ratePerYear: _loan.rate ? _loan.rate * 12 : '',
     place: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: localISO(),
     lenderName: '',
     lenderId: '',
     lenderAddr: '',
@@ -10568,15 +10600,19 @@ function DocumentsView({
         },
         onClick: () => {
           askText('บันทึกหลักฐาน — ' + t.l, { placeholder: 'เช่น ส่งไปรษณีย์ EMS เลข ...' }).then(note => {
-            if (!note) return;
+            if (!note) return null;
+            return askDate('วันที่ของหลักฐานนี้').then(dt => {
+            if (!dt) return;
             setTxEvidence(p => ({
               ...p,
               [t.k]: [...(p[t.k] || []), {
-                date: new Date().toLocaleDateString('th-TH'),
+                date: fmtThaiDate(dt),
+                iso: dt,
                 note
               }]
             }));
             toast.ok('บันทึกหลักฐานแล้ว');
+            });
           });
         }
       }, "+ เพิ่มบันทึก"));
@@ -10728,6 +10764,8 @@ function chitDayOf(g, y, m) {
   return d >= 1 ? Math.min(d, last) : last;
 }
 function chitDate(g, period) {
+  const ov = g && g.dates && g.dates[period];
+  if (ov) return fmtThaiDate(ov);
   let y = g.startY,
     m = g.startM + (period - 1);
   while (m > 12) {
@@ -11195,17 +11233,21 @@ function ChitView({
     const members = (g.members || []).map(m => m.id === mid ? { ...m, bid: v } : m);
     saveGroup({ ...g, members });
   };
-  const togglePaid = (p, mid) => {
+  const togglePaid = (p, mid, editOnly) => {
     const k = p + '-' + mid;
-    const paid = {
-      ...(g.paid || {})
-    };
-    if (paid[k]) delete paid[k];else paid[k] = {
-      date: new Date().toISOString().slice(0, 10)
-    };
-    saveGroup({
-      ...g,
-      paid
+    const cur0 = (g.paid || {})[k];
+    if (cur0 && !editOnly) {
+      const paid = { ...(g.paid || {}) };
+      delete paid[k];
+      saveGroup({ ...g, paid });
+      return;
+    }
+    const mm = (g.members || []).find(x => x.id === mid);
+    askDate('วันที่ ' + (mm ? mm.name : '') + ' จ่ายงวด ' + p, { value: cur0 && cur0.date || localISO(), help: 'ครบกำหนดงวดนี้ ' + chitDate(g, p) }).then(dt => {
+      if (!dt) return;
+      const paid = { ...(g.paid || {}) };
+      paid[k] = { ...(cur0 || {}), date: dt };
+      saveGroup({ ...g, paid });
     });
   };
   if (!g) {
@@ -11367,6 +11409,19 @@ function ChitView({
   },
     React.createElement("div", { className: "chit-bidbar-h" }, "บันทึกงวดนี้"),
     React.createElement("div", { className: "chit-bidbar-r" },
+      React.createElement("label", { className: "chit-bidbar-l" }, "วันที่"),
+      React.createElement("input", {
+        type: "date",
+        className: inputCls + ' chit-bidbar-f',
+        value: chitDueISO(g, per),
+        onChange: e => {
+          const v = e.target.value;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+          saveGroup({ ...g, dates: { ...(g.dates || {}), [per]: v } });
+        }
+      })
+    ),
+    React.createElement("div", { className: "chit-bidbar-r" },
       React.createElement("label", { className: "chit-bidbar-l" }, "คนเปีย"),
       React.createElement("select", {
         className: inputCls + ' chit-bidbar-f',
@@ -11436,7 +11491,10 @@ function ChitView({
     }
   }, "เปียงวดนี้")), React.createElement("div", {
     className: "text-xs text-slate-400 tabular-nums"
-  }, "จ่าย ฿" + fmtMoney(r.due) + (r.pdate ? " · " + fmtThaiDate(r.pdate) : ""))), React.createElement("div", {
+  }, "จ่าย ฿" + fmtMoney(r.due), r.paid ? React.createElement("button", {
+    className: "chit-pdate",
+    onClick: () => togglePaid(per, r.m.id, true)
+  }, " · " + (r.pdate ? fmtThaiDate(r.pdate) : "ใส่วันที่"), " ", React.createElement(Pencil, { size: 12 })) : null)), React.createElement("div", {
     onClick: () => togglePaid(per, r.m.id),
     className: "shrink-0 flex items-center justify-center",
     style: {
@@ -12721,6 +12779,7 @@ function memberPayStatus(g, m, txs) {
 }
 /* วันครบกำหนดของงวดในรูปแบบ ISO (ใช้เทียบว่าจ่ายช้าหรือไม่) */
 function chitDueISO(g, period) {
+  if (g && g.dates && g.dates[period]) return g.dates[period];
   let y = g.startY, m = g.startM + (period - 1);
   while (m > 12) { m -= 12; y++; }
   const last = chitDayOf(g, y, m);
@@ -12763,7 +12822,7 @@ const PAY_STATUS_STYLE = {
 
 /* ---------- STEP 4: ตัวเลขหน้าหลัก ---------- */
 function homeSummary(data) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localISO();
   const txs = (data.transactions || []).filter(t => !t.deleted && t.status === 'approved');
   const paidToday = txs.filter(t => t.date === today).reduce((s, t) => s + t.amount, 0);
   const paidAll = txs.reduce((s, t) => s + t.amount, 0);
@@ -12785,7 +12844,7 @@ function homeSummary(data) {
 function buildNotifications(data, currentUser) {
   const out = [];
   const isAdmin = currentUser && currentUser.role === 'admin';
-  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayISO = localISO();
   const cur = curYM();
   (data.chits || []).forEach(g => {
     const st = chitGroupStat(g, data.transactions);
