@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v24-20261104a';</script>
+<script>window.__BUILD__='finnote-v25-20261104b';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -2534,8 +2534,6 @@ function loanStats(loan, cur) {
       effPrin = Math.max(0, effPrin);
       scheduleMap[m] = round2(effPrin * rate / 100);
     });
-    const _pr = loanFirstProrate(loan);
-    if (_pr && scheduleMap[loan.startMonth] != null) scheduleMap[loan.startMonth] = round2(scheduleMap[loan.startMonth] * _pr.ratio);
   } else if (kind === 'amortized') {
     const payment = Number(loan.payment) || 0;
     const sch = buildAmortSchedule(principal, rate, payment, loan.startMonth);
@@ -2574,10 +2572,8 @@ function loanStats(loan, cur) {
     cumPaidThru = 0;
   const overdueMonths = [];
   const hasDue = Number(loan.dueDay) >= 1;
-  const graceDays = Math.max(0, Number(loan.graceDays) || 0);
-  const refISO = cur === curYM() ? localISO() : (() => { const [y, m] = cur.split('-').map(Number); return cur + '-' + _p2(new Date(y, m, 0).getDate()); })();
-  /* เลยกำหนด = เลยวันครบกำหนด + วันผ่อนผัน (ก้อนเก่าที่ไม่ได้ตั้งวัน ใช้สิ้นเดือนเหมือนเดิม) */
-  const isPastDue = r => hasDue ? (r.month <= cur && isoAddDays(loanDueISO(loan, r.month), graceDays) < refISO) : r.month < cur;
+  /* วันจ่ายประจำ (เช่น 25) = วันนัด จ่ายก่อน/หลังได้ภายในเดือนนั้น · ค้างชำระเมื่อเลยสิ้นเดือนของรอบ */
+  const isPastDue = r => r.month < cur;
   ledger.forEach(r => {
     if (isPastDue(r)) {
       cumBillBefore += r.bill;
@@ -2625,9 +2621,7 @@ function loanStats(loan, cur) {
   return {
     kind,
     hasDue,
-    graceDays,
     dueISOOf: m => hasDue ? loanDueISO(loan, m) : null,
-    firstProrate: kind === 'interest' ? loanFirstProrate(loan) : null,
     principal,
     rate,
     installment: kind === 'installment' ? Number(loan.installment) || 0 : 0,
@@ -6595,17 +6589,22 @@ function LoanLedger({
     const today = localISO();
     let dueTxt = null, dueCls = 'text-slate-400';
     if (dueI) {
+      const [ey, em] = m.split('-').map(Number);
+      const endI = m + '-' + _p2(new Date(ey, em, 0).getDate());
       if (pRec && pRec.date) {
-        const late = daysBetween(dueI, pRec.date);
-        dueTxt = 'ครบ ' + fmtThaiDate(dueI) + ' · จ่าย ' + fmtThaiDate(pRec.date) + (late > 0 ? ' · ช้า ' + late + ' วัน' : ' · ตรงเวลา');
-        dueCls = late > s.graceDays ? 'text-amber-600' : 'text-emerald-700';
+        const diff = daysBetween(dueI, pRec.date);
+        const inCycle = pRec.date <= endI;
+        dueTxt = 'นัด ' + fmtThaiDate(dueI) + ' · จ่าย ' + fmtThaiDate(pRec.date) +
+          (diff === 0 ? ' · ตรงวันนัด' : diff < 0 ? ' · ก่อนนัด ' + (-diff) + ' วัน' : inCycle ? ' · หลังนัด ' + diff + ' วัน' : ' · เลยรอบ');
+        dueCls = inCycle ? 'text-emerald-700' : 'text-amber-600';
       } else if (r.status !== 'settled') {
         const left = daysBetween(today, dueI);
-        dueTxt = 'ครบ ' + fmtThaiDate(dueI) + (left > 0 ? ' · อีก ' + left + ' วัน' : left === 0 ? ' · วันนี้' : ' · เลยกำหนด ' + (-left) + ' วัน');
-        dueCls = left < -s.graceDays ? 'text-red-600' : left <= 3 ? 'text-amber-600' : 'text-slate-400';
-      } else dueTxt = 'ครบ ' + fmtThaiDate(dueI);
+        const toEnd = daysBetween(today, endI);
+        dueTxt = 'นัด ' + fmtThaiDate(dueI) + (left > 0 ? ' · อีก ' + left + ' วัน' : left === 0 ? ' · วันนี้' : toEnd >= 0 ? ' · เลยนัด ' + (-left) + ' วัน (จ่ายได้ถึง ' + fmtThaiDate(endI) + ')' : ' · ค้างชำระ');
+        dueCls = toEnd < 0 ? 'text-red-600' : left < 0 || left <= 3 ? 'text-amber-600' : 'text-slate-400';
+      } else dueTxt = 'นัด ' + fmtThaiDate(dueI);
     }
-    const prNote = s.firstProrate && m === loan.startMonth ? ' (ดอก ' + s.firstProrate.days + ' วัน)' : '';
+    const prNote = '';
     return React.createElement("div", {
       key: m,
       className: "flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2"
@@ -6898,7 +6897,7 @@ function DebtorDetailView({
       size: 12
     }), " ผ่อนครบแล้ว")), React.createElement("div", {
       className: "text-xs text-slate-400 mt-0.5"
-    }, loan.loanDate ? "กู้ " + fmtThaiDate(loan.loanDate) + " · จ่ายทุกวันที่ " + loan.dueDay + (loan.graceDays ? " · ผ่อนผัน " + loan.graceDays + " วัน" : "") : loan.dueDay ? "เริ่ม " + dueDateLabel(loan.startMonth, loan.dueDay) + " · ครบกำหนดทุกวันที่ " + loan.dueDay : "เริ่ม " + ymLabel(loan.startMonth), " ", loan.note && `· ${loan.note}`)), React.createElement("div", {
+    }, loan.loanDate ? "กู้ " + fmtThaiDate(loan.loanDate) + " · นัดจ่ายทุกวันที่ " + loan.dueDay : loan.dueDay ? "เริ่ม " + dueDateLabel(loan.startMonth, loan.dueDay) + " · ครบกำหนดทุกวันที่ " + loan.dueDay : "เริ่ม " + ymLabel(loan.startMonth), " ", loan.note && `· ${loan.note}`)), React.createElement("div", {
       className: "flex gap-1"
     }, React.createElement("button", {
       onClick: () => onEditLoan(debtor, loan),
@@ -7847,15 +7846,10 @@ function LoanForm({
   const [loanDate, setLoanDate] = useState(() => {
     if (initial && initial.loanDate) return initial.loanDate;
     if (!initial) return localISO();
-    const [yy, mm] = (initial.startMonth || curYM()).split('-').map(Number);
-    const py = mm === 1 ? yy - 1 : yy, pm = mm === 1 ? 12 : mm - 1;
-    const dd = Number(initial.dueDay) || getCollectDay();
-    return py + '-' + _p2(pm) + '-' + _p2(clampDay(py, pm, dd));
+    return (initial.startMonth || curYM()) + '-01';
   });
-  const [prorate, setProrate] = useState(() => initial ? !!initial.prorate : true);
-  const [graceDays, setGraceDays] = useState(() => initial ? (Number(initial.graceDays) || 0) : 3);
-  const firstDue = /^\d{4}-\d{2}-\d{2}$/.test(loanDate || '') && dueDay ? firstDueFrom(loanDate, dueDay) : '';
-  const startMonth = firstDue ? firstDue.slice(0, 7) : '';
+  const startMonth = /^\d{4}-\d{2}-\d{2}$/.test(loanDate || '') ? loanDate.slice(0, 7) : '';
+  const firstDue = startMonth && dueDay ? loanDueISO({ dueDay }, startMonth) : '';
   const [note, setNote] = useState(initial?.note || '');
   const [err, setErr] = useState('');
   const p = Number(principal) || 0;
@@ -7929,37 +7923,25 @@ function LoanForm({
     onChange: e => setLoanDate(e.target.value)
   }), React.createElement("div", {
     className: "text-xs text-slate-400 mt-1"
-  }, type === 'interest' ? "ดอกเบี้ยเริ่มเดินตั้งแต่วันนี้" : "วันที่ให้เงินลูกหนี้")), React.createElement("div", null, React.createElement("label", {
+  }, "กู้เดือนไหน งวดแรกจ่ายเดือนนั้น (ดอกเต็มเดือน)")), React.createElement("div", null, React.createElement("label", {
     className: labelCls
-  }, type === 'interest' ? "จ่ายดอกทุกวันที่ *" : "จ่ายงวดทุกวันที่ *"), React.createElement("select", {
+  }, type === 'interest' ? "วันนัดจ่ายดอก (เช่น วันเงินเดือนออก) *" : "วันนัดจ่ายงวด (เช่น วันเงินเดือนออก) *"), React.createElement("select", {
     className: inputCls,
     value: dueDay,
     onChange: e => setDueDay(+e.target.value)
   }, Array.from({ length: 31 }, (_, i) => React.createElement("option", { key: i, value: i + 1 }, "วันที่ " + (i + 1) + " ของทุกเดือน"))), dueDay > 28 ? React.createElement("div", {
     className: "text-xs text-slate-400 mt-1"
-  }, "เดือนที่ไม่มีวันที่ " + dueDay + " ใช้วันสุดท้ายของเดือน") : null), type === 'interest' && React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "ดอกงวดแรก"), React.createElement("div", { className: "qp-loans" },
-    [[true, 'คิดตามวันจริง (แนะนำ)', 'ใช้เงินกี่วัน จ่ายดอกเท่านั้น แล้วเต็มทุกเดือน'], [false, 'เต็มเดือน', 'งวดแรกจ่ายเต็มเหมือนงวดอื่น']].map(([v, t, h]) =>
-      React.createElement("button", { key: String(v), type: "button", className: "qp-loan" + (prorate === v ? " on" : ""), onClick: () => setProrate(v), style: { flexDirection: 'column', alignItems: 'flex-start', gap: 2 } },
-        React.createElement("span", { className: "qp-loan-n" }, t),
-        React.createElement("span", { className: "text-xs", style: { color: 'var(--c-text-3)' } }, h))))), React.createElement("div", null, React.createElement("label", {
-    className: labelCls
-  }, "ผ่อนผันก่อนขึ้นค้างชำระ"), React.createElement("div", { className: "chips" }, [0, 1, 3, 5, 7].map(dd =>
-    React.createElement("button", { key: dd, type: "button", className: "chip" + (graceDays === dd ? " on" : ""), onClick: () => setGraceDays(dd) }, dd ? dd + " วัน" : "ไม่มี")))),
+  }, "เดือนที่ไม่มีวันที่ " + dueDay + " ใช้วันสุดท้ายของเดือน") : null),
   firstDue && p > 0 && React.createElement("div", {
     className: "bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800 leading-relaxed"
   }, (() => {
     const full = type === 'interest' ? p * rate / 100 : type === 'amortized' ? pay : Math.min(inst, p);
-    const days = daysBetween(loanDate, firstDue);
-    const first = type === 'interest' && prorate ? Math.round(full * Math.min(days, 30) / 30) : full;
     const d2 = firstDueFrom(firstDue, dueDay), d3 = firstDueFrom(d2, dueDay);
+    const endOf = iso => { const [y, m] = iso.split('-').map(Number); return iso.slice(0, 8) + _p2(new Date(y, m, 0).getDate()); };
+    const row = (n, iso) => React.createElement(React.Fragment, null, "งวด " + n + " · จ่ายวันที่ ", React.createElement("b", null, fmtThaiDate(iso)), " · ", React.createElement("b", null, "฿" + fmtMoney(full)), React.createElement("br", null));
     return React.createElement(React.Fragment, null,
-      "งวด 1 ครบ ", React.createElement("b", null, fmtThaiDate(firstDue)), " · ", React.createElement("b", null, "฿" + fmtMoney(first)),
-      type === 'interest' && prorate && days < 30 ? " (ใช้เงิน " + days + " วัน)" : "", React.createElement("br", null),
-      "งวด 2 ครบ ", fmtThaiDate(d2), " · ฿" + fmtMoney(full), React.createElement("br", null),
-      "งวด 3 ครบ ", fmtThaiDate(d3), " · ฿" + fmtMoney(full), React.createElement("br", null),
-      "เลยกำหนด" + (graceDays ? " " + graceDays + " วัน" : "") + " แล้วยังไม่จ่าย = ค้างชำระ");
+      row(1, firstDue), row(2, d2), row(3, d3),
+      "จ่ายก่อนหรือหลังวันที่ " + dueDay + " ได้ภายในเดือนนั้น · เลยสิ้นเดือน (เช่น " + fmtThaiDate(endOf(firstDue)) + ") = ค้างชำระ");
   })()), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "หมายเหตุ"), React.createElement("textarea", {
@@ -8015,8 +7997,8 @@ function LoanForm({
         startMonth,
         loanDate,
         dueDay: dueDay || null,
-        prorate: type === 'interest' ? !!prorate : false,
-        graceDays,
+        prorate: false,
+        graceDays: 0,
         note: note.trim()
       };
       if (type === 'interest') onSave({
