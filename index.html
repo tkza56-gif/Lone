@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v26-20261108a';</script>
+<script>window.__BUILD__='finnote-v27-20261108b';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1836,6 +1836,31 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   .calc-cta-t b { font-size: 16px; color: var(--c-text); }
   .calc-cta-t small { font-size: 13px; color: var(--c-text-3); }
   .calc-cta-a { flex: none; font-size: 22px; color: var(--c-text-3); }
+  .pay-tabs { overflow-x: auto; scrollbar-width: none; }
+  .pay-tabs .pay-tab { white-space: nowrap; padding: 0 10px; flex: 1 0 auto; min-width: max-content; overflow: visible; text-overflow: clip; }
+  .mine-who { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 15px; color: var(--c-text-2); }
+  .mine-who b { color: var(--c-text); }
+  .mine-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: 14px; margin-bottom: 10px; box-shadow: var(--sh-card); }
+  .mine-card.is-bad { border-top: 4px solid var(--c-danger); }
+  .mine-card.is-ok { border-top: 4px solid var(--c-success); }
+  .mine-h { font-size: 16px; font-weight: 800; color: var(--c-text); }
+  .mine-s { font-size: 13px; color: var(--c-text-3); margin-top: 4px; line-height: 1.45; }
+  .mine-big { font-size: 28px; font-weight: 800; color: var(--c-text); margin: 6px 0 10px; }
+  .mine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .mine-grid > div { background: var(--c-card-alt); border-radius: var(--r-md); padding: 10px; display: flex; flex-direction: column; gap: 2px; }
+  .mine-grid small { font-size: 12px; color: var(--c-text-3); } .mine-grid b { font-size: 17px; color: var(--c-text); }
+  .mine-lines { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .mine-lines > div { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; color: var(--c-text-2); }
+  .mine-lines b { color: var(--c-text); text-align: right; }
+  .mine-res { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; padding: 10px 12px; border-radius: var(--r-md); font-size: 15px; font-weight: 700; }
+  .mine-res b { font-size: 22px; font-weight: 800; }
+  .mine-res.is-bad { background: var(--c-danger-soft); color: var(--c-danger-tx); }
+  .mine-res.is-ok { background: var(--c-success-soft); color: var(--c-success-tx); }
+  .mine-next { margin-top: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--c-primary-soft); color: var(--c-primary-tx); font-size: 14px; }
+  .mine-asm { background: var(--c-card-alt); border-radius: var(--r-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .mine-asm label { font-size: 14px; font-weight: 700; color: var(--c-text-2); }
+  .mine-asm-in { display: flex; align-items: center; gap: 6px; } .mine-asm-in span { font-weight: 700; color: var(--c-text-3); }
+  .mine-asm small { font-size: 12px; color: var(--c-text-3); }
 </style>
 </head>
 <body>
@@ -11176,6 +11201,128 @@ function ChitHistoryTab({ g, txs }) {
   }));
 }
 
+/* ---------- แท็บ "มือของฉัน" (มุมลูกแชร์): เปียตอนนี้เสียดอกเท่าไหร่ / รอแล้วได้ดอกเท่าไหร่ ---------- */
+function ChitMineTab({ g, saveGroup }) {
+  const members = g.members || [];
+  const N = members.length;
+  const me = members.find(m => m.id === g.meId) || null;
+  const recBids = members.filter(m => m.wonPeriod != null && !m.dealer && Number(m.bid) > 0).map(m => Number(m.bid));
+  const defAssume = recBids.length ? Math.round(recBids.reduce((a, b) => a + b, 0) / recBids.length) : (Number(g.minBid) || 1000);
+  const [assume, setAssume] = useState(String(defAssume));
+  const [bid, setBid] = useState('');
+  const [picking, setPicking] = useState(false);
+  if (!N) return React.createElement("div", { className: "empty" }, React.createElement("div", { className: "empty-t" }, "ยังไม่มีสมาชิกในวงนี้"));
+
+  if (!me || picking) {
+    return React.createElement("div", { className: "mine-card", style: { marginTop: 10 } },
+      React.createElement("div", { className: "mine-h" }, "คุณคือมือไหนในวงนี้?"),
+      React.createElement("div", { className: "mine-s" }, "เลือกชื่อของคุณ แอปจะคิดให้ว่าเปียงวดไหนได้เงินเท่าไหร่ เสียดอกหรือได้ดอกเท่าไหร่"),
+      React.createElement("div", { className: "qp-loans", style: { marginTop: 10 } }, members.map(m =>
+        React.createElement("button", { key: m.id, className: "qp-loan" + (g.meId === m.id ? " on" : ""), onClick: () => { saveGroup({ ...g, meId: m.id }); setPicking(false); } },
+          React.createElement("span", { className: "qp-loan-n" }, m.name + (m.dealer && !/เจ้ามือ/.test(m.name) ? " (เจ้ามือ)" : "")),
+          React.createElement("span", { className: "qp-loan-v" }, m.wonPeriod != null ? "เปียแล้ว งวด " + m.wonPeriod : "ยังไม่เปีย")))));
+  }
+
+  const ph = Number(g.perHead) || 0;
+  const pot = ph * N;
+  const asm = Number(assume) || 0;
+  const winAt = {};
+  members.forEach(m => { if (m.wonPeriod != null) winAt[m.wonPeriod] = m; });
+  /* ดอกของงวด j ที่คนอื่นเปีย: ใช้ของจริงถ้าบันทึกแล้ว ไม่งั้นใช้ค่าที่สมมติ (งวด 1 = เจ้ามือ ไม่มีดอก) */
+  const bidOf = j => winAt[j] ? (winAt[j].dealer ? 0 : Number(winAt[j].bid) || 0) : (j === 1 ? 0 : asm);
+  const calc = (P, B) => {
+    let got = pot;
+    for (let j = 1; j < P; j++) got += bidOf(j);
+    const paid = pot + B * (N - P);
+    return { P, B, got: round2(got), paid: round2(paid), net: round2(got - paid) };
+  };
+  const paidSoFar = (() => { let s = 0; for (let p = 1; p <= N; p++) if ((g.paid || {})[p + '-' + me.id]) s += chitDue(g, p, me); return round2(s); })();
+  const paidCnt = (() => { let c = 0; for (let p = 1; p <= N; p++) if ((g.paid || {})[p + '-' + me.id]) c++; return c; })();
+  const money = v => (v < 0 ? "−฿" : "฿") + fmtMoney(Math.abs(v));
+  const head = React.createElement("div", { className: "mine-who" },
+    React.createElement("span", null, "มือของฉัน: ", React.createElement("b", null, me.name)),
+    React.createElement("button", { className: "qp-change", onClick: () => setPicking(true) }, "เปลี่ยน"));
+
+  /* ----- เปียแล้ว (มือตาย) ----- */
+  if (me.wonPeriod != null) {
+    const r = chitMemberNet(g, me);
+    const myBid = me.dealer ? 0 : Number(me.bid) || 0;
+    const left = Math.max(0, round2(r.paid - paidSoFar));
+    let next = null;
+    for (let p = 1; p <= N; p++) if (!(g.paid || {})[p + '-' + me.id]) { next = p; break; }
+    let lostSoFar = 0;
+    for (let p = me.wonPeriod + 1; p <= N; p++) if ((g.paid || {})[p + '-' + me.id]) lostSoFar += myBid;
+    return React.createElement("div", { style: { marginTop: 10 } }, head,
+      React.createElement("div", { className: "mine-card" },
+        React.createElement("div", { className: "mine-s" }, "เปียงวด " + me.wonPeriod + (myBid ? " · ดอก ฿" + fmtMoney(myBid) : "") + " · " + chitDate(g, me.wonPeriod)),
+        React.createElement("div", { className: "mine-big tabular-nums" }, "ได้รับ ฿" + fmtMoney(r.got)),
+        React.createElement("div", { className: "mine-grid" },
+          React.createElement("div", null, React.createElement("small", null, "ส่งแล้ว"), React.createElement("b", { className: "tabular-nums" }, "฿" + fmtMoney(paidSoFar)), React.createElement("small", null, paidCnt + "/" + N + " งวด")),
+          React.createElement("div", null, React.createElement("small", null, "ยังต้องส่ง"), React.createElement("b", { className: "tabular-nums" }, "฿" + fmtMoney(left)), React.createElement("small", null, "งวดละ ฿" + fmtMoney(ph + myBid)))),
+        React.createElement("div", { className: "mine-res " + (r.net < 0 ? "is-bad" : "is-ok") },
+          React.createElement("span", null, r.net < 0 ? "เสียดอกรวมทั้งวง" : "ได้ดอกรวมทั้งวง"),
+          React.createElement("b", { className: "tabular-nums" }, "฿" + fmtMoney(Math.abs(r.net)))),
+        myBid > 0 ? React.createElement("div", { className: "mine-s" }, "เสียดอกไปแล้ว ฿" + fmtMoney(lostSoFar) + " จาก ฿" + fmtMoney(myBid * (N - me.wonPeriod))) : null,
+        next ? React.createElement("div", { className: "mine-next" }, "งวดถัดไป ", React.createElement("b", null, chitDate(g, next)), " · ส่ง ", React.createElement("b", { className: "tabular-nums" }, "฿" + fmtMoney(chitDue(g, next, me)))) : React.createElement("div", { className: "mine-next" }, "ส่งครบทุกงวดแล้ว")));
+  }
+
+  /* ----- ยังไม่เปีย (มือเป็น) ----- */
+  let P = currentChitPeriod(g);
+  while (P < N && winAt[P]) P++;
+  const isLast = P >= N;
+  const B = bid === '' ? asm : Number(bid) || 0;
+  const now = calc(P, isLast ? 0 : B);
+  const wait = calc(N, 0);
+  const rows = [];
+  for (let k = P; k <= N; k++) rows.push(calc(k, k === N ? 0 : (k === P ? B : asm)));
+  const be = rows.find(x => x.net >= 0);
+  const assumeBox = React.createElement("div", { className: "mine-asm" },
+    React.createElement("label", null, "สมมติคนอื่นเปียดอกเฉลี่ย"),
+    React.createElement("div", { className: "mine-asm-in" },
+      React.createElement("span", null, "฿"),
+      React.createElement("input", { inputMode: "numeric", className: inputCls, value: assume, onChange: e => setAssume(numClean(e.target.value)) })),
+    recBids.length ? React.createElement("small", null, "ดอกจริงที่บันทึกแล้ว " + recBids.length + " งวด ใช้ตัวเลขจริง") : null);
+
+  return React.createElement("div", { style: { marginTop: 10 } }, head,
+    React.createElement("div", { className: "mine-s", style: { marginBottom: 8 } }, "ยังไม่เปีย · ส่งแล้ว ฿" + fmtMoney(paidSoFar) + " (" + paidCnt + "/" + N + " งวด)"),
+    !isLast ? React.createElement("div", { className: "mine-card is-bad" },
+      React.createElement("div", { className: "mine-h" }, "ถ้าเปียงวดนี้ (งวด " + P + " · " + chitDate(g, P) + ")"),
+      React.createElement("label", { className: "qp-lbl", style: { marginTop: 8, display: 'block' } }, "ดอกที่จะเปีย"),
+      React.createElement("div", { className: "qp-amt" },
+        React.createElement("span", { className: "qp-cur" }, "฿"),
+        React.createElement("input", { className: "qp-amt-in tabular-nums", inputMode: "numeric", value: bid === '' ? numShow(asm) : bid, onChange: e => setBid(numClean(e.target.value)) })),
+      React.createElement("div", { className: "qp-chips" }, [Number(g.minBid) || 1000, 2000, 2800, 3500].filter((v, i, a) => a.indexOf(v) === i).map(v =>
+        React.createElement("button", { key: v, className: "qp-chip" + (B === v ? " on" : ""), onClick: () => setBid(String(v)) }, "฿" + fmtMoney(v)))),
+      g.minBid && B < g.minBid ? React.createElement("div", { className: "qp-hint" }, "ต่ำกว่าดอกขั้นต่ำของวง ฿" + fmtMoney(g.minBid)) : null,
+      React.createElement("div", { className: "mine-lines tabular-nums" },
+        React.createElement("div", null, React.createElement("span", null, "ได้เงินวันนี้"), React.createElement("b", null, "฿" + fmtMoney(now.got))),
+        React.createElement("div", null, React.createElement("span", null, "ส่งต่องวดละ"), React.createElement("b", null, "฿" + fmtMoney(ph + B) + " × " + (N - P) + " งวด")),
+        React.createElement("div", null, React.createElement("span", null, "จ่ายรวมทั้งวง"), React.createElement("b", null, "฿" + fmtMoney(now.paid)))),
+      React.createElement("div", { className: "mine-res " + (now.net < 0 ? "is-bad" : "is-ok") },
+        React.createElement("span", null, now.net < 0 ? "เสียดอกสุทธิ" : "ได้ดอกสุทธิ"),
+        React.createElement("b", { className: "tabular-nums" }, "฿" + fmtMoney(Math.abs(now.net)))),
+      now.got > 0 && B > 0 ? React.createElement("div", { className: "mine-s" }, "เท่ากับดอกประมาณ " + (B / now.got * 100).toFixed(1) + "% ต่อเดือนของเงินที่ได้") : null) : null,
+    React.createElement("div", { className: "mine-card is-ok" },
+      React.createElement("div", { className: "mine-h" }, isLast ? "คุณเป็นมือสุดท้าย (งวด " + N + ")" : "ถ้ารอเปียมือสุดท้าย (งวด " + N + ")"),
+      React.createElement("div", { className: "mine-lines tabular-nums" },
+        React.createElement("div", null, React.createElement("span", null, "ได้รับ"), React.createElement("b", null, "฿" + fmtMoney(wait.got))),
+        React.createElement("div", null, React.createElement("span", null, "ทุนที่ส่ง"), React.createElement("b", null, "฿" + fmtMoney(wait.paid)))),
+      React.createElement("div", { className: "mine-res is-ok" },
+        React.createElement("span", null, "ได้ดอก"),
+        React.createElement("b", { className: "tabular-nums" }, "+฿" + fmtMoney(wait.net)))),
+    assumeBox,
+    React.createElement("div", { className: "sec-h", style: { marginTop: 14 } }, "เปียงวดไหนคุ้ม"),
+    be ? React.createElement("div", { className: "mine-s", style: { marginBottom: 6 } }, "จุดคุ้มทุนประมาณงวด " + be.P + " (เปียหลังจากนี้ได้ดอก ก่อนหน้านี้เสียดอก)") : null,
+    React.createElement("table", { className: "per-tbl" },
+      React.createElement("thead", null, React.createElement("tr", null,
+        React.createElement("th", null, "เปียงวด"), React.createElement("th", null, "ได้รับ"), React.createElement("th", null, "จ่ายรวม"), React.createElement("th", null, "สุทธิ"))),
+      React.createElement("tbody", null, rows.map(r => React.createElement("tr", { key: r.P, className: be && r.P === be.P ? "per-cur" : "" },
+        React.createElement("td", null, React.createElement("div", { className: "per-n tabular-nums" }, r.P), React.createElement("div", { className: "per-d" }, r.P === N ? "ไม่มีดอก" : "ดอก ฿" + fmtMoney(r.B))),
+        React.createElement("td", { className: "tabular-nums" }, "฿" + fmtMoney(r.got)),
+        React.createElement("td", { className: "tabular-nums" }, "฿" + fmtMoney(r.paid)),
+        React.createElement("td", { className: "tabular-nums", style: { fontWeight: 700, color: r.net < 0 ? 'var(--c-danger-tx)' : 'var(--c-success-tx)' } }, (r.net > 0 ? "+" : "") + money(r.net)))))));
+}
+
 /* ---------- STEP 6: แท็บ "ตารางงวด" ---------- */
 function ChitPeriodsTab({ g }) {
   const N = (g.members || []).length;
@@ -11268,8 +11415,8 @@ function ChitView({
   onAudit
 }) {
   const [pendingEdit, setPendingEdit] = useState(null);
-  const [tab, setTab] = useState('members');
   const groups = chits || [];
+  const [tab, setTab] = useState(() => groups[0] && groups[0].meId ? 'mine' : 'members');
   const [curId, setCurId] = useState(groups[0] ? groups[0].id : null);
   const [period, setPeriod] = useState(1);
   const [editing, setEditing] = useState(false);
@@ -11490,7 +11637,7 @@ function ChitView({
     className: "pay-tabs",
     style: { marginTop: 10 },
     role: "tablist"
-  }, [['members', 'สมาชิก'], ['history', 'ประวัติ'], ['periods', 'ตารางงวด'], ['info', 'รายละเอียด']].map(t =>
+  }, [['mine', 'มือฉัน'], ['members', 'สมาชิก'], ['history', 'ประวัติ'], ['periods', 'ตาราง'], ['info', 'ข้อมูล']].map(t =>
     React.createElement("button", {
       key: t[0], className: "pay-tab" + (tab === t[0] ? " on" : ""),
       role: "tab", "aria-selected": tab === t[0],
@@ -11539,7 +11686,7 @@ function ChitView({
           ? "⚠ ต่ำกว่าขั้นต่ำ ฿" + fmtMoney(g.minBid)
           : "บันทึกอัตโนมัติ · มือที่ยังไม่เปียจ่ายงวดนี้ ฿" + fmtMoney(g.perHead)
     )
-  ), React.createElement("div", {
+  ), tab !== 'mine' && React.createElement("div", {
     className: "mt-3"
   }, rows.map((r, i) => React.createElement("div", {
     key: r.m.id,
@@ -11598,7 +11745,7 @@ function ChitView({
       background: r.paid ? 'var(--c-success)' : 'var(--c-card)',
       color: r.paid ? 'var(--c-on-solid)' : 'var(--c-text-3)'
     }
-  }, r.paid ? '✓' : '')))), React.createElement("div", {
+  }, r.paid ? '✓' : '')))), tab !== 'mine' && React.createElement("div", {
     className: "grid grid-cols-2 gap-2 mt-2"
   }, React.createElement("div", {
     className: "wallet-tile",
@@ -11656,7 +11803,7 @@ function ChitView({
   }, "ดอกสะสมในกอง"), React.createElement("div", {
     className: "wallet-tile-v tabular-nums",
     style: { fontSize: '16px', color: potBid > 0 ? 'var(--c-primary-tx)' : 'var(--c-text-3)' }
-  }, "฿" + fmtMoney(potBid)))), pending > 0 && React.createElement("div", {
+  }, "฿" + fmtMoney(potBid)))), tab !== 'mine' && pending > 0 && React.createElement("div", {
     className: "text-sm mt-2",
     style: {
       background: 'var(--c-danger-soft)',
@@ -11664,9 +11811,9 @@ function ChitView({
       padding: '10px',
       color: 'var(--c-danger-tx)'
     }
-  }, "⏳ ค้าง: " + rows.filter(r => !r.paid).map(r => r.m.name).join(', ')), nLive > 0 && React.createElement("div", {
+  }, "⏳ ค้าง: " + rows.filter(r => !r.paid).map(r => r.m.name).join(', ')), tab !== 'mine' && nLive > 0 && React.createElement("div", {
     className: "chit-livenote"
-  }, "มือเป็น " + nLive + " คน ยังไม่เปีย · ถ้าเปียงวดนี้จะได้ ฿" + fmtMoney(pot) + (potBid > 0 ? " (เงินต้น ฿" + fmtMoney(g.perHead * N) + " + ดอกสะสม ฿" + fmtMoney(potBid) + ")" : " · ยังไม่มีดอกสะสม") + (bidTotal > potBid ? " · ดอกที่บันทึกแล้วทั้งวง ฿" + fmtMoney(bidTotal) : "")), React.createElement("div", {
+  }, "มือเป็น " + nLive + " คน ยังไม่เปีย · ถ้าเปียงวดนี้จะได้ ฿" + fmtMoney(pot) + (potBid > 0 ? " (เงินต้น ฿" + fmtMoney(g.perHead * N) + " + ดอกสะสม ฿" + fmtMoney(potBid) + ")" : " · ยังไม่มีดอกสะสม") + (bidTotal > potBid ? " · ดอกที่บันทึกแล้วทั้งวง ฿" + fmtMoney(bidTotal) : "")), tab !== 'mine' && React.createElement("div", {
     className: "flex gap-2 mt-3"
   }, React.createElement(PrimaryBtn, {
     className: "flex-1 py-3",
@@ -11675,6 +11822,7 @@ function ChitView({
     className: "flex-1 py-3",
     onClick: () => setAdvice(true)
   }, React.createElement(Lightbulb, { size: 17 }), " วางแผนเปีย"))), tab === 'history' && React.createElement(ChitHistoryTab, { g, txs }),
+  tab === 'mine' && React.createElement(ChitMineTab, { key: g.id, g, saveGroup }),
   tab === 'periods' && React.createElement(ChitPeriodsTab, { g }),
   tab === 'info' && React.createElement(ChitInfoTab, { g, onEdit: () => setEditing(true), onAdvice: () => setAdvice(true) }),
   tab === 'members' && React.createElement("div", {
