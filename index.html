@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v25-20261104b';</script>
+<script>window.__BUILD__='finnote-v26-20261108a';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1828,6 +1828,14 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   }
   .chit-pdate { background: none; border: none; padding: 0 2px; margin: 0; font: inherit; color: var(--c-primary-tx);
     cursor: pointer; text-decoration: underline dotted; display: inline-flex; align-items: center; gap: 2px; min-height: 28px; }
+  .calc-cta { width: 100%; display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 12px 14px; min-height: 64px;
+    background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--r-card); box-shadow: var(--sh-card);
+    cursor: pointer; font-family: inherit; text-align: left; }
+  .calc-cta .qa-ic { flex: none; }
+  .calc-cta-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .calc-cta-t b { font-size: 16px; color: var(--c-text); }
+  .calc-cta-t small { font-size: 13px; color: var(--c-text-3); }
+  .calc-cta-a { flex: none; font-size: 22px; color: var(--c-text-3); }
 </style>
 </head>
 <body>
@@ -9055,7 +9063,7 @@ function BottomNav({
     id: 'dashboard',
     icon: LayoutDashboard,
     label: 'หน้าหลัก',
-    also: ['calendar', 'portfolio']
+    also: ['calendar', 'portfolio', 'calc']
   }, {
     id: 'chits',
     icon: Wallet,
@@ -9075,7 +9083,7 @@ function BottomNav({
     id: 'settings',
     icon: SettingsIcon,
     label: 'ตั้งค่า',
-    also: ['users', 'calc', 'audit', 'debtors', 'debtor', 'legal']
+    also: ['users', 'audit', 'debtors', 'debtor', 'legal']
   }];
   return React.createElement("nav", {
     className: "app-tabbar",
@@ -13126,6 +13134,12 @@ function HomeView({ data, currentUser, onNav, onOpenNotif, notifCount }) {
     React.createElement("div", { className: "qa-grid" },
       Q('chits', Users, 'สร้างวง', 'blue'), Q('pay', Banknote, 'บันทึกชำระ', 'green'),
       Q('debtors', User, 'ลูกหนี้', 'amber'), Q('reports', TrendingUp, 'รายงาน', 'purple')),
+    React.createElement("button", { className: "calc-cta", onClick: () => onNav('calc') },
+      React.createElement("span", { className: "qa-ic qa-blue" }, React.createElement(Calculator, { size: 22 })),
+      React.createElement("span", { className: "calc-cta-t" },
+        React.createElement("b", null, "เครื่องคิดเลขเงินกู้"),
+        React.createElement("small", null, "ลองคำนวณดอกเบี้ยและตารางผ่อนก่อนปล่อยกู้")),
+      React.createElement("span", { className: "calc-cta-a" }, "›")),
     React.createElement("div", { className: "sec-h" }, "วงแชร์ของฉัน"),
     (data.chits || []).length === 0
       ? React.createElement("div", { className: "empty" },
