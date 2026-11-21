@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v27-20261108b';</script>
+<script>window.__BUILD__='finnote-v28-20261121a';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -2254,6 +2254,25 @@ function loanFirstProrate(loan) {
   if (!(days >= 1)) return null;
   return { days, ratio: Math.min(days, 30) / 30 };
 }
+/* ประวัติรับเงินของรอบบิลหนึ่ง: [{date, amount, at, by}] (ข้อมูลเก่าที่ไม่มี hist แปลงจาก prevRec) */
+function payHist(rec) {
+  if (!rec) return [];
+  if (Array.isArray(rec.hist) && rec.hist.length) return rec.hist;
+  const out = [];
+  let r = rec;
+  while (r) {
+    const prev = r.prevRec || null;
+    const amt = round2((Number(r.amount) || 0) - (prev ? Number(prev.amount) || 0 : 0));
+    out.unshift({ date: r.date || null, amount: amt, at: r.at || null, by: r.by || null });
+    r = prev;
+  }
+  return out;
+}
+function fmtStamp(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  return d.getDate() + ' ' + THAI_MON[d.getMonth()] + ' ' + _p2(d.getHours()) + ':' + _p2(d.getMinutes());
+}
 function dueDateLabel(ym, day) {
   const [y, m] = ym.split('-').map(Number);
   return clampDay(y, m, day) + ' ' + THAI_MON[m - 1] + ' ' + (y + 543);
@@ -2750,10 +2769,14 @@ function applyBulkPayment(debtor, cur, totalPaid, payDate) {
     };
     Object.keys(alloc.add).forEach(ym => {
       const prev = updated.payments[ym] ? Number(updated.payments[ym].amount) || 0 : 0;
+      const _d = payDate || localISO(), _at = Date.now();
+      const prevRec = (loan.payments || {})[ym] || null;
       updated.payments[ym] = {
         amount: round2(prev + alloc.add[ym]),
-        date: payDate || `${ym}-25`,
-        bulkId
+        date: _d,
+        bulkId,
+        at: _at,
+        hist: payHist(prevRec).concat([{ date: _d, amount: round2(alloc.add[ym]), at: _at, bulk: true }])
       };
     });
     if (result.prinCuts[li] != null) {
@@ -6638,6 +6661,8 @@ function LoanLedger({
       } else dueTxt = 'นัด ' + fmtThaiDate(dueI);
     }
     const prNote = '';
+    const hist = payHist(pRec).filter(h => h.amount > 0.005 || h.date);
+    const showHist = hist.length > 1 || (hist.length === 1 && !dueI);
     return React.createElement("div", {
       key: m,
       className: "flex items-center justify-between bg-stone-50 rounded-xl px-3 py-2"
@@ -6655,7 +6680,15 @@ function LoanLedger({
       className: "text-xs text-amber-600 mt-0.5"
     }, "ขาดอีก ", fmtMoney(r.balanceAfter), " — ยกไปเดือนถัดไป"), dueTxt && React.createElement("div", {
       className: "text-xs mt-0.5 " + dueCls
-    }, dueTxt), bd && React.createElement("div", {
+    }, dueTxt), showHist && hist.map((h, hi) => React.createElement("div", {
+      key: hi,
+      className: "text-xs mt-0.5",
+      style: { color: 'var(--c-success-tx)' }
+    }, "รับ ฿" + fmtMoney(h.amount) + (h.date ? " · วันที่ " + fmtThaiDate(h.date) : " · ไม่ระบุวันที่"),
+      h.at ? React.createElement("span", { className: "text-slate-400" }, " (กดบันทึก " + fmtStamp(h.at) + (h.by ? " · " + h.by : "") + ")") : null)),
+    !showHist && pRec && pRec.at ? React.createElement("div", {
+      className: "text-xs text-slate-400 mt-0.5"
+    }, "กดบันทึก " + fmtStamp(pRec.at) + (pRec.by ? " · " + pRec.by : "")) : null, bd && React.createElement("div", {
       className: "text-xs text-slate-400 mt-0.5"
     }, "ดอกเบี้ย ", fmtMoney(bd.interest), " · เงินต้น ", fmtMoney(bd.principalPart), " · คงเหลือ ", fmtMoney(bd.balanceAfter))), r.status === 'settled' ? React.createElement("button", {
       onClick: () => r.hasPayment && onUndo(loan.id, m),
@@ -11484,7 +11517,7 @@ function ChitView({
     askDate('วันที่ ' + (mm ? mm.name : '') + ' จ่ายงวด ' + p, { value: cur0 && cur0.date || localISO(), help: 'ครบกำหนดงวดนี้ ' + chitDate(g, p) }).then(dt => {
       if (!dt) return;
       const paid = { ...(g.paid || {}) };
-      paid[k] = { ...(cur0 || {}), date: dt };
+      paid[k] = { ...(cur0 || {}), date: dt, at: (cur0 && cur0.at) || Date.now() };
       saveGroup({ ...g, paid });
     });
   };
@@ -12393,7 +12426,7 @@ function applyTxEffect(data, tx) {
     return { ...data, chits: (data.chits || []).map(g => {
       if (g.id !== tx.groupId) return g;
       const paid = { ...(g.paid || {}) };
-      paid[tx.period + '-' + tx.memberId] = { date: tx.date, txId: tx.txId, amount: tx.amount };
+      paid[tx.period + '-' + tx.memberId] = { date: tx.date, txId: tx.txId, amount: tx.amount, at: tx.createdAt || Date.now(), by: tx.byName || null };
       return { ...g, paid };
     }) };
   }
@@ -12408,7 +12441,8 @@ function applyTxEffect(data, tx) {
         const mk = tx.month || curYM();
         const prevRec = ps[mk] || null;
         const prevAmt = prevRec ? Number(prevRec.amount) || 0 : 0;
-        ps[mk] = { amount: round2(prevAmt + (Number(tx.amount) || 0)), date: tx.date, txId: tx.txId, prevRec };
+        const hist = payHist(prevRec).concat([{ date: tx.date, amount: round2(Number(tx.amount) || 0), at: tx.createdAt || Date.now(), by: tx.byName || null, txId: tx.txId }]);
+        ps[mk] = { amount: round2(prevAmt + (Number(tx.amount) || 0)), date: tx.date, txId: tx.txId, prevRec, hist, at: tx.createdAt || Date.now(), by: tx.byName || null };
         return { ...ln, payments: ps };
       }) };
     }) };
@@ -13745,7 +13779,9 @@ function App() {
         if (l.id !== loanId) return l;
         // จ่ายเกินดอก → ตัดต้นอัตโนมัติ (เฉพาะก้อนดอกเบี้ย)
         const res = computePaymentWithCut(l, month, Number(vals.amount) || 0, vals.date);
-        const newPayments = { ...(l.payments || {}), [month]: { ...vals, ...res.payment } };
+        const _at = Date.now(), _by = currentUser ? (currentUser.name || currentUser.username) : null;
+        const _amt = round2(Number(vals.amount) || 0);
+        const newPayments = { ...(l.payments || {}), [month]: { ...vals, ...res.payment, at: _at, by: _by, hist: [{ date: vals.date, amount: _amt, at: _at, by: _by }] } };
         const nl = { ...l, payments: newPayments };
         if (res.prinCut > 0.005) {
           nl.prinCuts = { ...(l.prinCuts || {}) };
