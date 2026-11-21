@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v28-20261121a';</script>
+<script>window.__BUILD__='finnote-v29-20261121b';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -2268,6 +2268,8 @@ function payHist(rec) {
   }
   return out;
 }
+/* วันที่ (ISO) ของเวลาที่กดบันทึก */
+function stampISO(ms) { return ms ? localISO(new Date(ms)) : null; }
 function fmtStamp(ms) {
   if (!ms) return '';
   const d = new Date(ms);
@@ -6685,10 +6687,8 @@ function LoanLedger({
       className: "text-xs mt-0.5",
       style: { color: 'var(--c-success-tx)' }
     }, "รับ ฿" + fmtMoney(h.amount) + (h.date ? " · วันที่ " + fmtThaiDate(h.date) : " · ไม่ระบุวันที่"),
-      h.at ? React.createElement("span", { className: "text-slate-400" }, " (กดบันทึก " + fmtStamp(h.at) + (h.by ? " · " + h.by : "") + ")") : null)),
-    !showHist && pRec && pRec.at ? React.createElement("div", {
-      className: "text-xs text-slate-400 mt-0.5"
-    }, "กดบันทึก " + fmtStamp(pRec.at) + (pRec.by ? " · " + pRec.by : "")) : null, bd && React.createElement("div", {
+      h.by ? React.createElement("span", { className: "text-slate-400" }, " · " + h.by) : null,
+      h.at && h.date && stampISO(h.at) !== h.date ? React.createElement("span", { className: "text-slate-400" }, " (บันทึกย้อนหลังเมื่อ " + fmtStamp(h.at) + ")") : null)), bd && React.createElement("div", {
       className: "text-xs text-slate-400 mt-0.5"
     }, "ดอกเบี้ย ", fmtMoney(bd.interest), " · เงินต้น ", fmtMoney(bd.principalPart), " · คงเหลือ ", fmtMoney(bd.balanceAfter))), r.status === 'settled' ? React.createElement("button", {
       onClick: () => r.hasPayment && onUndo(loan.id, m),
