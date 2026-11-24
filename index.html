@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v31-20261124b';</script>
+<script>window.__BUILD__='finnote-v32-20261124c';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1908,6 +1908,21 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   .hk-s { font-size: 12px; color: var(--c-text-3); margin-top: 2px; }
   .hdr-back { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: -8px;
     border-radius: 12px; border: none; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
+  .more-toggle { width: 100%; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 14px; border-radius: var(--r-md);
+    border: 1px dashed var(--c-border-strong); background: var(--c-card-alt); color: var(--c-text-2); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .more-toggle small { flex: 1; text-align: left; font-weight: 400; color: var(--c-text-3); font-size: 13px; }
+  .flt-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+  .flt { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 52px; padding: 4px 10px; border-radius: var(--r-md);
+    border: 1px solid var(--c-border); background: var(--c-card); cursor: pointer; }
+  .flt.on { border-color: var(--c-primary); background: var(--c-primary-soft); }
+  .flt > span { font-size: 11px; color: var(--c-text-3); }
+  .flt select { appearance: none; -webkit-appearance: none; border: none; background: transparent; font: inherit; font-size: 14px; font-weight: 700;
+    color: var(--c-text); padding: 0 14px 0 0; width: 100%; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+    background-position: calc(100% - 6px) 55%, 100% 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+  .day-h { display: flex; justify-content: space-between; align-items: baseline; margin: 12px 2px 6px; font-size: 14px; font-weight: 700; color: var(--c-text-2); }
+  .flt select:not([multiple]) { border: none !important; box-shadow: none !important; background-color: transparent !important; min-height: 0 !important;
+    height: auto !important; padding: 0 16px 0 0 !important; border-radius: 0 !important; font-size: 14px !important; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -7877,6 +7892,8 @@ function DebtorForm({
   const [note, setNote] = useState(initial?.note || '');
   const [tags, setTags] = useState(initial?.tags || []);
   const [err, setErr] = useState('');
+  const [more, setMore] = useState(!!(initial && (initial.note || (initial.tags || []).length)));
+  const [lendNow, setLendNow] = useState(!initial);
   const toggleTag = (id) => setTags(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   return React.createElement("div", {
     className: "space-y-4"
@@ -7895,7 +7912,13 @@ function DebtorForm({
     onChange: e => setPhone(e.target.value),
     placeholder: "081-234-5678",
     inputMode: "tel"
-  })), React.createElement("div", null, React.createElement("label", {
+  })), !initial && React.createElement("label", { className: "bill-sw", style: { marginTop: 0 } },
+    React.createElement("input", { type: "checkbox", checked: lendNow, onChange: e => setLendNow(e.target.checked) }),
+    React.createElement("span", null, "ปล่อยกู้ให้คนนี้เลย (ไปใส่ยอดเงินกู้ต่อ)")),
+  React.createElement("button", { type: "button", className: "more-toggle", onClick: () => setMore(m => !m), "aria-expanded": more },
+    React.createElement("span", null, "ตัวเลือกเพิ่มเติม"), React.createElement("small", null, "หมายเหตุ · แท็ก"),
+    React.createElement(more ? ChevronUp : ChevronDown, { size: 18 })),
+  more && React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "หมายเหตุ"), React.createElement("textarea", {
     className: inputCls,
@@ -7906,7 +7929,7 @@ function DebtorForm({
     value: note,
     onChange: e => setNote(e.target.value),
     placeholder: "ข้อมูลเพิ่มเติม"
-  })), React.createElement("div", null, React.createElement("label", {
+  })), more && React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "แท็ก"), React.createElement("div", {
     className: "flex gap-2 flex-wrap"
@@ -7934,10 +7957,11 @@ function DebtorForm({
         name: name.trim(),
         phone: phone.trim(),
         note: note.trim(),
-        tags
+        tags,
+        lendNow: !initial && lendNow
       });
     }
-  }, "บันทึก"));
+  }, !initial && lendNow ? "บันทึก แล้วใส่ยอดเงินกู้" : "บันทึกลูกหนี้"));
 }
 function LoanForm({
   initial,
@@ -7957,6 +7981,7 @@ function LoanForm({
   });
   const startMonth = /^\d{4}-\d{2}-\d{2}$/.test(loanDate || '') ? loanDate.slice(0, 7) : '';
   const firstDue = startMonth && dueDay ? loanDueISO({ dueDay }, startMonth) : '';
+  const [showNoteL, setShowNoteL] = useState(false);
   const [note, setNote] = useState(initial?.note || '');
   const [err, setErr] = useState('');
   const p = Number(principal) || 0;
@@ -8003,7 +8028,10 @@ function LoanForm({
     key: r,
     onClick: () => setRate(r),
     className: `rounded-xl py-2.5 text-sm font-semibold border transition ${rate === r ? 'bg-cyan-800 text-white border-cyan-800' : 'bg-white text-slate-600 border-stone-300'}`
-  }, r, "%")))), type === 'installment' && React.createElement("div", null, React.createElement("label", {
+  }, r, "%"))), React.createElement("div", { className: "flex items-center gap-2 mt-2" },
+    React.createElement("span", { className: "text-sm", style: { color: 'var(--c-text-3)', flex: 'none' } }, "หรือใส่เอง"),
+    React.createElement("input", { className: inputCls, inputMode: "decimal", style: { maxWidth: 110 }, value: RATE_OPTIONS.indexOf(rate) >= 0 ? '' : String(rate), placeholder: "เช่น 3", onChange: e => { const v = Number(numClean(e.target.value, true)); setRate(v > 0 ? v : 5); } }),
+    React.createElement("span", { className: "text-sm", style: { color: 'var(--c-text-3)' } }, "% ต่อเดือน"))), type === 'installment' && React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "ยอดผ่อนต่อเดือน (บาท) *"), React.createElement("input", {
     className: inputCls,
@@ -8049,7 +8077,7 @@ function LoanForm({
     return React.createElement(React.Fragment, null,
       row(1, firstDue), row(2, d2), row(3, d3),
       "จ่ายก่อนหรือหลังวันที่ " + dueDay + " ได้ภายในเดือนนั้น · เลยสิ้นเดือน (เช่น " + fmtThaiDate(endOf(firstDue)) + ") = ค้างชำระ");
-  })()), React.createElement("div", null, React.createElement("label", {
+  })()), !showNoteL && !note ? React.createElement("button", { type: "button", className: "qp-addnote", onClick: () => setShowNoteL(true) }, "+ เพิ่มหมายเหตุ") : React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "หมายเหตุ"), React.createElement("textarea", {
     className: inputCls,
@@ -11798,7 +11826,8 @@ function ChitView({
         bid: 0,
         wonPeriod: 1
       }],
-      paid: {}
+      paid: {},
+      draft: true
     };
     onUpdate([...groups, ng]);
     setCurId(id);
@@ -12238,9 +12267,14 @@ function ChitView({
     }, React.createElement(Camera, { size: 15 }), " รายคน")));
   })), editing && React.createElement(ChitEditModal, {
     group: g,
-    onClose: () => setEditing(false),
+    onClose: () => {
+      /* ยกเลิกตอนสร้างวงใหม่ = ไม่เก็บวงเปล่าไว้ */
+      if (g && g.draft) onUpdate(groups.filter(x => x.id !== g.id));
+      setEditing(false);
+    },
     onSave: ng => {
-      saveGroup(ng);
+      const { draft, ...clean } = ng;
+      saveGroup(clean);
       setEditing(false);
     },
     onDelete: () => delGroup(g.id)
@@ -12295,10 +12329,11 @@ function ChitEditModal({
   return React.createElement(Modal, {
     open: true,
     onClose,
-    title: "แก้ไขวงแชร์"
+    title: group.draft ? "สร้างวงแชร์" : "แก้ไขวงแชร์"
   }, React.createElement("div", {
     className: "space-y-3"
-  }, React.createElement("div", null, React.createElement("label", {
+  }, React.createElement("div", { className: "bg-cyan-50 rounded-xl p-3 text-sm text-cyan-800" },
+    "ส่งงวดละ ฿" + fmtMoney(g.perHead) + " · " + N + " มือ · ทุนต่องวด ฿" + fmtMoney((Number(g.perHead) || 0) * N) + " · " + N + " งวด"), React.createElement("div", null, React.createElement("label", {
     className: labelCls
   }, "ชื่อวง"), React.createElement("input", {
     className: inputCls,
@@ -13214,7 +13249,7 @@ function PayHubView({ data, currentUser, onAddTx, onApprove, onReject, onSoftDel
     (fStatus === 'all' || t.status === fStatus) &&
     (fKind === 'all' || t.kind === fKind) &&
     (!q.trim() || nameOf(t).toLowerCase().includes(q.trim().toLowerCase()))
-  ).sort((a, b) => b.createdAt - a.createdAt);
+  ).sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.createdAt - a.createdAt);
 
   const sumApproved = txs.filter(t => t.status === 'approved').reduce((s, t) => s + t.amount, 0);
   const sumToday = txs.filter(t => t.status === 'approved' && t.date === today).reduce((s, t) => s + t.amount, 0);
@@ -13282,19 +13317,27 @@ function PayHubView({ data, currentUser, onAddTx, onApprove, onReject, onSoftDel
 
     tab === 'hist' ? React.createElement("div", null,
       React.createElement("input", { className: inputCls + " mb-2", placeholder: "ค้นหาชื่อ / เลขที่รายการ", value: q, onChange: e => setQ(e.target.value) }),
-      React.createElement("div", { className: "chips" },
-        [['all', 'ทั้งหมด'], ['today', 'วันนี้'], ['month', 'เดือนนี้']].map(([k, l]) =>
-          React.createElement("button", { key: k, className: "chip" + (fRange === k ? " on" : ""), onClick: () => setFRange(k) }, l))),
-      React.createElement("div", { className: "chips" },
-        [['all', 'ทุกสถานะ'], ['pending', 'รอตรวจสอบ'], ['approved', 'อนุมัติแล้ว'], ['rejected', 'ไม่ผ่าน']].map(([k, l]) =>
-          React.createElement("button", { key: k, className: "chip" + (fStatus === k ? " on" : ""), onClick: () => setFStatus(k) }, l))),
-      React.createElement("div", { className: "chips" },
-        [['all', 'ทุกประเภท'], ['chit', 'วงแชร์'], ['loan', 'ลูกหนี้']].map(([k, l]) =>
-          React.createElement("button", { key: k, className: "chip" + (fKind === k ? " on" : ""), onClick: () => setFKind(k) }, l))),
+      React.createElement("div", { className: "flt-row" },
+        [[fRange, setFRange, 'ช่วงเวลา', [['all', 'ทั้งหมด'], ['today', 'วันนี้'], ['month', 'เดือนนี้']]],
+         [fStatus, setFStatus, 'สถานะ', [['all', 'ทั้งหมด'], ['pending', 'รอตรวจสอบ'], ['approved', 'อนุมัติแล้ว'], ['rejected', 'ไม่ผ่าน']]],
+         [fKind, setFKind, 'ประเภท', [['all', 'ทั้งหมด'], ['loan', 'ลูกหนี้'], ['chit', 'วงแชร์']]]].map(([v, set, lab, opts]) =>
+          React.createElement("label", { key: lab, className: "flt" + (v !== 'all' ? " on" : "") },
+            React.createElement("span", null, lab),
+            React.createElement("select", { value: v, onChange: e => set(e.target.value), "aria-label": lab },
+              opts.map(([k, l]) => React.createElement("option", { key: k, value: k }, l)))))),
       hist.length === 0
         ? Empty(React.createElement(Search, { size: 40 }), 'ไม่พบรายการ', 'ลองเปลี่ยนตัวกรองหรือคำค้น')
-        : React.createElement("div", { className: "wallet-panel", style: { marginTop: 8 } },
-            hist.map(t => React.createElement(TxRow, { key: t.id, tx: t, data, onOpen: setDetail })))
+        : React.createElement("div", null, (() => {
+            /* จัดกลุ่มตามวันที่รับเงิน */
+            const groups = [];
+            hist.forEach(t => { const g = groups[groups.length - 1]; if (g && g.d === t.date) g.items.push(t); else groups.push({ d: t.date, items: [t] }); });
+            const yday = isoAddDays(localISO(), -1);
+            return groups.map(g => React.createElement("div", { key: g.d + g.items[0].id },
+              React.createElement("div", { className: "day-h" },
+                React.createElement("span", null, (g.d === localISO() ? "วันนี้ · " : g.d === yday ? "เมื่อวาน · " : "") + fmtThaiDate(g.d)),
+                React.createElement("span", { className: "tabular-nums" }, "฿" + fmtMoney(g.items.filter(t => t.status !== 'rejected').reduce((a, t) => a + t.amount, 0)))),
+              React.createElement("div", { className: "wallet-panel" }, g.items.map(t => React.createElement(TxRow, { key: t.id, tx: t, data, onOpen: setDetail })))));
+          })())
     ) : null,
 
     flow ? React.createElement(QuickPay, {
@@ -14073,12 +14116,15 @@ function App() {
       debtors: prev.debtors.map(d => d.id === id ? fn(d) : d)
     }));
   };
-  const saveDebtorForm = vals => {
+  const saveDebtorForm = rawVals => {
+    const { lendNow, ...vals } = rawVals;
     if (debtorForm.mode === 'add') {
+      const newId = uid();
+      if (lendNow) setTimeout(() => { setSelectedId(newId); setView('debtor'); setLoanForm({ debtorId: newId, loan: null }); }, 0);
       setData(p => ({
         ...p,
         debtors: [...p.debtors, {
-          id: uid(),
+          id: newId,
           ...vals,
           createdAt: Date.now(),
           createdBy: currentUser?.id || null,

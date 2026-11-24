@@ -1,6 +1,6 @@
 /* Service Worker — FinNote
    แคชไฟล์แอปไว้ใช้ออฟไลน์ + ป้องกันจอขาวจากแคชเก่า */
-const CACHE = 'finnote-v31-' + '20261124b';   // เปลี่ยนทุกครั้งที่อัป → ล้างแคชเก่าอัตโนมัติ
+const CACHE = 'finnote-v32-' + '20261124c';   // เปลี่ยนทุกครั้งที่อัป → ล้างแคชเก่าอัตโนมัติ
 const ASSETS = ['./', './index.html', './manifest.json', './icon.svg'];
 
 self.addEventListener('install', (e) => {
