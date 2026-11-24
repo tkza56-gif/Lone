@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v29-20261121b';</script>
+<script>window.__BUILD__='finnote-v30-20261124a';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1861,6 +1861,43 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   .mine-asm label { font-size: 14px; font-weight: 700; color: var(--c-text-2); }
   .mine-asm-in { display: flex; align-items: center; gap: 6px; } .mine-asm-in span { font-weight: 700; color: var(--c-text-3); }
   .mine-asm small { font-size: 12px; color: var(--c-text-3); }
+  /* ===== บิลเรียกเก็บ ===== */
+  .bill-back { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; margin-bottom: 6px; background: none; border: none;
+    color: var(--c-primary-tx); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; padding: 0; }
+  .bill-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; margin-bottom: 12px;
+    border-radius: var(--r-card); color: #fff; background: linear-gradient(135deg, #0f766e, #0d9488); box-shadow: var(--sh-card); }
+  .bill-hero-t { font-size: 20px; font-weight: 800; }
+  .bill-hero-s { font-size: 13px; opacity: .92; margin-top: 2px; }
+  .bill-hero-b { flex: none; display: inline-flex; align-items: center; gap: 4px; min-height: 46px; padding: 0 16px; border: none; border-radius: var(--r-pill);
+    background: #bef264; color: #1a2e05; font: inherit; font-size: 16px; font-weight: 800; cursor: pointer; }
+  .bill-card { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; cursor: pointer;
+    background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--r-card); padding: 12px 12px 12px 14px; box-shadow: var(--sh-card); }
+  .bill-card .col-av { background: linear-gradient(135deg, #0f766e, #14b8a6); }
+  .bill-card.is-bad { border-left: 4px solid var(--c-danger); }
+  .bill-fab { position: fixed; right: max(16px, calc(50% - 224px + 16px)); bottom: calc(var(--tabbar-h, 72px) + 18px + env(safe-area-inset-bottom)); width: 58px; height: 58px;
+    border-radius: 50%; border: none; background: var(--c-primary); color: #fff; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(37,99,235,.35); cursor: pointer; z-index: 30; }
+  .bill-qr { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 10px; border-radius: var(--r-md);
+    border: 1px solid var(--c-border); background: var(--c-card); color: var(--c-primary-tx); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .bill-undo { min-height: 36px; padding: 0 10px; border-radius: var(--r-md); border: 1px solid var(--c-border); background: var(--c-card-alt);
+    color: var(--c-text-3); font: inherit; font-size: 13px; cursor: pointer; }
+  .col-row.is-wait .col-pill { background: var(--c-warning-soft); color: var(--c-warning-tx); }
+  .bill-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .bill-actions .fb { flex: 1 1 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .bill-seg { display: flex; gap: 4px; padding: 4px; background: var(--c-card-alt); border-radius: var(--r-md); }
+  .bill-seg-b { flex: 1; min-height: 44px; border: none; border-radius: calc(var(--r-md) - 2px); background: transparent; color: var(--c-text-2);
+    font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .bill-seg-b.on { background: var(--c-card); color: var(--c-primary-tx); box-shadow: var(--sh-card); }
+  .bill-step { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 10px; border-radius: var(--r-md);
+    border: 1.5px solid var(--c-success); background: var(--c-success-soft); color: var(--c-text); font-size: 17px; }
+  .bill-step > span { display: inline-flex; align-items: center; gap: 6px; }
+  .bill-step-b { width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--c-success); color: #fff; font-size: 22px; font-weight: 800; cursor: pointer; }
+  .bill-step-b:disabled { background: var(--c-border-strong); cursor: not-allowed; }
+  .bill-sw { display: flex; align-items: center; gap: 10px; margin-top: 10px; min-height: 44px; font-size: 15px; color: var(--c-text-2); cursor: pointer; }
+  .bill-sw input { width: 22px; height: 22px; accent-color: var(--c-primary); }
+  .bill-prow { display: grid; grid-template-columns: 1fr 120px; gap: 8px; }
+  .bill-pamt { display: flex; align-items: center; gap: 4px; } .bill-pamt span { color: var(--c-text-3); font-weight: 700; }
+  .bill-pamt input[readonly] { background: var(--c-card-alt) !important; }
 </style>
 </head>
 <body>
@@ -1948,6 +1985,7 @@ const BarChart3 = _Icon('<path d="M3 3v18h18"/><rect x="7" y="12" width="3" heig
 const Receipt = _Icon('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/>');
 const CalendarCheck = _Icon('<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>');
 const Printer = _Icon('<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/>');
+const Menu = _Icon('<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>');
 const Calculator = _Icon('<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>');
 const AUTO_LOGOUT_MS = 5 * 60 * 1000;
 const WARNING_MS = 60 * 1000;
@@ -5097,9 +5135,12 @@ function _ppFld(id, val) { return id + String(val.length).padStart(2, "0") + val
 function promptPayPayload(mobile, amount) {
   let m = String(mobile || "").replace(/[^0-9]/g, "");
   if (!m) return "";
-  if (m.startsWith("0")) m = m.slice(1);
-  const target = "0066" + m;
-  const acc = _ppFld("00", "A000000677010111") + _ppFld("01", target);
+  let acc;
+  if (m.length === 13) acc = _ppFld("00", "A000000677010111") + _ppFld("02", m);
+  else {
+    if (m.startsWith("0")) m = m.slice(1);
+    acc = _ppFld("00", "A000000677010111") + _ppFld("01", "0066" + m);
+  }
   let body = _ppFld("00", "01") + _ppFld("01", amount != null && amount > 0 ? "12" : "11") + _ppFld("29", acc) + _ppFld("58", "TH") + _ppFld("53", "764");
   if (amount != null && amount > 0) body += _ppFld("54", Number(amount).toFixed(2));
   body += "6304";
@@ -7566,7 +7607,9 @@ function SettingsView({
   React.createElement("div", {
     className: "sub-menu"
   }, React.createElement("div", { className: "sub-menu-h" }, "เมนูเพิ่มเติม"),
-    [['debtors', '👤', 'ลูกหนี้', 'รายชื่อ เงินกู้ และการชำระ'],
+    [['reports', '📊', 'รายงาน', 'สรุปยอดรับ ค้าง และดอกเบี้ย'],
+     ['bills', '🧾', 'บิลเรียกเก็บ', 'หารบิล ส่ง QR พร้อมเพย์เข้า LINE'],
+     ['debtors', '👤', 'ลูกหนี้', 'รายชื่อ เงินกู้ และการชำระ'],
      ['portfolio', '📈', 'ภาพรวมพอร์ตเงินกู้', 'เงินต้นปล่อย ดอกเบี้ยที่เก็บได้'],
      ['reports_i', '🧾', 'รายงานดอกเบี้ยรายเดือน', 'แยกรายเดือน/รายปี'],
      ['calendar', '📅', 'ปฏิทินครบกำหนด', 'ดูว่าเดือนนี้ต้องเก็บใครบ้าง'],
@@ -9123,25 +9166,25 @@ function BottomNav({
     label: 'หน้าหลัก',
     also: ['calendar', 'portfolio', 'calc']
   }, {
+    id: 'debtors',
+    icon: User,
+    label: 'ลูกหนี้',
+    also: ['debtor', 'legal']
+  }, {
+    id: 'pay',
+    icon: Banknote,
+    label: 'เก็บเงิน',
+    also: ['bills']
+  }, {
     id: 'chits',
     icon: Wallet,
     label: 'วงแชร์',
     also: []
   }, {
-    id: 'pay',
-    icon: Banknote,
-    label: 'ชำระเงิน',
-    also: []
-  }, {
-    id: 'reports',
-    icon: TrendingUp,
-    label: 'รายงาน',
-    also: ['reports_i']
-  }, {
     id: 'settings',
-    icon: SettingsIcon,
-    label: 'ตั้งค่า',
-    also: ['users', 'audit', 'debtors', 'debtor', 'legal']
+    icon: Menu,
+    label: 'เพิ่มเติม',
+    also: ['users', 'audit', 'reports', 'reports_i']
   }];
   return React.createElement("nav", {
     className: "app-tabbar",
@@ -11211,6 +11254,292 @@ async function shareCanvas(cv, filename, title) {
     }
   } catch (e) {}
 }
+/* ===================== บิลเรียกเก็บ (แบบขุนทอง) ===================== */
+function setPromptPay(v) { try { localStorage.setItem(PROMPTPAY_KEY, String(v || '').replace(/[^0-9]/g, '')); } catch (e) {} }
+function billSplit(total, n) {
+  /* แบ่งยอดเท่า ๆ กัน ปัดเป็นบาท เศษไปคนแรก */
+  total = round2(Number(total) || 0); n = Math.max(1, n | 0);
+  const each = Math.floor(total / n);
+  const arr = Array.from({ length: n }, () => each);
+  arr[0] = round2(arr[0] + (total - each * n));
+  return arr;
+}
+function billStats(b) {
+  const ps = b.people || [];
+  const need = round2(ps.reduce((a, p) => a + (Number(p.amount) || 0), 0));
+  const got = round2(ps.filter(p => p.paid).reduce((a, p) => a + (Number(p.amount) || 0), 0));
+  const nPaid = ps.filter(p => p.paid).length;
+  const done = ps.length > 0 && nPaid === ps.length;
+  let overdueDays = 0;
+  if (!done && b.dueDate) {
+    const d = daysBetween(b.dueDate, localISO());
+    if (d > 0) overdueDays = d;
+  }
+  return { need, got, left: round2(need - got), nPaid, n: ps.length, done, overdueDays };
+}
+function billDueLabel(b) {
+  if (!b.dueDate) return 'ไม่กำหนดวัน';
+  return 'ครบกำหนด ' + fmtThaiDate(b.dueDate) + (b.dueTime ? ' · ' + b.dueTime + ' น.' : '');
+}
+/* รูปบิลสำหรับส่งเข้า LINE: ชื่อบิล ถึงใคร ยอด QR พร้อมเพย์ตามยอด */
+function drawBillCanvas(b, p) {
+  const W = 540, scale = 2;
+  const pp = b.pp || getPromptPay();
+  const amt = Number(p.amount) || 0;
+  const showQR = !!pp && amt > 0 && !p.paid;
+  const H = showQR ? 900 : 560;
+  const cv = document.createElement('canvas');
+  cv.width = W * scale; cv.height = H * scale;
+  const ctx = cv.getContext('2d');
+  ctx.scale(scale, scale);
+  const F = "'IBM Plex Sans Thai','Noto Sans Thai',Sarabun,sans-serif";
+  const txt = (t, x, y, size, weight, color, align) => {
+    ctx.font = (weight || 400) + ' ' + size + 'px ' + F;
+    ctx.fillStyle = color || '#0f172a';
+    ctx.textAlign = align || 'center';
+    ctx.fillText(t, x, y);
+  };
+  const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+  ctx.fillStyle = '#eef2f7'; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, 0); g.addColorStop(0, '#1e3a5f'); g.addColorStop(1, '#2563eb');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, 150);
+  txt('บิลเรียกเก็บ', W / 2, 52, 18, 600, 'rgba(255,255,255,.85)');
+  txt(b.name || 'บิล', W / 2, 100, 32, 800, '#ffffff');
+  ctx.fillStyle = '#ffffff'; rr(28, 120, W - 56, H - 150, 22); ctx.fill();
+  txt('ถึง ' + (p.name || '-'), W / 2, 178, 22, 700, '#334155');
+  txt('฿' + fmtMoney(amt), W / 2, 250, 56, 800, p.paid ? '#05825c' : '#0f172a');
+  txt(p.paid ? 'จ่ายแล้ว ' + fmtThaiDate(p.paid.date) + ' · ขอบคุณครับ/ค่ะ' : billDueLabel(b), W / 2, 292, 17, 600, p.paid ? '#05825c' : '#b45309');
+  if (b.mode === 'split' && b.total) txt('ยอดรวมบิล ฿' + fmtMoney(b.total) + ' หาร ' + (b.count || (b.people || []).length) + ' คน', W / 2, 324, 15, 400, '#64748b');
+  if (showQR) {
+    const qs = 300, qx = (W - qs) / 2, qy = 360;
+    drawPromptPayQR(ctx, promptPayPayload(pp, amt), qx, qy, qs);
+    txt('สแกนจ่ายพร้อมเพย์ ' + pp, W / 2, qy + qs + 46, 17, 600, '#1e3a5f');
+    txt('ยอดในคิวอาร์ ฿' + fmtMoney(amt) + ' · โอนแล้วแจ้งกลับได้เลย', W / 2, qy + qs + 76, 14, 400, '#64748b');
+  } else if (!p.paid) {
+    txt(pp ? '' : 'ยังไม่ได้ตั้งเบอร์พร้อมเพย์', W / 2, 380, 15, 400, '#64748b');
+  }
+  txt('สร้างจาก FinNote', W / 2, H - 46, 13, 400, '#94a3b8');
+  return cv;
+}
+function billShareText(b) {
+  const st = billStats(b);
+  const pp = b.pp || getPromptPay();
+  const lines = ['บิล ' + (b.name || '') + ' · ยอดรวม ฿' + fmtMoney(b.total || st.need)];
+  if (b.dueDate) lines.push(billDueLabel(b));
+  (b.people || []).forEach(p => lines.push((p.paid ? '✓ ' : '• ') + p.name + ' ฿' + fmtMoney(p.amount) + (p.paid ? ' (จ่ายแล้ว)' : '')));
+  if (pp) lines.push('โอนพร้อมเพย์: ' + pp);
+  lines.push('เก็บได้ ' + st.nPaid + '/' + st.n + ' คน');
+  return lines.join('\n');
+}
+
+function BillForm({ bill, data, onSave, onClose }) {
+  const isEdit = !!bill;
+  const [name, setName] = useState(bill ? bill.name : '');
+  const [mode, setMode] = useState(bill ? bill.mode : 'split');
+  const [total, setTotal] = useState(bill ? numShow(bill.total) : '');
+  const [count, setCount] = useState(bill ? (bill.count || 2) : 2);
+  const [excludeMe, setExcludeMe] = useState(bill ? !!bill.excludeMe : false);
+  const [custom, setCustom] = useState(bill ? !!bill.custom : false);
+  const initPeople = bill ? bill.people.map(p => ({ ...p, amount: numShow(p.amount) })) : [];
+  const [people, setPeople] = useState(initPeople);
+  const [dueDate, setDueDate] = useState(bill ? (bill.dueDate || '') : isoAddDays(localISO(), 7));
+  const [dueTime, setDueTime] = useState(bill ? (bill.dueTime || '') : '');
+  const [pp, setPp] = useState(getPromptPay());
+  const [err, setErr] = useState('');
+  const nCollect = mode === 'single' ? 1 : Math.max(1, excludeMe ? count : count - 1);
+  const tot = Number(total) || 0;
+  /* ปรับจำนวนแถวรายชื่อให้ตรงกับจำนวนคนที่ต้องเก็บ */
+  useEffect(() => {
+    setPeople(ps => {
+      let next = ps.slice(0, nCollect);
+      while (next.length < nCollect) next.push({ id: uid(), name: '', amount: '' });
+      if (!custom) {
+        const share = mode === 'single' ? [tot] : billSplit(tot, count).slice(excludeMe ? 0 : 1);
+        /* เศษไปที่ส่วนของเรา ถ้าเราอยู่ในบิล */
+        next = next.map((p, i) => ({ ...p, amount: numShow(mode === 'single' ? tot : (excludeMe ? billSplit(tot, count)[i] : Math.floor(tot / count))) }));
+      }
+      return next;
+    });
+  }, [nCollect, tot, count, excludeMe, custom, mode]);
+  const names = useMemo(() => {
+    const s = new Set();
+    (data.debtors || []).forEach(d => d && d.name && s.add(d.name));
+    (data.chits || []).forEach(g => (g.members || []).forEach(m => m && m.name && s.add(m.name)));
+    (data.bills || []).forEach(b => (b.people || []).forEach(p => p && p.name && s.add(p.name)));
+    return Array.from(s).sort((a, b) => a.localeCompare(b, 'th'));
+  }, [data]);
+  const sumPeople = round2(people.reduce((a, p) => a + (Number(p.amount) || 0), 0));
+  const myShare = mode === 'split' && !excludeMe ? round2(tot - sumPeople) : 0;
+  const setP = (i, k, v) => setPeople(ps => ps.map((p, j) => j === i ? { ...p, [k]: v } : p));
+  const save = () => {
+    if (!name.trim()) return setErr('ใส่ชื่อบิล');
+    if (mode === 'single' ? !(Number(people[0] && people[0].amount) > 0) : !(tot > 0)) return setErr('ใส่ยอดเงิน');
+    if (people.some(p => !String(p.name || '').trim())) return setErr('ใส่ชื่อคนที่ต้องเก็บให้ครบ');
+    if (people.some(p => !(Number(p.amount) > 0))) return setErr('ยอดของแต่ละคนต้องมากกว่า 0');
+    if (pp) setPromptPay(pp);
+    const rec = {
+      ...(bill || {}),
+      id: bill ? bill.id : uid(),
+      name: name.trim(), mode,
+      total: mode === 'single' ? round2(Number(people[0].amount)) : round2(tot),
+      count: mode === 'single' ? 1 : count, excludeMe: mode === 'single' ? true : excludeMe, custom,
+      people: people.map(p => {
+        const old = bill && bill.people.find(x => x.id === p.id);
+        const db = (data.debtors || []).find(d => d.name === String(p.name).trim());
+        return { id: p.id, name: String(p.name).trim(), amount: round2(Number(p.amount) || 0), debtorId: db ? db.id : (old && old.debtorId) || null, paid: old ? old.paid || null : null };
+      }),
+      dueDate: dueDate || null, dueTime: dueTime || '',
+      pp: String(pp || '').replace(/[^0-9]/g, '') || null,
+      createdAt: bill ? bill.createdAt : Date.now(), updatedAt: Date.now()
+    };
+    onSave(rec);
+  };
+  const seg = (v, l) => React.createElement("button", { type: "button", className: "bill-seg-b" + (mode === v ? " on" : ""), onClick: () => setMode(v) }, l);
+  return React.createElement(Modal, { open: true, onClose, title: isEdit ? "แก้ไขบิล" : "สร้างบิลเรียกเก็บ" },
+    React.createElement("div", { className: "space-y-4" },
+      React.createElement("div", null,
+        React.createElement("label", { className: labelCls }, "ชื่อบิล"),
+        React.createElement("input", { className: inputCls, value: name, placeholder: "เช่น ค่าหมูกระทะ", onChange: e => setName(e.target.value), autoFocus: !isEdit })),
+      React.createElement("div", { className: "bill-seg" }, seg('single', 'เก็บคนเดียว'), seg('split', 'หารหลายคน')),
+      mode === 'split' && React.createElement("div", null,
+        React.createElement("label", { className: labelCls }, "ยอดรวมบิล"),
+        React.createElement("div", { className: "qp-amt" },
+          React.createElement("span", { className: "qp-cur" }, "฿"),
+          React.createElement("input", { className: "qp-amt-in tabular-nums", inputMode: "decimal", value: total, placeholder: "0", onChange: e => setTotal(numClean(e.target.value, true)) })),
+        React.createElement("div", { className: "bill-step" },
+          React.createElement("button", { type: "button", className: "bill-step-b", disabled: count <= 2, onClick: () => setCount(c => Math.max(2, c - 1)), "aria-label": "ลดจำนวนคน" }, "−"),
+          React.createElement("span", null, React.createElement(Users, { size: 18 }), " หาร ", React.createElement("b", null, count), " คน"),
+          React.createElement("button", { type: "button", className: "bill-step-b", disabled: count >= 50, onClick: () => setCount(c => Math.min(50, c + 1)), "aria-label": "เพิ่มจำนวนคน" }, "+")),
+        React.createElement("label", { className: "bill-sw" },
+          React.createElement("input", { type: "checkbox", checked: excludeMe, onChange: e => setExcludeMe(e.target.checked) }),
+          React.createElement("span", null, "ฉันไม่ได้อยู่ในบิลนี้")),
+        React.createElement("div", { className: "mine-s" }, excludeMe
+          ? "เก็บจาก " + nCollect + " คน"
+          : "ฉันจ่ายส่วนของตัวเอง" + (myShare > 0 ? " ฿" + fmtMoney(myShare) : "") + " แล้ว เก็บจากอีก " + nCollect + " คน")),
+      React.createElement("div", null,
+        React.createElement("div", { className: "flex items-center justify-between" },
+          React.createElement("label", { className: labelCls }, mode === 'single' ? "เก็บจากใคร" : "รายชื่อคนที่ต้องเก็บ"),
+          mode === 'split' && React.createElement("button", { type: "button", className: "qp-addnote", style: { minHeight: 32, margin: 0 }, onClick: () => setCustom(c => !c) }, custom ? "หารเท่ากัน" : "แก้ยอดรายคน")),
+        React.createElement("datalist", { id: "bill-names" }, names.map(n => React.createElement("option", { key: n, value: n }))),
+        React.createElement("div", { className: "space-y-2" }, people.map((p, i) => React.createElement("div", { key: p.id, className: "bill-prow" },
+          React.createElement("input", { className: inputCls, list: "bill-names", value: p.name, placeholder: "ชื่อคนที่ " + (i + 1), onChange: e => setP(i, 'name', e.target.value) }),
+          React.createElement("div", { className: "bill-pamt" },
+            React.createElement("span", null, "฿"),
+            React.createElement("input", { className: inputCls + " tabular-nums", inputMode: "decimal", value: p.amount, readOnly: mode === 'split' && !custom, onChange: e => setP(i, 'amount', numClean(e.target.value, true)) }))))),
+        mode === 'split' && custom && Math.abs((excludeMe ? sumPeople : sumPeople + myShare) - tot) > 0.005 && React.createElement("div", { className: "qp-hint" }, "รวมรายคน ฿" + fmtMoney(sumPeople) + (excludeMe ? " ไม่เท่ากับยอดบิล" : " (ส่วนของฉัน ฿" + fmtMoney(myShare) + ")")),
+        names.length > 0 && React.createElement("div", { className: "mine-s" }, "พิมพ์ชื่อแล้วเลือกจากรายชื่อลูกหนี้/สมาชิกวงแชร์ได้")),
+      React.createElement("div", { className: "grid grid-cols-2 gap-2" },
+        React.createElement("div", null,
+          React.createElement("label", { className: labelCls }, "ครบกำหนด"),
+          React.createElement("input", { type: "date", className: inputCls, value: dueDate, onChange: e => setDueDate(e.target.value) })),
+        React.createElement("div", null,
+          React.createElement("label", { className: labelCls }, "เวลา (ถ้ามี)"),
+          React.createElement("input", { type: "time", className: inputCls, value: dueTime, onChange: e => setDueTime(e.target.value) }))),
+      React.createElement("div", null,
+        React.createElement("label", { className: labelCls }, "บัญชีรับเงิน (พร้อมเพย์)"),
+        React.createElement("input", { className: inputCls, inputMode: "numeric", value: pp, placeholder: "เบอร์มือถือ หรือเลขบัตรประชาชน", onChange: e => setPp(e.target.value.replace(/[^0-9-]/g, '')) }),
+        React.createElement("div", { className: "mine-s" }, "ใช้สร้าง QR ตามยอดของแต่ละคน")),
+      err && React.createElement("div", { className: "text-sm", style: { color: 'var(--c-danger-tx)' } }, err),
+      React.createElement("button", { className: "qp-submit", onClick: save },
+        isEdit ? "บันทึกบิล" : "สร้างบิล · เก็บ " + nCollect + " คน")));
+}
+
+function BillsView({ data, currentUser, onSave, onDelete, onBack }) {
+  const [openId, setOpenId] = useState(null);
+  const [form, setForm] = useState(null); /* null | 'new' | bill */
+  const [filter, setFilter] = useState('open');
+  const bills = (data.bills || []).slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const open = bills.find(b => b.id === openId) || null;
+  const who = currentUser ? (currentUser.name || currentUser.username) : null;
+  const saveAndOpen = rec => { onSave(rec); setForm(null); setOpenId(rec.id); };
+  const markPaid = (b, p) => {
+    if (p.paid) {
+      askConfirm('ยกเลิกว่า ' + p.name + ' จ่ายแล้ว?', { okLabel: 'ยกเลิกการรับเงิน', danger: true }).then(ok => {
+        if (!ok) return;
+        onSave({ ...b, people: b.people.map(x => x.id === p.id ? { ...x, paid: null } : x), updatedAt: Date.now() });
+      });
+      return;
+    }
+    askDate('รับเงินจาก ' + p.name + ' ฿' + fmtMoney(p.amount), { help: 'วันที่รับเงิน (ปกติคือวันนี้)', okLabel: 'รับเงินแล้ว' }).then(dt => {
+      if (!dt) return;
+      onSave({ ...b, people: b.people.map(x => x.id === p.id ? { ...x, paid: { date: dt, at: Date.now(), by: who } } : x), updatedAt: Date.now() });
+      toast.ok('บันทึกรับเงินจาก ' + p.name + ' แล้ว');
+    });
+  };
+  const sendQR = (b, p) => shareCanvas(drawBillCanvas(b, p), 'bill-' + (p.name || 'x') + '.png', 'บิล ' + b.name);
+  const sendAll = b => {
+    const msg = billShareText(b);
+    if (navigator.share) navigator.share({ text: msg }).catch(() => {});
+    else window.open('https://line.me/R/msg/text/?' + encodeURIComponent(msg), '_blank');
+  };
+
+  const formEl = form ? React.createElement(BillForm, { bill: form === 'new' ? null : form, data, onSave: saveAndOpen, onClose: () => setForm(null) }) : null;
+
+  /* ---- รายละเอียดบิล ---- */
+  if (open) {
+    const st = billStats(open);
+    const pct = st.need > 0 ? Math.round(st.got / st.need * 100) : 0;
+    return React.createElement("div", { className: "px-4 pt-4 page-pb" },
+      React.createElement("button", { className: "bill-back", onClick: () => setOpenId(null) }, React.createElement(ChevronLeft, { size: 18 }), " บิลทั้งหมด"),
+      React.createElement("div", { className: "col-sum" },
+        React.createElement("div", { className: "col-sum-top" }, React.createElement("span", null, open.name), React.createElement("span", { className: "tabular-nums" }, pct + "%")),
+        React.createElement("div", { className: "col-sum-v tabular-nums" }, "฿" + fmtMoney(st.got), React.createElement("small", null, " / ฿" + fmtMoney(st.need))),
+        React.createElement("div", { className: "col-bar" }, React.createElement("i", { style: { width: pct + '%' } })),
+        React.createElement("div", { className: "col-sum-s" },
+          (open.mode === 'split' ? "ยอดรวม ฿" + fmtMoney(open.total) + " หาร " + open.count + " คน · " : "") + billDueLabel(open) +
+          (st.done ? " · เก็บครบแล้ว" : st.overdueDays ? " · เลยกำหนด " + st.overdueDays + " วัน" : ""))),
+      React.createElement("div", { className: "col-list" }, open.people.map(p => React.createElement("div", { key: p.id, className: "col-row " + (p.paid ? "is-ok" : st.overdueDays ? "is-bad" : "is-wait") },
+        React.createElement("div", { className: "col-av av-th" }, thaiInitial(p.name)),
+        React.createElement("div", { className: "col-mid" },
+          React.createElement("div", { className: "col-name" }, p.name),
+          React.createElement("div", { className: "col-amt tabular-nums", style: { fontSize: 16 } }, "฿" + fmtMoney(p.amount)),
+          React.createElement("span", { className: "col-pill" }, p.paid ? "จ่ายแล้ว " + fmtThaiDate(p.paid.date) : st.overdueDays ? "เลยกำหนด" : "รอจ่าย")),
+        React.createElement("div", { className: "col-right" },
+          !p.paid && React.createElement("button", { className: "bill-qr", onClick: () => sendQR(open, p) }, React.createElement(QrCode, { size: 16 }), " ส่ง QR"),
+          React.createElement("button", { className: p.paid ? "bill-undo" : "col-btn", onClick: () => markPaid(open, p) }, p.paid ? "ยกเลิก" : "รับเงินแล้ว"))))),
+      React.createElement("div", { className: "bill-actions" },
+        React.createElement("button", { className: "fb fb-ghost", onClick: () => sendAll(open) }, React.createElement(MessageCircle, { size: 17 }), " ส่งสรุปบิลเข้า LINE"),
+        React.createElement("button", { className: "fb fb-ghost", onClick: () => setForm(open) }, React.createElement(Pencil, { size: 16 }), " แก้ไข"),
+        React.createElement("button", { className: "fb fb-ghost", style: { color: 'var(--c-danger-tx)' }, onClick: () => askConfirm('ลบบิล "' + open.name + '"?', { okLabel: 'ลบบิล', danger: true }).then(ok => { if (ok) { onDelete(open.id); setOpenId(null); } }) }, React.createElement(Trash2, { size: 16 }), " ลบ")),
+      !(open.pp || getPromptPay()) && React.createElement("div", { className: "qp-hint" }, "ยังไม่ได้ตั้งเบอร์พร้อมเพย์ รูปบิลจะไม่มี QR — กด แก้ไข เพื่อใส่เบอร์"),
+      formEl);
+  }
+
+  /* ---- รายการบิล ---- */
+  const withSt = bills.map(b => ({ b, st: billStats(b) }));
+  const cnt = { all: withSt.length, open: withSt.filter(x => !x.st.done).length, done: withSt.filter(x => x.st.done).length };
+  const shown = withSt.filter(x => filter === 'all' || (filter === 'open' ? !x.st.done : x.st.done));
+  const leftAll = withSt.reduce((a, x) => a + x.st.left, 0);
+  return React.createElement("div", { className: "px-4 pt-4 page-pb page-pb-fab" },
+    onBack && React.createElement("button", { className: "bill-back", onClick: onBack }, React.createElement(ChevronLeft, { size: 18 }), " เก็บเงิน"),
+    React.createElement("div", { className: "bill-hero" },
+      React.createElement("div", null,
+        React.createElement("div", { className: "bill-hero-t" }, "บิลเรียกเก็บ"),
+        React.createElement("div", { className: "bill-hero-s tabular-nums" }, cnt.open ? "ค้างเก็บ ฿" + fmtMoney(leftAll) + " จาก " + cnt.open + " บิล" : "หารค่าอาหาร ค่าของ ส่ง QR พร้อมเพย์เข้า LINE")),
+      React.createElement("button", { className: "bill-hero-b", onClick: () => setForm('new') }, React.createElement(Plus, { size: 18 }), " สร้างบิล")),
+    withSt.length > 0 && React.createElement("div", { className: "chips" },
+      [['open', 'ค้างเก็บ'], ['done', 'เก็บครบ'], ['all', 'ทั้งหมด']].map(([k, l]) =>
+        React.createElement("button", { key: k, className: "chip" + (filter === k ? " on" : ""), onClick: () => setFilter(k) }, l + " (" + cnt[k] + ")"))),
+    withSt.length === 0
+      ? React.createElement("div", { className: "empty" },
+          React.createElement("div", { className: "empty-ic" }, React.createElement(Receipt, { size: 40 })),
+          React.createElement("div", { className: "empty-t" }, "ยังไม่มีบิล"),
+          React.createElement("div", { className: "empty-s" }, "กด สร้างบิล เพื่อเรียกเก็บเงินจากเพื่อน แอปจะสร้าง QR ตามยอดของแต่ละคนให้"))
+      : shown.length === 0
+        ? React.createElement("div", { className: "empty" }, React.createElement("div", { className: "empty-t" }, "ไม่มีบิลในกลุ่มนี้"))
+        : React.createElement("div", { className: "col-list" }, shown.map(({ b, st }) => React.createElement("button", { key: b.id, className: "bill-card" + (st.done ? " is-ok" : st.overdueDays ? " is-bad" : ""), onClick: () => setOpenId(b.id) },
+            React.createElement("div", { className: "col-av", style: { borderRadius: 14 } }, React.createElement(Receipt, { size: 22 })),
+            React.createElement("div", { className: "col-mid" },
+              React.createElement("div", { className: "col-name" }, b.name),
+              React.createElement("div", { className: "col-sub" }, "เก็บได้ " + st.nPaid + "/" + st.n + " คน · " + billDueLabel(b)),
+              React.createElement("span", { className: "col-pill" }, st.done ? "เก็บครบ" : st.overdueDays ? "เลยกำหนด " + st.overdueDays + " วัน" : "รอเก็บ")),
+            React.createElement("div", { className: "col-right" },
+              React.createElement("div", { className: "col-amt tabular-nums" }, "฿" + fmtMoney(st.done ? st.need : st.left)),
+              React.createElement("div", { className: "col-sub" }, st.done ? "ครบแล้ว" : "ค้างเก็บ"))))),
+    React.createElement("button", { className: "bill-fab", onClick: () => setForm('new'), "aria-label": "สร้างบิล" }, React.createElement(Plus, { size: 26 })),
+    formEl);
+}
+
 /* ---------- STEP 6: แท็บ "ประวัติการชำระ" ของวง ---------- */
 function ChitHistoryTab({ g, txs }) {
   const list = (txs || []).filter(t => !t.deleted && t.kind === 'chit' && t.groupId === g.id)
@@ -12362,6 +12691,7 @@ function migrateData(d) {
   if (!Array.isArray(out.chits)) out.chits = [];
   if (!Array.isArray(out.transactions)) out.transactions = [];
   if (!Array.isArray(out.audit)) out.audit = [];
+  if (!Array.isArray(out.bills)) out.bills = [];
   /* v3: payments ของเงินกู้ต้องเป็น object คีย์ด้วยเดือน (YYYY-MM)
      ข้อมูลเก่าบางชุดถูกเขียนเป็น array โดย applyTxEffect รุ่นก่อน — แปลงกลับให้ถูกรูปแบบ */
   out.debtors = out.debtors.map(db => {
@@ -12860,7 +13190,7 @@ function TxDetail({ tx, data, currentUser, onClose, onApprove, onReject, onSoftD
 }
 
 /* ---------- STEP 9-12: หน้า "ชำระเงิน" 3 แท็บ ---------- */
-function PayHubView({ data, currentUser, onAddTx, onApprove, onReject, onSoftDelete }) {
+function PayHubView({ data, currentUser, onAddTx, onApprove, onReject, onSoftDelete, onOpenBills }) {
   const [tab, setTab] = useState('new');
   const [flow, setFlow] = useState(false);
   const [cFilter, setCFilter] = useState('all');
@@ -12919,6 +13249,12 @@ function PayHubView({ data, currentUser, onAddTx, onApprove, onReject, onSoftDel
           React.createElement("div", { className: "col-bar" }, React.createElement("i", { style: { width: pct + '%' } })),
           React.createElement("div", { className: "col-sum-s tabular-nums" },
             "ยังต้องเก็บ ฿" + fmtMoney(Math.max(0, need - got)) + " · วันนี้ได้ ฿" + fmtMoney(sumToday))),
+        onOpenBills && React.createElement("button", { className: "calc-cta", style: { marginTop: 0, marginBottom: 10 }, onClick: onOpenBills },
+          React.createElement("span", { className: "qa-ic qa-green" }, React.createElement(Receipt, { size: 22 })),
+          React.createElement("span", { className: "calc-cta-t" },
+            React.createElement("b", null, "บิลเรียกเก็บ"),
+            React.createElement("small", null, (() => { const op = (data.bills || []).filter(b => !billStats(b).done); return op.length ? "ค้างเก็บ " + op.length + " บิล · ฿" + fmtMoney(op.reduce((a, b) => a + billStats(b).left, 0)) : "หารบิล ส่ง QR พร้อมเพย์เข้า LINE"; })())),
+          React.createElement("span", { className: "calc-cta-a" }, "›")),
         React.createElement("div", { className: "chips", style: { flexWrap: 'nowrap', overflowX: 'auto', scrollbarWidth: 'none' } },
           [['all', 'ทั้งหมด', items.length], ['overdue', 'ค้างชำระ', cnt('overdue')], ['wait', 'รอเก็บ', cnt('wait') + cnt('pending')], ['paid', 'จ่ายแล้ว', cnt('paid')]]
             .map(([k, l, n]) => React.createElement("button", { key: k, className: "chip" + (cFilter === k ? " on" : "") + (k === 'overdue' && n && cFilter !== k ? " chip-bad" : ""), onClick: () => setCFilter(k) }, l + " (" + n + ")"))),
@@ -13316,6 +13652,12 @@ function HomeView({ data, currentUser, onNav, onOpenNotif, notifCount }) {
     React.createElement("div", { className: "qa-grid" },
       Q('chits', Users, 'สร้างวง', 'blue'), Q('pay', Banknote, 'บันทึกชำระ', 'green'),
       Q('debtors', User, 'ลูกหนี้', 'amber'), Q('reports', TrendingUp, 'รายงาน', 'purple')),
+    React.createElement("button", { className: "calc-cta", onClick: () => onNav('bills') },
+      React.createElement("span", { className: "qa-ic qa-green" }, React.createElement(Receipt, { size: 22 })),
+      React.createElement("span", { className: "calc-cta-t" },
+        React.createElement("b", null, "สร้างบิลเรียกเก็บ"),
+        React.createElement("small", null, (() => { const op = (data.bills || []).filter(b => !billStats(b).done); return op.length ? "ค้างเก็บ " + op.length + " บิล · ฿" + fmtMoney(op.reduce((a, b) => a + billStats(b).left, 0)) : "หารบิล ส่ง QR พร้อมเพย์เข้า LINE"; })())),
+      React.createElement("span", { className: "calc-cta-a" }, "›")),
     React.createElement("button", { className: "calc-cta", onClick: () => onNav('calc') },
       React.createElement("span", { className: "qa-ic qa-blue" }, React.createElement(Calculator, { size: 22 })),
       React.createElement("span", { className: "calc-cta-t" },
@@ -13497,7 +13839,8 @@ function App() {
     users: [],
     chits: [],
     transactions: [],
-    audit: []
+    audit: [],
+    bills: []
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('dashboard');
@@ -14003,6 +14346,17 @@ function App() {
   const [memberName, setMemberName] = useState(null);
   /* ===== เฟส 2: ธุรกรรมชำระเงิน ===== */
   /* ===== บันทึกสัญญาและสารบัญเอกสารลงข้อมูลหลัก (เข้ารหัส + สำรองอัตโนมัติเหมือนข้อมูลอื่น) ===== */
+  const saveBill = React.useCallback(rec => {
+    setData(p => {
+      const list = (p.bills || []).slice();
+      const i = list.findIndex(b => b && b.id === rec.id);
+      if (i >= 0) list[i] = rec; else list.unshift(rec);
+      return { ...p, bills: list };
+    });
+  }, []);
+  const deleteBill = React.useCallback(id => {
+    setData(p => ({ ...p, bills: (p.bills || []).filter(b => b && b.id !== id) }));
+  }, []);
   const saveContract = React.useCallback(rec => {
     if (!rec || !rec.id) return;
     setData(p => {
@@ -14133,8 +14487,8 @@ function App() {
   }
   const selectedDebtor = visibleData.debtors.find(d => d.id === selectedId) || null;
   const TITLES = { dashboard: 'หน้าหลัก', portfolio: 'ภาพรวมพอร์ต', debtors: 'รายชื่อลูกหนี้',
-    settings: 'ตั้งค่า', users: 'จัดการผู้ใช้งาน', reports: 'รายงาน', reports_i: 'รายงานดอกเบี้ย',
-    calendar: 'ปฏิทิน', chits: 'วงแชร์', legal: 'สัญญา/เอกสาร', pay: 'ชำระเงิน',
+    settings: 'เพิ่มเติม', users: 'จัดการผู้ใช้งาน', reports: 'รายงาน', reports_i: 'รายงานดอกเบี้ย',
+    calendar: 'ปฏิทิน', chits: 'วงแชร์', legal: 'สัญญา/เอกสาร', pay: 'เก็บเงิน', bills: 'บิลเรียกเก็บ',
     audit: 'ประวัติการแก้ไข', calc: 'คำนวณ' };
   const headerTitle = TITLES[view] || '';
   return React.createElement("div", {
@@ -14224,9 +14578,16 @@ function App() {
   }), view === 'reports' && React.createElement(ReportHubView, {
     data: data,
     onOpenMember: n => setMemberName(n)
+  }), view === 'bills' && React.createElement(BillsView, {
+    data: data,
+    currentUser: currentUser,
+    onSave: saveBill,
+    onDelete: deleteBill,
+    onBack: () => setView('pay')
   }), view === 'pay' && React.createElement(PayHubView, {
     data: data,
     currentUser: currentUser,
+    onOpenBills: () => setView('bills'),
     onAddTx: addTx,
     onApprove: approveTx,
     onReject: rejectTx,
