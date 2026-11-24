@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<script>window.__BUILD__='finnote-v30-20261124a';</script>
+<script>window.__BUILD__='finnote-v31-20261124b';</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>FinNote</title>
@@ -1898,6 +1898,16 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
   .bill-prow { display: grid; grid-template-columns: 1fr 120px; gap: 8px; }
   .bill-pamt { display: flex; align-items: center; gap: 4px; } .bill-pamt span { color: var(--c-text-3); font-weight: 700; }
   .bill-pamt input[readonly] { background: var(--c-card-alt) !important; }
+  /* ===== รอบปรับใช้ง่ายทั้งแอป ===== */
+  .dd-root { display: flex; flex-direction: column; }
+  .more-root { display: flex; flex-direction: column; gap: 14px; }
+  .more-root > * { margin: 0 !important; }
+  .more-root .set-cat { margin-top: 6px !important; }
+  .sub-ic { display: inline-flex; align-items: center; justify-content: center; color: var(--c-primary-tx); background: var(--c-primary-soft); }
+  .hk-btn { text-align: left; cursor: pointer; font: inherit; width: 100%; }
+  .hk-s { font-size: 12px; color: var(--c-text-3); margin-top: 2px; }
+  .hdr-back { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; margin-left: -8px;
+    border-radius: 12px; border: none; background: rgba(255,255,255,.12); color: #fff; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -6115,12 +6125,7 @@ function CalendarView({ data, onBack, onOpenDebtor }) {
   const DOW = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
   return React.createElement("div", { className: "px-4 pt-3 page-pb" },
-    React.createElement("div", { className: "flex items-center gap-2 mb-4 mt-1" },
-      React.createElement("button", { onClick: onBack, className: "p-2 -ml-2 rounded-lg text-slate-500", style: { background: 'none', border: 'none' } },
-        React.createElement(ChevronLeft, { size: 22 })),
-      React.createElement("div", null,
-        React.createElement("h1", { className: "text-2xl font-bold text-slate-900 tracking-tight" }, "ปฏิทินครบกำหนด"),
-        React.createElement("div", { className: "text-slate-400 text-sm" }, "วันเก็บเงินของลูกหนี้"))),
+    React.createElement("div", { className: "mine-s", style: { margin: '2px 0 10px' } }, "วันครบกำหนดของลูกหนี้แต่ละคน"),
 
     /* เดือน navigation */
     React.createElement("div", { className: "wallet-panel", style: { marginBottom: '14px' } },
@@ -6217,15 +6222,7 @@ function ReportsView({ data, onBack }) {
   const diffPct = prevVal > 0 ? round2(diff / prevVal * 100) : 0;
 
   return React.createElement("div", { className: "px-4 pt-3 page-pb" },
-    /* header */
-    React.createElement("div", { className: "flex items-center gap-2 mb-4 mt-1" },
-      React.createElement("button", {
-        onClick: onBack,
-        className: "p-2 -ml-2 rounded-lg text-slate-500"
-      }, React.createElement(ChevronLeft, { size: 22 })),
-      React.createElement("div", null,
-        React.createElement("h1", { className: "text-2xl font-bold text-slate-900 tracking-tight" }, "รายงาน"),
-        React.createElement("div", { className: "text-slate-400 text-sm" }, "ดอกเบี้ยที่เก็บได้"))),
+    React.createElement("div", { className: "mine-s", style: { margin: '2px 0 10px' } }, "ดอกเบี้ยที่เก็บได้จากเงินกู้"),
 
     /* เดือนนี้ vs เดือนก่อน */
     React.createElement("div", { className: "wallet-hero", style: { marginBottom: '14px' } },
@@ -6366,11 +6363,11 @@ function DashboardView({
     style: { background: 'rgba(255,159,10,0.12)', color: 'var(--c-warning-tx)' }
   }, React.createElement("span", { className: "font-semibold" }, React.createElement(ShieldCheck, { size: 15 }), " อย่าลืมสำรองข้อมูล — "),
     lastExport ? "Export ล่าสุดเกิน 7 วันแล้ว" : "ยังไม่เคย Export เลย",
-    " ไปที่ ตั้งค่า › สำรองข้อมูล เพื่อดาวน์โหลดไฟล์เก็บไว้"), React.createElement("div", {
+    " ไปที่ เพิ่มเติม › สำรอง / กู้คืนข้อมูล เพื่อดาวน์โหลดไฟล์เก็บไว้"), React.createElement("div", {
     className: "flex items-center justify-between mb-4 mt-1"
   }, React.createElement("div", null, React.createElement("h1", {
     className: "text-3xl font-bold text-slate-900 tracking-tight"
-  }, "แดชบอร์ด"), React.createElement("div", {
+  }, "พอร์ตเงินกู้"), React.createElement("div", {
     className: "text-slate-400 text-sm"
   }, ymLabelFull(cur)))), React.createElement("div", {
     className: "wallet-hero"
@@ -6780,7 +6777,7 @@ function DebtorDetailView({
   };
   const notes = (debtor.notes || []).slice().sort((a, b) => b.ts - a.ts);
   return React.createElement("div", {
-    className: "page-pb"
+    className: "page-pb dd-root"
   }, React.createElement("div", {
     className: "px-4 pt-3 pb-6",
     style: {
@@ -6841,7 +6838,8 @@ function DebtorDetailView({
     const tl = paymentTimeline(debtor, cur);
     if (!tl.length) return null;
     return React.createElement("div", {
-      className: "px-4 mt-4"
+      className: "px-4 mt-4",
+      style: { order: 11 }
     }, React.createElement("div", {
       className: "wallet-sec"
     }, "ประวัติการชำระ"), React.createElement("div", {
@@ -6868,7 +6866,8 @@ function DebtorDetailView({
       }, note, t.count > 1 ? ` · ${t.count} ก้อน` : '')));
     })));
   })(), React.createElement("div", {
-    className: "px-4 mt-4"
+    className: "px-4 mt-4",
+    style: { order: 10 }
   }, React.createElement("div", { className: "wallet-sec" }, "โน้ต / ประวัติการทวง"),
   React.createElement("div", { className: "wallet-panel" },
     /* ช่องเพิ่มโน้ต */
@@ -7469,7 +7468,7 @@ function SettingsView({
   const users = (data.users || []).length;
   const isAdmin = currentUser?.role === 'admin';
   return React.createElement("div", {
-    className: "px-4 pt-4 page-pb space-y-4"
+    className: "px-4 pt-4 page-pb more-root"
   }, React.createElement("div", {
     className: "bg-white rounded-2xl border border-stone-200 p-4 shadow-sm"
   }, React.createElement("div", {
@@ -7603,29 +7602,28 @@ function SettingsView({
   }, "ไฟล์สำรองไม่มีข้อมูลผู้ใช้/รหัสผ่าน")), isAdmin && React.createElement(BackupCard, {
     data: data,
     onRestore: onRestore
-  }), React.createElement("div", { className: "set-cat" }, "วงแชร์และลูกหนี้"),
+  }), React.createElement("div", { className: "set-cat", style: { order: -3 } }, "เมนู"),
   React.createElement("div", {
-    className: "sub-menu"
-  }, React.createElement("div", { className: "sub-menu-h" }, "เมนูเพิ่มเติม"),
-    [['reports', '📊', 'รายงาน', 'สรุปยอดรับ ค้าง และดอกเบี้ย'],
-     ['bills', '🧾', 'บิลเรียกเก็บ', 'หารบิล ส่ง QR พร้อมเพย์เข้า LINE'],
-     ['debtors', '👤', 'ลูกหนี้', 'รายชื่อ เงินกู้ และการชำระ'],
-     ['portfolio', '📈', 'ภาพรวมพอร์ตเงินกู้', 'เงินต้นปล่อย ดอกเบี้ยที่เก็บได้'],
-     ['reports_i', '🧾', 'รายงานดอกเบี้ยรายเดือน', 'แยกรายเดือน/รายปี'],
-     ['calendar', '📅', 'ปฏิทินครบกำหนด', 'ดูว่าเดือนนี้ต้องเก็บใครบ้าง'],
-     ['calc', '🧮', 'เครื่องคิดเลขเงินกู้', 'ลองคำนวณก่อนปล่อยกู้'],
-     ['users', '👥', 'ผู้ใช้งานและสิทธิ์', 'เฉพาะผู้ดูแลระบบ'],
-     ['audit', '📋', 'ประวัติการแก้ไข', 'ตรวจย้อนหลังว่าใครทำอะไร']]
+    className: "sub-menu", style: { order: -3 }
+  },
+    [['reports', TrendingUp, 'รายงาน', 'เงินกู้ ดอกเบี้ยรายเดือน และวงแชร์'],
+     ['bills', Receipt, 'บิลเรียกเก็บ', 'หารบิล ส่ง QR พร้อมเพย์เข้า LINE'],
+     ['calendar', Calendar, 'ปฏิทินครบกำหนด', 'ดูว่าเดือนนี้ต้องเก็บใครบ้าง'],
+     ['calc', Calculator, 'เครื่องคิดเลขเงินกู้', 'ลองคำนวณก่อนปล่อยกู้'],
+     ['users', Users, 'ผู้ใช้งานและสิทธิ์', 'เฉพาะผู้ดูแลระบบ'],
+     ['audit', FileText, 'ประวัติการแก้ไข', 'ตรวจย้อนหลังว่าใครทำอะไร']]
       .filter(it => isAdmin || (it[0] !== 'users' && it[0] !== 'audit'))
       .map(it => React.createElement("button", {
         key: it[0], className: "sub-item", onClick: () => onNav && onNav(it[0])
-      }, React.createElement("span", { className: "sub-ic" }, it[1]),
+      }, React.createElement("span", { className: "sub-ic" }, React.createElement(it[1], { size: 20 })),
         React.createElement("span", { className: "sub-tx" },
           React.createElement("span", { className: "sub-t" }, it[2]),
           React.createElement("span", { className: "sub-s" }, it[3])),
         React.createElement("span", { className: "sub-ar" }, "›")))
-  ), React.createElement("div", { className: "set-cat" }, "การรับเงินและแจ้งเตือน"),
-  React.createElement(PromptPayCard, null), React.createElement(CollectDayPicker, null),
+  ), React.createElement("div", { className: "set-cat", style: { order: -2 } }, "การรับเงิน"),
+  React.createElement("div", { style: { order: -2 } }, React.createElement(PromptPayCard, null)),
+  React.createElement("div", { style: { order: -2 } }, React.createElement(CollectDayPicker, null)),
+  React.createElement("div", { className: "set-cat", style: { order: -1 } }, "บัญชีและข้อมูล"),
   React.createElement("div", { className: "set-cat" }, "ความปลอดภัย"), React.createElement(AuthToggle, null), React.createElement("div", {
     className: "bg-white rounded-2xl border border-stone-200 p-4 shadow-sm space-y-2"
   }, React.createElement(GhostBtn, {
@@ -13624,11 +13622,20 @@ function MonthBars({ monthly, months }) {
 /* ---------- STEP 4: หน้าหลักใหม่ ---------- */
 function HomeView({ data, currentUser, onNav, onOpenNotif, notifCount }) {
   const s = homeSummary(data);
+  const col = buildCollectList(data);
+  const colNeed = col.reduce((a, it) => a + it.due + (it.paid || 0), 0);
+  const colGot = col.reduce((a, it) => a + (it.paid || 0), 0);
+  const overdueItems = col.filter(it => it.status === 'overdue');
+  const overdueSum = overdueItems.reduce((a, it) => a + it.due, 0);
+  const openBills = (data.bills || []).filter(b => !billStats(b).done);
+  const billLeft = openBills.reduce((a, b) => a + billStats(b).left, 0);
+  const todo = col.filter(it => it.status === 'overdue' || it.status === 'wait').slice(0, 3);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'สวัสดีตอนเช้า' : hour < 18 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น';
-  const K = (label, value, tone) => React.createElement("div", { className: "hk hk-" + tone },
+  const K = (label, value, tone, go, sub) => React.createElement("button", { className: "hk hk-" + tone + " hk-btn", onClick: () => onNav(go) },
     React.createElement("div", { className: "hk-k" }, label),
-    React.createElement("div", { className: "hk-v tabular-nums" }, value));
+    React.createElement("div", { className: "hk-v tabular-nums" }, value),
+    sub ? React.createElement("div", { className: "hk-s" }, sub) : null);
   const Q = (id, Ic, label, tone) => React.createElement("button", { className: "qa", onClick: () => onNav(id) },
     React.createElement("span", { className: "qa-ic qa-" + tone }, React.createElement(Ic, { size: 22 })),
     React.createElement("span", { className: "qa-l" }, label));
@@ -13640,24 +13647,22 @@ function HomeView({ data, currentUser, onNav, onOpenNotif, notifCount }) {
       React.createElement("button", { className: "bell", onClick: onOpenNotif, "aria-label": "การแจ้งเตือน" }, React.createElement(Bell, { size: 22 }),
         notifCount > 0 ? React.createElement("span", { className: "bell-b" }, notifCount > 99 ? '99+' : notifCount) : null)),
     React.createElement("div", { className: "grid grid-cols-2 gap-2 mt-3" },
-      K('ต้องเก็บงวดนี้', '฿' + fmtMoney(s.dueToday), 'blue'),
-      K('วงที่กำลังติดตาม', s.activeGroups + ' วง', 'purple'),
-      K('เก็บได้ทั้งหมด', '฿' + fmtMoney(s.paidAll), 'green'),
-      K('ลูกหนี้ค้างชำระ', '฿' + fmtMoney(s.overdueSum), 'red')),
+      K('ต้องเก็บเดือนนี้', '฿' + fmtMoney(Math.max(0, colNeed - colGot)), 'blue', 'pay', 'จากทั้งหมด ฿' + fmtMoney(colNeed)),
+      K('เก็บได้เดือนนี้', '฿' + fmtMoney(colGot), 'green', 'pay', colNeed > 0 ? Math.round(colGot / colNeed * 100) + '%' : null),
+      K('ค้างชำระ (เลยรอบ)', '฿' + fmtMoney(s.overdueSum), 'red', 'debtors', overdueItems.length + ' คน'),
+      K('บิลค้างเก็บ', '฿' + fmtMoney(billLeft), 'purple', 'bills', openBills.length + ' บิล')),
     s.pending > 0 ? React.createElement("button", { className: "alert-bar", onClick: () => onNav('pay') },
       React.createElement(FileText, { size: 18, style: { flex: 'none' } }),
       React.createElement("span", { style: { flex: 1, textAlign: 'left' } }, "มี " + s.pending + " รายการรอตรวจสอบ"),
       React.createElement("span", null, "›")) : null,
     React.createElement("div", { className: "sec-h" }, "เมนูลัด"),
     React.createElement("div", { className: "qa-grid" },
-      Q('chits', Users, 'สร้างวง', 'blue'), Q('pay', Banknote, 'บันทึกชำระ', 'green'),
-      Q('debtors', User, 'ลูกหนี้', 'amber'), Q('reports', TrendingUp, 'รายงาน', 'purple')),
-    React.createElement("button", { className: "calc-cta", onClick: () => onNav('bills') },
-      React.createElement("span", { className: "qa-ic qa-green" }, React.createElement(Receipt, { size: 22 })),
-      React.createElement("span", { className: "calc-cta-t" },
-        React.createElement("b", null, "สร้างบิลเรียกเก็บ"),
-        React.createElement("small", null, (() => { const op = (data.bills || []).filter(b => !billStats(b).done); return op.length ? "ค้างเก็บ " + op.length + " บิล · ฿" + fmtMoney(op.reduce((a, b) => a + billStats(b).left, 0)) : "หารบิล ส่ง QR พร้อมเพย์เข้า LINE"; })())),
-      React.createElement("span", { className: "calc-cta-a" }, "›")),
+      Q('pay', Banknote, 'รับชำระ', 'green'), Q('bills', Receipt, 'สร้างบิล', 'blue'),
+      Q('chits', Wallet, 'วงแชร์', 'purple'), Q('reports', TrendingUp, 'รายงาน', 'amber')),
+    todo.length > 0 && React.createElement("div", { className: "sec-h", style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' } },
+      React.createElement("span", null, "ต้องเก็บ"),
+      React.createElement("button", { className: "qp-addnote", style: { minHeight: 32, margin: 0, fontSize: 14 }, onClick: () => onNav('pay') }, "ดูทั้งหมด ›")),
+    todo.length > 0 && React.createElement("div", { className: "col-list" }, todo.map(it => React.createElement(CollectRow, { key: it.key, it, onPay: () => onNav('pay') }))),
     React.createElement("button", { className: "calc-cta", onClick: () => onNav('calc') },
       React.createElement("span", { className: "qa-ic qa-blue" }, React.createElement(Calculator, { size: 22 })),
       React.createElement("span", { className: "calc-cta-t" },
@@ -13844,6 +13849,9 @@ function App() {
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState('dashboard');
+  const lastMainRef = useRef('dashboard');
+  const [reportTab, setReportTab] = useState('loan');
+  useEffect(() => { if (['dashboard', 'debtors', 'pay', 'chits', 'settings', 'reports'].indexOf(view) >= 0) lastMainRef.current = view; }, [view]);
   const [selectedId, setSelectedId] = useState(null);
   const [warn, setWarn] = useState(false);
   const [calcInitName, setCalcInitName] = useState('');
@@ -14468,11 +14476,12 @@ function App() {
         window.location.reload();
       }
     }), React.createElement("div", {
-      className: "text-center pt-3"
+      className: "text-center",
+      style: { position: 'fixed', left: 0, right: 0, bottom: 'calc(14px + env(safe-area-inset-bottom))', zIndex: 5 }
     }, React.createElement("button", {
       onClick: () => setShowRecovery(true),
       className: "text-xs font-semibold underline",
-      style: { color: 'var(--c-text-2)', background: 'none', border: 'none', cursor: 'pointer' }
+      style: { color: 'rgba(255,255,255,.85)', background: 'none', border: 'none', cursor: 'pointer', minHeight: 40 }
     }, "ข้อมูลหาย? กู้คืนข้อมูลที่นี่")), React.createElement(LoginScreen, {
       users: data.users || [],
       onReset: resetPassword,
@@ -14486,9 +14495,12 @@ function App() {
     }));
   }
   const selectedDebtor = visibleData.debtors.find(d => d.id === selectedId) || null;
+  const SUB_VIEWS = ['portfolio', 'reports_i', 'calendar', 'calc', 'audit', 'bills'];
+  const isSub = SUB_VIEWS.indexOf(view) >= 0;
+  const goBack = () => setView(lastMainRef.current || 'dashboard');
   const TITLES = { dashboard: 'หน้าหลัก', portfolio: 'ภาพรวมพอร์ต', debtors: 'รายชื่อลูกหนี้',
     settings: 'เพิ่มเติม', users: 'จัดการผู้ใช้งาน', reports: 'รายงาน', reports_i: 'รายงานดอกเบี้ย',
-    calendar: 'ปฏิทิน', chits: 'วงแชร์', legal: 'สัญญา/เอกสาร', pay: 'เก็บเงิน', bills: 'บิลเรียกเก็บ',
+    calendar: 'ปฏิทินครบกำหนด', chits: 'วงแชร์', legal: 'สัญญา/เอกสาร', pay: 'เก็บเงิน', bills: 'บิลเรียกเก็บ',
     audit: 'ประวัติการแก้ไข', calc: 'คำนวณ' };
   const headerTitle = TITLES[view] || '';
   return React.createElement("div", {
@@ -14502,11 +14514,13 @@ function App() {
     }
   }, React.createElement("div", {
     className: "flex items-center justify-between"
-  }, React.createElement("div", null, React.createElement("div", {
+  }, React.createElement("div", { className: "flex items-center gap-2" }, isSub && React.createElement("button", {
+    onClick: goBack, className: "hdr-back", "aria-label": "ย้อนกลับ"
+  }, React.createElement(ChevronLeft, { size: 24 })), React.createElement("div", null, React.createElement("div", {
     className: "text-cyan-200/70 text-xs"
   }, "FinNote"), React.createElement("h1", {
     className: "text-white text-xl font-bold"
-  }, headerTitle)), React.createElement("div", {
+  }, headerTitle))), React.createElement("div", {
     className: "flex items-center gap-2"
   }, React.createElement("div", {
     className: "h-9 w-9 rounded-full bg-white/10 ring-1 ring-white/20 flex items-center justify-center text-white text-sm font-semibold"
@@ -14568,22 +14582,33 @@ function App() {
     initName: calcInitName
   }), view === 'reports_i' && React.createElement(ReportsView, {
     data: visibleData,
-    onBack: () => setView('dashboard')
+    onBack: goBack
   }), view === 'dashboard' && React.createElement(HomeView, {
     data: data,
     currentUser: currentUser,
     onNav: v => setView(v),
     onOpenNotif: () => setNotifOpen(true),
     notifCount: buildNotifications(data, currentUser).length
-  }), view === 'reports' && React.createElement(ReportHubView, {
-    data: data,
-    onOpenMember: n => setMemberName(n)
-  }), view === 'bills' && React.createElement(BillsView, {
+  }), view === 'reports' && React.createElement("div", null,
+    React.createElement("div", { className: "px-4 pt-3" },
+      React.createElement("div", { className: "bill-seg" },
+        [['loan', 'เงินกู้'], ['interest', 'ดอกเบี้ยรายเดือน'], ['chit', 'วงแชร์']].map(([k, l]) =>
+          React.createElement("button", { key: k, className: "bill-seg-b" + (reportTab === k ? " on" : ""), onClick: () => setReportTab(k) }, l)))),
+    reportTab === 'loan' && React.createElement(DashboardView, {
+      data: visibleData,
+      onOpenDebtor: id => { setSelectedId(id); setView('debtor'); },
+      onOpenReports: () => setReportTab('interest'),
+      onOpenCalendar: () => setView('calendar')
+    }),
+    reportTab === 'interest' && React.createElement(ReportsView, { data: visibleData, onBack: () => setReportTab('loan') }),
+    reportTab === 'chit' && React.createElement(ReportHubView, {
+      data: data,
+      onOpenMember: n => setMemberName(n)
+    })), view === 'bills' && React.createElement(BillsView, {
     data: data,
     currentUser: currentUser,
     onSave: saveBill,
-    onDelete: deleteBill,
-    onBack: () => setView('pay')
+    onDelete: deleteBill
   }), view === 'pay' && React.createElement(PayHubView, {
     data: data,
     currentUser: currentUser,
@@ -14605,7 +14630,7 @@ function App() {
     onUpdate: (list) => setData(p => ({ ...p, chits: list }))
   }), view === 'calendar' && React.createElement(CalendarView, {
     data: visibleData,
-    onBack: () => setView('dashboard'),
+    onBack: goBack,
     onOpenDebtor: id => { setSelectedId(id); setView('debtor'); }
   }), view === 'legal' && (currentUser?.role === 'admin' ? React.createElement(LegalView, {
     debtor: selectedDebtor,
